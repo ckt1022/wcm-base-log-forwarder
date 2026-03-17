@@ -1,0 +1,52 @@
+1.cargo build
+2.go run ../abc.go -rate 5000 -duration 120 | target/debug/wasm-base-log-forwarder
+
+
+// 優化方向
+wasmtime config 使用方法
+Config 是 Wasmtime Engine 的全域設定物件。
+它是用來在建立 Engine 前，決定：
+用哪個 compiler（Cranelift / Winch）
+啟用哪些 WebAssembly proposal / feature
+執行時如何配置記憶體、stack、allocator
+是否支援 fuel / epoch interruption / profiling / cache / debug
+是否允許 GC / component model / threads / shared memory
+是否使用 pooling allocator、memory guard、copy-on-write 初始化等
+也就是說，Config 是 建立 Wasmtime 執行環境的總開關面板。
+
+1.編譯策略 strategy(Strategy::Cranelift)   //執行速度快、品質好
+2.cranelift_opt_level(speed)
+3.cranelift_pcc(bool)                     //對生成碼做額外的安全驗證，特別是 sandbox 邊界相關。
+                                        //更有機會防止 compiler lowering bug 造成安全問題。提高 generated code 的安全可信度。
+debug                                    
+4.wasm_backtrace(true)                    //trap 或 hostcall error 發生時，附加 Wasm stack backtrace。
+wasm_backtrace_details(true)               //控制 backtrace 要不要再進一步解析出檔名、行號。
+
+consume_fuel(bool) //燃料
+wasm_component_model_gc(bool)
+gc_support(bool)
+
+memory_init_cow(bool)
+
+with_host_memory(...)
+實際作用
+
+讓你接管 Wasmtime 建 linear memory 的方式。
+
+適合
+
+特殊記憶體管理需求
+嵌入式
+自訂 allocator / page 管理
+
+allocation_strategy(...)
+Pooling(...)
+max_unused_warm_slots(n)
+async_stack_keep_resident(size)
+total_component_instances(count)
+max_memories_per_component(1)
+total_gc_heaps(count)
+
+如果你要的是「牆鐘時間超過就中斷」，實務上通常這樣做：
+同步執行：開 epoch_interruption(true)，另外用一個 timer/thread 週期性呼叫 Engine::increment_epoch()；
+Store 設 epoch deadline，超過就 trap。這是 Wasmtime 官方設計給「長時間跑太久要打斷」的主要機制。
