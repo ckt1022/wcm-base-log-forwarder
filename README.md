@@ -19,7 +19,7 @@ cargo build
 Use the following command to pipe logs into the forwarder:
 
 ```bash
-go run ../abc.go -rate 5000 -duration 120 | target/debug/wasm-base-log-forwarder
+go run ../abc.go -rate 5000 -duration 120 | target/debug/wcm-base-log-forwarder
 ```
 
 ---

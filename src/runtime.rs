@@ -126,10 +126,14 @@ fn process_batch(
             .build(),
     };
 
+    // Engine是共用的，每個instance都用同個engine產生instance
+    // Store是每個instance各自有的，每次用完刪除。
     let mut store = Store::new(engine, state);
     store.limiter(|s| &mut s.limiter);
 
+    let t0 = Instant::now();
     let plugin = ParserPlugin::instantiate(&mut store, component, linker)?;
+    let init_ms = t0.elapsed();
 
     let count = batch.len();
     let batch_bytes = batch.bytes;
@@ -140,6 +144,7 @@ fn process_batch(
             let elapsed = started.elapsed();
             let mem_peak = plugin.call_report_usage(&mut store).unwrap_or(0);
 
+            //println!("結果:{} {} ",entries[0].message,entries[3].timestamp);
             print_flush_header(batch_seq, batch, reason);
             print_batch_report(BatchReport {
                 batch_seq,
@@ -159,7 +164,11 @@ fn process_batch(
             return Err(e);
         }
     }
-
+    let parse_ms = started.elapsed();
+    eprintln!("init={:.2}ms parse={:.2}ms", 
+        init_ms.as_secs_f64() * 1000.0,
+        parse_ms.as_secs_f64() * 1000.0
+    );
     batch.clear();
     Ok(())
 }
