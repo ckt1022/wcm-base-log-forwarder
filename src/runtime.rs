@@ -1,4 +1,5 @@
-use std::sync::mpsc::{Receiver, RecvTimeoutError};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender};
+use std::thread;
 use std::time::Instant;
 
 use wasmtime::{
@@ -7,23 +8,73 @@ use wasmtime::{
 };
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
 
-use crate::app::{MyLimiter, MyState, ParserPlugin};
-use crate::config::{Batch, BatchConfig, BatchReport, FlushReason, LineItem};
-use crate::output::{print_batch_report, print_flush_header};
+use crate::app::{
+    format_bindings::FormatPlugin,
+    local::log_process::pipeline_process::LogEntry,
+    MyLimiter, MyState, ParserPlugin,
+};
+use crate::config::{Batch, BatchConfig, FlushReason, FormatStats, LineItem, ParseStats};
+use crate::output::{print_flush_header, print_format_batch, print_parse_batch, print_pipeline_summary};
 
-pub fn run_batch_loop(
-    rx: &Receiver<LineItem>,
-    engine: &Engine,
-    component: &Component,
-    linker: &Linker<MyState>,
+// 從 parse 送往 format 的批次資料
+struct ParsedBatch {
+    entries: Vec<LogEntry>,
+    seq: u64,
+}
+
+// ── 對外入口 ─────────────────────────────────────────────────────────────
+
+/// Pipeline 入口：
+///   stdin → parse thread → channel<ParsedBatch> → format loop (main thread) → println!
+pub fn run_pipeline(
+    rx_raw: Receiver<LineItem>,
+    engine_parse: Engine,
+    cmp_parse: Component,
+    lnk_parse: Linker<MyState>,
+    engine_fmt: &Engine,
+    cmp_fmt: &Component,
+    lnk_fmt: &Linker<MyState>,
     cfg: BatchConfig,
 ) -> wasmtime::Result<()> {
-    let mut batch = Batch::new();
-    let mut batch_seq: u64 = 0;
-    let mut total_input_lines: u64 = 0;
-
     let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
+
+    // channel 容量設小（32 batch）：避免 parse 跑太快把大量 LogEntry 堆在記憶體
+    let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(32);
+
+    let wall_start = Instant::now();
+
+    // Parse 在獨立 thread 執行
+    let parse_handle = thread::spawn(move || {
+        parse_loop(rx_raw, tx_parsed, engine_parse, cmp_parse, lnk_parse, cfg, mem_limit_bytes)
+    });
+
+    // Format 在主 thread 執行（可借用 engine_fmt/cmp_fmt/lnk_fmt）
+    let fmt_stats = format_loop(rx_parsed, engine_fmt, cmp_fmt, lnk_fmt, mem_limit_bytes)?;
+
+    let wall_elapsed = wall_start.elapsed();
+
+    let parse_stats = parse_handle.join().expect("parse thread panicked")?;
+
+    print_pipeline_summary(&parse_stats, &fmt_stats, wall_elapsed, mem_limit_bytes);
+
+    Ok(())
+}
+
+// ── Parse Loop ───────────────────────────────────────────────────────────
+
+fn parse_loop(
+    rx: Receiver<LineItem>,
+    tx: SyncSender<ParsedBatch>,
+    engine: Engine,
+    component: Component,
+    linker: Linker<MyState>,
+    cfg: BatchConfig,
+    mem_limit_bytes: usize,
+) -> wasmtime::Result<ParseStats> {
+    let mut batch = Batch::new();
+    let mut seq: u64 = 0;
     let safe_data_budget = (mem_limit_bytes as f64 * cfg.safe_data_ratio) as usize;
+    let mut stats = ParseStats::default();
 
     loop {
         let timeout = if batch.is_empty() {
@@ -35,146 +86,167 @@ pub fn run_batch_loop(
         match rx.recv_timeout(timeout) {
             Ok(item) => {
                 let line_len = item.bytes.len();
-                let size_trigger = !batch.is_empty() && batch.bytes + line_len > safe_data_budget;
-                let line_trigger = !batch.is_empty() && batch.len() >= cfg.max_batch_lines;
+                let size_trigger =
+                    !batch.is_empty() && batch.bytes + line_len > safe_data_budget;
+                let line_trigger =
+                    !batch.is_empty() && batch.len() >= cfg.max_batch_lines;
 
                 if size_trigger || line_trigger {
-                    let processed = batch.len() as u64;
-                    process_batch(
-                        engine,
-                        linker,
-                        component,
-                        &mut batch,
-                        batch_seq,
-                        mem_limit_bytes,
-                        FlushReason {
-                            size: size_trigger,
-                            time: false,
-                            line_count: line_trigger,
-                            eof: false,
-                        },
-                    )?;
-                    total_input_lines += processed;
-                    batch_seq += 1;
+                    let reason = FlushReason {
+                        size: size_trigger, time: false,
+                        line_count: line_trigger, eof: false,
+                    };
+                    if let Some(pb) = do_parse_batch(&engine, &component, &linker, &mut batch, seq, mem_limit_bytes, reason, &mut stats)? {
+                        if tx.send(pb).is_err() { break; }
+                    }
+                    seq += 1;
                 }
-
                 batch.push(item.bytes);
             }
             Err(RecvTimeoutError::Timeout) => {
                 if !batch.is_empty() {
-                    let processed = batch.len() as u64;
-                    process_batch(
-                        engine,
-                        linker,
-                        component,
-                        &mut batch,
-                        batch_seq,
-                        mem_limit_bytes,
-                        FlushReason {
-                            size: false,
-                            time: true,
-                            line_count: false,
-                            eof: false,
-                        },
-                    )?;
-                    total_input_lines += processed;
-                    batch_seq += 1;
+                    let reason = FlushReason { size: false, time: true, line_count: false, eof: false };
+                    if let Some(pb) = do_parse_batch(&engine, &component, &linker, &mut batch, seq, mem_limit_bytes, reason, &mut stats)? {
+                        if tx.send(pb).is_err() { break; }
+                    }
+                    seq += 1;
                 }
             }
             Err(RecvTimeoutError::Disconnected) => {
                 if !batch.is_empty() {
-                    let processed = batch.len() as u64;
-                    process_batch(
-                        engine,
-                        linker,
-                        component,
-                        &mut batch,
-                        batch_seq,
-                        mem_limit_bytes,
-                        FlushReason {
-                            size: false,
-                            time: false,
-                            line_count: false,
-                            eof: true,
-                        },
-                    )?;
-                    total_input_lines += processed;
+                    let reason = FlushReason { size: false, time: false, line_count: false, eof: true };
+                    if let Some(pb) = do_parse_batch(&engine, &component, &linker, &mut batch, seq, mem_limit_bytes, reason, &mut stats)? {
+                        let _ = tx.send(pb);
+                    }
                 }
-                println!("[done] total_lines_processed={}", total_input_lines);
                 break;
             }
         }
     }
 
-    Ok(())
+    Ok(stats)
 }
 
-fn process_batch(
+fn do_parse_batch(
     engine: &Engine,
-    linker: &Linker<MyState>,
     component: &Component,
+    linker: &Linker<MyState>,
     batch: &mut Batch,
-    batch_seq: u64,
+    seq: u64,
     mem_limit_bytes: usize,
     reason: FlushReason,
-) -> wasmtime::Result<()> {
+    stats: &mut ParseStats,
+) -> wasmtime::Result<Option<ParsedBatch>> {
     let state = MyState {
         ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
         table: ResourceTable::new(),
-        // MyLimiter 取代原本的 StoreLimits，新增 WASM 線性記憶體峰值追蹤
         limiter: MyLimiter::new(mem_limit_bytes),
     };
-
-    // Engine是共用的，每個instance都用同個engine產生instance
-    // Store是每個instance各自有的，每次用完刪除。
     let mut store = Store::new(engine, state);
     store.limiter(|s| &mut s.limiter);
 
-    let t0 = Instant::now();
     let plugin = ParserPlugin::instantiate(&mut store, component, linker)?;
-    let init_ms = t0.elapsed();
 
-    let count = batch.len();
-    let batch_bytes = batch.bytes;
+    let input_lines = batch.len();
+    let input_bytes = batch.bytes;
     let started = Instant::now();
 
-    match plugin.call_parse(&mut store, &batch.lines) {
+    let result = match plugin.call_parse(&mut store, &batch.lines) {
         Ok(Ok(entries)) => {
             let elapsed = started.elapsed();
-
-            // Go heap 峰值（HeapInuse）：plugin 內部 samplePeakMem() 採樣所得
-            // 範圍：僅 Go runtime heap，不含 stacks 等，低於實際 WASM 線性記憶體
             let go_heap_peak = plugin.call_report_usage(&mut store).unwrap_or(0);
+            let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
 
-            // WASM 線性記憶體峰值：由 host 端 MyLimiter 在每次 memory.grow 時記錄
-            // 範圍：完整 WASM 線性記憶體（含 Go runtime 所有開銷），最準確的記憶體指標
-            let wasm_linear_mem_peak = store.data().limiter.wasm_mem_peak;
+            print_flush_header(seq, batch, reason);
+            print_parse_batch(seq, input_lines, input_bytes, entries.len(),
+                              go_heap_peak, wasm_mem_peak, mem_limit_bytes, elapsed);
 
-            print_flush_header(batch_seq, batch, reason);
-            print_batch_report(BatchReport {
-                batch_seq,
-                input_lines: count,
-                input_bytes: batch_bytes,
-                output_lines: entries.len(),
-                go_heap_peak,
-                wasm_linear_mem_peak,
-                mem_limit_bytes,
-                elapsed,
-            });
+            stats.total_batches += 1;
+            stats.total_input_lines += input_lines as u64;
+            stats.total_input_bytes += input_bytes as u64;
+            stats.total_output_entries += entries.len() as u64;
+            stats.total_elapsed += elapsed;
+            if go_heap_peak > stats.go_heap_peak_max { stats.go_heap_peak_max = go_heap_peak; }
+            if wasm_mem_peak > stats.wasm_mem_peak_max { stats.wasm_mem_peak_max = wasm_mem_peak; }
+
+            Some(ParsedBatch { entries, seq })
         }
         Ok(Err(e)) => {
-            eprintln!("[wasm-logic-error] batch={} error={e:?}", batch_seq);
+            eprintln!("[parse-error] batch={} {:?}", seq, e);
+            None
         }
         Err(e) => {
-            eprintln!("\n!!! [CRITICAL] Memory Overflow at Batch #{} !!!", batch_seq);
+            eprintln!("[parse-oom] batch={}", seq);
+            batch.clear();
             return Err(e);
         }
-    }
-    let parse_ms = started.elapsed();
-    eprintln!("init={:.2}ms parse={:.2}ms", 
-        init_ms.as_secs_f64() * 1000.0,
-        parse_ms.as_secs_f64() * 1000.0
-    );
+    };
+
     batch.clear();
-    Ok(())
+    Ok(result)
+}
+
+// ── Format Loop ──────────────────────────────────────────────────────────
+
+fn format_loop(
+    rx: Receiver<ParsedBatch>,
+    engine: &Engine,
+    component: &Component,
+    linker: &Linker<MyState>,
+    mem_limit_bytes: usize,
+) -> wasmtime::Result<FormatStats> {
+    let mut stats = FormatStats::default();
+
+    loop {
+        match rx.recv() {
+            Ok(pb) => {
+                let state = MyState {
+                    ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+                    table: ResourceTable::new(),
+                    limiter: MyLimiter::new(mem_limit_bytes),
+                };
+                let mut store = Store::new(engine, state);
+                store.limiter(|s| &mut s.limiter);
+
+                let plugin = FormatPlugin::instantiate(&mut store, component, linker)?;
+
+                let entry_count = pb.entries.len();
+                let started = Instant::now();
+
+                match plugin.call_format(&mut store, &pb.entries) {
+                    Ok(Ok(lines)) => {
+                        let elapsed = started.elapsed();
+                        let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+
+                        print_format_batch(pb.seq, entry_count, lines.len(),
+                                           wasm_mem_peak, mem_limit_bytes, elapsed);
+
+                        for line_bytes in &lines {
+                            match std::str::from_utf8(line_bytes) {
+                                Ok(s) => (),
+                                Err(_) => eprintln!("[format-warn] batch={} non-utf8 skipped", pb.seq),
+                            }
+                        }
+
+                        stats.total_batches += 1;
+                        stats.total_input_entries += entry_count as u64;
+                        stats.total_output_lines += lines.len() as u64;
+                        stats.total_elapsed += elapsed;
+                        if wasm_mem_peak > stats.wasm_mem_peak_max {
+                            stats.wasm_mem_peak_max = wasm_mem_peak;
+                        }
+                    }
+                    Ok(Err(_)) => {
+                        eprintln!("[format-error] batch={}", pb.seq);
+                    }
+                    Err(e) => {
+                        eprintln!("[format-oom] batch={}: {:?}", pb.seq, e);
+                    }
+                }
+            }
+            Err(_) => break, // channel 關閉，parse thread 已結束
+        }
+    }
+
+    Ok(stats)
 }

@@ -1,0 +1,39 @@
+package local:log-process-format;
+
+interface pipeline-process {
+    /// 定義解析後的結構化日誌紀錄
+    record log-entry {
+        /// 建議使用 u64 納秒時間戳以提升效能，若維持 string 則由插件負責解析格式
+        timestamp: string,
+        level: log-level,
+        message: string,
+        /// 額外的標籤，使用鍵值對表示
+        tags: list<tuple<string, string>>,
+    }
+
+    /// 日誌層級 (已擴展為標準 syslog 七級規範)
+    enum log-level {
+        debug,
+        info,
+        warn,
+        error,
+        crit,
+        alert,
+        emerg,
+    }
+
+    /// 解析錯誤的類型
+    variant parse-error {
+        invalid-format(string),
+        unsupported-version(u16),
+        corrupted-data,
+    }
+}
+
+world format-plugin {
+    include wasi:cli/imports@0.2.0;
+    use pipeline-process.{log-entry};
+
+    /// 優化：回傳 list<list<u8>>，讓每一條結構化日誌對應一個獨立的編碼後 byte 陣列
+    export format: func(struct-data: list<log-entry>) -> result<list<list<u8>>>;
+}

@@ -1,0 +1,43 @@
+// Host-side view of log_plugin.wit.
+// `include wasi:cli/imports@0.2.0` 由 wasmtime_wasi::p2::add_to_linker_sync 在 runtime 注入，
+// bindgen! 不需要感知，因此此檔案刪除該行。
+// 型別定義與函數簽名必須與插件編譯時使用的 WIT 完全一致。
+package local:log-process;
+
+interface pipeline-process {
+    record log-entry {
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+    }
+
+    enum log-level {
+        debug,
+        info,
+        warn,
+        error,
+        crit,
+        alert,
+        emerg,
+    }
+
+    variant parse-error {
+        invalid-format(string),
+        unsupported-version(u16),
+        corrupted-data,
+    }
+}
+
+world parser-plugin {
+    use pipeline-process.{log-entry, parse-error};
+
+    export parse: func(raw-data: list<list<u8>>) -> result<list<log-entry>, parse-error>;
+    export report-usage: func() -> u64;
+}
+
+world format-plugin {
+    use pipeline-process.{log-entry};
+
+    export format: func(struct-data: list<log-entry>) -> result<list<list<u8>>>;
+}

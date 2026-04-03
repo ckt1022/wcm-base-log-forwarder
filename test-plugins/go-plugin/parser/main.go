@@ -71,7 +71,7 @@ func Parse(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorSha
 
 		// ② 主分配點採樣：json.Unmarshal 為 loop 內最大分配（臨時 struct + map）
 		// 必須在 loop 內採樣，否則 GC 可能在 loop 結束後 sweep，導致漏掉峰值
-		samplePeakMem()
+		//samplePeakMem()
 
 		// [修正] 正確對應 JSON level 字串至 WIT LogLevel enum
 		// 原本：永遠填 parseprocess.LogLevelDebug，忽略實際 level 值
