@@ -13,8 +13,8 @@ impl Default for BatchConfig {
     fn default() -> Self {
         Self {
             mem_limit_mb: 64,
-            safe_data_ratio: 0.6,
-            max_wait: Duration::from_millis(1000),
+            safe_data_ratio: 0.3,
+            max_wait: Duration::from_millis(250),
             max_batch_lines: 50_000,
             channel_capacity: 25_000,
         }
@@ -76,7 +76,12 @@ pub struct BatchReport {
     pub input_lines: usize,
     pub input_bytes: usize,
     pub output_lines: usize,
-    pub mem_alloc: u64,
+    /// Go runtime heap 峰值（HeapInuse），由 plugin 內 ReportUsage() 回傳。
+    /// 範圍：僅 Go heap，不含 goroutine stacks 等，< 實際 WASM 線性記憶體。
+    pub go_heap_peak: u64,
+    /// WASM 線性記憶體峰值，由 host 端 MyLimiter 在 memory.grow 時追蹤。
+    /// 範圍：完整 WASM 線性記憶體（含 Go runtime 所有開銷），最準確的記憶體指標。
+    pub wasm_linear_mem_peak: usize,
     pub mem_limit_bytes: usize,
     pub elapsed: Duration,
 }

@@ -19,9 +19,9 @@ RESULTS_DIR="$PROJECT_ROOT/tools/bench/results"
 
 RATES=(1000 5000 10000 20000)   # logs/sec
 MODES=("simple" "complex")      # 格式複雜度
-RUNS=5                          # 每組重複次數
-DURATION=30                     # 每次跑幾秒
-WARMUP=3                        # warmup 秒數（不計入）
+RUNS=2                          # 每組重複次數
+DURATION=12                     # 每次跑幾秒
+WARMUP=2                        # warmup 秒數（不計入）
 
 mkdir -p "$RESULTS_DIR"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -82,7 +82,7 @@ for MODE in "${MODES[@]}"; do
             # 正式跑：forwarder stderr → fwd file，time stderr → raw file
             /usr/bin/time -v bash -c "
                 go run '$GEN' -rate '$RATE' -duration '$DURATION' -mode '$MODE' 2>/dev/null \
-                    | '$BINARY' 2>'$FWD_FILE' > /dev/null
+                    | '$BINARY' > '$FWD_FILE' 2>>'$FWD_FILE'
             " 2>"$RAW_FILE"
 
             parse_time_output "$RAW_FILE"

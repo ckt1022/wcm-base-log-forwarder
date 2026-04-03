@@ -7,7 +7,7 @@ use wasmtime::{
 };
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
 
-use crate::app::{MyState, ParserPlugin};
+use crate::app::{MyLimiter, MyState, ParserPlugin};
 use crate::config::{Batch, BatchConfig, BatchReport, FlushReason, LineItem};
 use crate::output::{print_batch_report, print_flush_header};
 
@@ -121,9 +121,8 @@ fn process_batch(
     let state = MyState {
         ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
         table: ResourceTable::new(),
-        limiter: wasmtime::StoreLimitsBuilder::new()
-            .memory_size(mem_limit_bytes)
-            .build(),
+        // MyLimiter 取代原本的 StoreLimits，新增 WASM 線性記憶體峰值追蹤
+        limiter: MyLimiter::new(mem_limit_bytes),
     };
 
     // Engine是共用的，每個instance都用同個engine產生instance
@@ -142,16 +141,23 @@ fn process_batch(
     match plugin.call_parse(&mut store, &batch.lines) {
         Ok(Ok(entries)) => {
             let elapsed = started.elapsed();
-            let mem_peak = plugin.call_report_usage(&mut store).unwrap_or(0);
 
-            //println!("結果:{} {} ",entries[0].message,entries[3].timestamp);
+            // Go heap 峰值（HeapInuse）：plugin 內部 samplePeakMem() 採樣所得
+            // 範圍：僅 Go runtime heap，不含 stacks 等，低於實際 WASM 線性記憶體
+            let go_heap_peak = plugin.call_report_usage(&mut store).unwrap_or(0);
+
+            // WASM 線性記憶體峰值：由 host 端 MyLimiter 在每次 memory.grow 時記錄
+            // 範圍：完整 WASM 線性記憶體（含 Go runtime 所有開銷），最準確的記憶體指標
+            let wasm_linear_mem_peak = store.data().limiter.wasm_mem_peak;
+
             print_flush_header(batch_seq, batch, reason);
             print_batch_report(BatchReport {
                 batch_seq,
                 input_lines: count,
                 input_bytes: batch_bytes,
                 output_lines: entries.len(),
-                mem_alloc: mem_peak,
+                go_heap_peak,
+                wasm_linear_mem_peak,
                 mem_limit_bytes,
                 elapsed,
             });

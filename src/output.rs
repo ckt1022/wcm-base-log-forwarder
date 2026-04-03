@@ -12,7 +12,9 @@ pub fn print_startup(cfg: BatchConfig, safe_data_budget: usize) {
 }
 
 pub fn print_batch_report(r: BatchReport) {
-    let mem_ratio = (r.mem_alloc as f64 / r.mem_limit_bytes as f64) * 100.0;
+    // wasm_linear_mem_peak 是最準確的記憶體指標（host 端 MyLimiter 追蹤）
+    // 用此值計算記憶體使用率，反映實際 WASM 線性記憶體對上限的壓力
+    let wasm_mem_ratio = (r.wasm_linear_mem_peak as f64 / r.mem_limit_bytes as f64) * 100.0;
     let elapsed_secs = r.elapsed.as_secs_f64();
     let throughput = if elapsed_secs > 0.0 {
         r.output_lines as f64 / elapsed_secs
@@ -21,13 +23,15 @@ pub fn print_batch_report(r: BatchReport) {
     };
 
     println!(
-        "Batch #{}: In={} lines/{}B, Out={} lines, PeakMem={}B ({:.2}%), Time={:.2}ms",
+        "Batch #{}: In={} lines/{}B, Out={} lines | \
+         GoHeap(peak)={}KB | WasmLinear(peak)={}KB ({:.2}%) | Time={:.2}ms",
         r.batch_seq,
         r.input_lines,
         r.input_bytes,
         r.output_lines,
-        r.mem_alloc,
-        mem_ratio,
+        r.go_heap_peak / 1024,          // Go heap 峰值（HeapInuse，plugin 回報）
+        r.wasm_linear_mem_peak / 1024,  // WASM 線性記憶體峰值（host 端追蹤，最準確）
+        wasm_mem_ratio,
         r.elapsed.as_secs_f64() * 1000.0
     );
     println!("吞吐量: {:.2} lines/s", throughput);

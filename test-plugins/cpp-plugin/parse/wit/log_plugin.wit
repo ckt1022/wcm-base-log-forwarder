@@ -1,0 +1,92 @@
+package local:log-process;
+
+// // // // // // // // // // // // // // //
+interface parse-process {
+    /// 定義解析後的結構化日誌紀錄
+    record log-entry {
+        /// 建議使用 u64 納秒時間戳以提升效能，若維持 string 則由插件負責解析格式
+        timestamp: string,
+        level: log-level,
+        message: string,
+        /// 額外的標籤，使用鍵值對表示
+        tags: list<tuple<string, string>>,
+    }
+
+    /// 日誌層級 (已擴展為標準 syslog 七級規範)
+    enum log-level {
+        debug,
+        info,
+        warn,
+        error,
+        crit,
+        alert,
+        emerg,
+    }
+
+    /// 解析錯誤的類型
+    variant parse-error {
+        invalid-format(string),
+        unsupported-version(u16),
+        corrupted-data,
+    }
+}
+
+// parse component interface
+world parser-plugin {
+    use parse-process.{log-entry, parse-error};
+
+    /// 核心解析函數
+    /// 傳入 [][]byte (list<list<u8>>)
+    /// 回傳 結構化結果的列表，或是一個解析錯誤
+    export parse: func(raw-data: list<list<u8>>) -> result<list<log-entry>, parse-error>;
+    export report-usage: func() -> u64;
+}
+
+world enricher-plugin {
+    use parse-process.{log-entry};
+
+    // return list of key-value 
+    /// 優化：回傳 list<list<...>> 以對應輸入的每一條 log-entry
+    export enrich: func(struct-data: list<log-entry>) -> result<list<list<tuple<string, string>>>>;
+}
+
+// result <bool>代表是否要傳送，false為丟棄
+world reduction-plugin {
+    use parse-process.{log-entry};
+
+    /// 優化：回傳 list<bool>，長度需與輸入的 struct-data 一致
+    export filter: func(struct-data: list<log-entry>) -> result<list<bool>>;
+}
+
+// 傳入結構化日誌陣列，回傳字串陣列作為每條log的tag，由host查表進行配對
+// 需要事先在配置文件建立好配對表供查詢
+// result list<tag,url>
+world route-plugin {
+    use parse-process.{log-entry};
+    
+    /// 優化：回傳 list<list<string>>，因為單條日誌可能配對到多個 tag/target
+    export route: func(struct-data: list<log-entry>, wasm-name: list<string>) -> result<list<list<string>>>;
+}
+
+// 對結構化的log進行格式化 syslog/json/....
+// 並編碼，能夠讓transport直接進行傳輸的byte
+world format-plugin {
+    use parse-process.{log-entry};
+
+    /// 優化：回傳 list<list<u8>>，讓每一條結構化日誌對應一個獨立的編碼後 byte 陣列
+    export format: func(struct-data: list<log-entry>) -> result<list<list<u8>>>;
+}
+
+// masking component interface
+world masking-plugin {
+    use parse-process.{log-entry};
+
+    /// 對敏感資訊進行遮罩處理，回傳修改後的結構化日誌
+    export mask: func(struct-data: list<log-entry>) -> result<list<log-entry>>;
+}
+
+// transport component interface
+world transport-plugin {
+    /// 最終傳輸插件，接收 format 後的位元組進行發送
+    export send: func(output-data: list<list<u8>>) -> result<_, string>;
+}

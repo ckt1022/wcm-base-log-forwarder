@@ -1,0 +1,8 @@
+#!/home/ckt1022/test-plugins/py-plugin/parse/wcm/bin/python3
+# -*- coding: utf-8 -*-
+import re
+import sys
+from componentize_py import script
+if __name__ == '__main__':
+    sys.argv[0] = re.sub(r'(-script\.pyw|\.exe)?$', '', sys.argv[0])
+    sys.exit(script())
