@@ -182,8 +182,8 @@ internal/
 
 ```bash
 # ⚠ 同樣需要用 Go 1.25 執行，避免 go.mod 被更新為 1.26
-GOROOT=/usr/local/go PATH="/usr/local/go/bin:$PATH" \
-  go get go.bytecodealliance.org/cm
+# 直接指定版本
+go get go.bytecodealliance.org/cm@v0.3.0  
 ```
 
 執行後 `go.mod` 會新增：

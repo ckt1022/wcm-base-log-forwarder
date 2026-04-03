@@ -17,7 +17,8 @@ struct PluginPath {
 fn main() -> wasmtime::Result<()> {
     // plugin path instance
     let path = PluginPath{
-        parse:  String::from(concat!(env!("CARGO_MANIFEST_DIR"), "/test-plugins/go-plugin/parser/parser.wasm"))
+        //parse: String::from("/home/ckt1022/tmp_goplugin/parser.wasm")
+        parse:  String::from(concat!(env!("CARGO_MANIFEST_DIR"), /*"/test-plugins/go-plugin/parser/parser.wasm"*/))
     };
     // config instance
     let cfg = BatchConfig::default();
