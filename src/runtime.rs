@@ -25,15 +25,15 @@ struct ParsedBatch {
 // ── 對外入口 ─────────────────────────────────────────────────────────────
 
 /// Pipeline 入口：
-///   stdin → parse thread → channel<ParsedBatch> → format loop (main thread) → println!
+///   stdin → parse thread → channel<ParsedBatch> → [format loop] → println!
+///
+/// `format` 為 `None` 時跳過 format 階段；未來其他可選階段以相同方式擴充。
 pub fn run_pipeline(
     rx_raw: Receiver<LineItem>,
     engine_parse: Engine,
     cmp_parse: Component,
     lnk_parse: Linker<MyState>,
-    engine_fmt: &Engine,
-    cmp_fmt: &Component,
-    lnk_fmt: &Linker<MyState>,
+    format: Option<(&Engine, &Component, &Linker<MyState>)>,
     cfg: BatchConfig,
 ) -> wasmtime::Result<()> {
     let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
@@ -48,14 +48,23 @@ pub fn run_pipeline(
         parse_loop(rx_raw, tx_parsed, engine_parse, cmp_parse, lnk_parse, cfg, mem_limit_bytes)
     });
 
-    // Format 在主 thread 執行（可借用 engine_fmt/cmp_fmt/lnk_fmt）
-    let fmt_stats = format_loop(rx_parsed, engine_fmt, cmp_fmt, lnk_fmt, mem_limit_bytes)?;
+    // Format 在主 thread 執行（可借用 format 元件），或直接捨棄批次
+    let fmt_stats = match format {
+        Some((engine_fmt, cmp_fmt, lnk_fmt)) => {
+            Some(format_loop(rx_parsed, engine_fmt, cmp_fmt, lnk_fmt, mem_limit_bytes, cfg.max_format_chunk)?)
+        }
+        None => {
+            // format 停用：排空 channel 讓 parse thread 能正常結束
+            drain_loop(rx_parsed);
+            None
+        }
+    };
 
     let wall_elapsed = wall_start.elapsed();
 
     let parse_stats = parse_handle.join().expect("parse thread panicked")?;
 
-    print_pipeline_summary(&parse_stats, &fmt_stats, wall_elapsed, mem_limit_bytes);
+    print_pipeline_summary(&parse_stats, fmt_stats.as_ref(), wall_elapsed, mem_limit_bytes);
 
     Ok(())
 }
@@ -194,53 +203,72 @@ fn format_loop(
     component: &Component,
     linker: &Linker<MyState>,
     mem_limit_bytes: usize,
+    max_chunk: usize,
 ) -> wasmtime::Result<FormatStats> {
     let mut stats = FormatStats::default();
 
     loop {
         match rx.recv() {
             Ok(pb) => {
-                let state = MyState {
-                    ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
-                    table: ResourceTable::new(),
-                    limiter: MyLimiter::new(mem_limit_bytes),
-                };
-                let mut store = Store::new(engine, state);
-                store.limiter(|s| &mut s.limiter);
-
-                let plugin = FormatPlugin::instantiate(&mut store, component, linker)?;
-
                 let entry_count = pb.entries.len();
-                let started = Instant::now();
+                let batch_started = Instant::now();
+                let mut batch_output_lines: usize = 0;
+                let mut batch_wasm_peak: usize = 0;
+                let mut batch_ok = true;
 
-                match plugin.call_format(&mut store, &pb.entries) {
-                    Ok(Ok(lines)) => {
-                        let elapsed = started.elapsed();
-                        let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+                // 分成小批次呼叫，避免 TinyGo GC 無法及時回收大批次的中間字串緩衝
+                for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
+                    let state = MyState {
+                        ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+                        table: ResourceTable::new(),
+                        limiter: MyLimiter::new(mem_limit_bytes),
+                    };
+                    let mut store = Store::new(engine, state);
+                    store.limiter(|s| &mut s.limiter);
 
-                        print_format_batch(pb.seq, entry_count, lines.len(),
-                                           wasm_mem_peak, mem_limit_bytes, elapsed);
+                    let plugin = FormatPlugin::instantiate(&mut store, component, linker)?;
 
-                        for line_bytes in &lines {
-                            match std::str::from_utf8(line_bytes) {
-                                Ok(s) => (),
-                                Err(_) => eprintln!("[format-warn] batch={} non-utf8 skipped", pb.seq),
+                    match plugin.call_format(&mut store, chunk) {
+                        Ok(Ok(lines)) => {
+                            let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+                            if wasm_mem_peak > batch_wasm_peak {
+                                batch_wasm_peak = wasm_mem_peak;
+                            }
+                            batch_output_lines += lines.len();
+                            
+                            // 測試format功能
+                            let mut count = 0;
+                            for line_bytes in &lines {
+                                if std::str::from_utf8(line_bytes).is_err() {
+                                    eprintln!("[format-warn] batch={} chunk={} non-utf8 skipped", pb.seq, chunk_idx);
+                                }
+                                if count < 1 {
+                                    println!("前五條log: {}",String::from_utf8_lossy(&line_bytes));
+                                    count += 1;
+                                }
                             }
                         }
-
-                        stats.total_batches += 1;
-                        stats.total_input_entries += entry_count as u64;
-                        stats.total_output_lines += lines.len() as u64;
-                        stats.total_elapsed += elapsed;
-                        if wasm_mem_peak > stats.wasm_mem_peak_max {
-                            stats.wasm_mem_peak_max = wasm_mem_peak;
+                        Ok(Err(_)) => {
+                            eprintln!("[format-error] batch={} chunk={}", pb.seq, chunk_idx);
+                            batch_ok = false;
+                        }
+                        Err(e) => {
+                            eprintln!("[format-oom] batch={} chunk={}: {:?}", pb.seq, chunk_idx, e);
+                            batch_ok = false;
                         }
                     }
-                    Ok(Err(_)) => {
-                        eprintln!("[format-error] batch={}", pb.seq);
-                    }
-                    Err(e) => {
-                        eprintln!("[format-oom] batch={}: {:?}", pb.seq, e);
+                }
+
+                if batch_ok {
+                    let elapsed = batch_started.elapsed();
+                    print_format_batch(pb.seq, entry_count, batch_output_lines,
+                                       batch_wasm_peak, mem_limit_bytes, elapsed);
+                    stats.total_batches += 1;
+                    stats.total_input_entries += entry_count as u64;
+                    stats.total_output_lines += batch_output_lines as u64;
+                    stats.total_elapsed += elapsed;
+                    if batch_wasm_peak > stats.wasm_mem_peak_max {
+                        stats.wasm_mem_peak_max = batch_wasm_peak;
                     }
                 }
             }
@@ -249,4 +277,11 @@ fn format_loop(
     }
 
     Ok(stats)
+}
+
+// ── Drain Loop（format 停用時使用）────────────────────────────────────────
+
+/// 排空 ParsedBatch channel，讓 parse thread 不會 block 在 tx.send()。
+fn drain_loop(rx: Receiver<ParsedBatch>) {
+    while rx.recv().is_ok() {}
 }

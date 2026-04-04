@@ -1,8 +1,9 @@
 use std::time::Duration;
 
 use crate::config::{Batch, BatchConfig, FlushReason, FormatStats, ParseStats};
+use crate::PipelineStages;
 
-pub fn print_startup(cfg: BatchConfig, safe_data_budget: usize) {
+pub fn print_startup(cfg: BatchConfig, safe_data_budget: usize, stages: &PipelineStages) {
     eprintln!("=== WCM Log Forwarder ===");
     eprintln!("Memory Limit : {} MB", cfg.mem_limit_mb);
     eprintln!(
@@ -10,6 +11,7 @@ pub fn print_startup(cfg: BatchConfig, safe_data_budget: usize) {
         safe_data_budget / 1024,
         cfg.safe_data_ratio * 100.0
     );
+    eprintln!("Stages       : parse{}", if stages.format { " → format" } else { "" });
     eprintln!("========================");
 }
 
@@ -62,7 +64,7 @@ pub fn print_format_batch(
 
 pub fn print_pipeline_summary(
     p: &ParseStats,
-    f: &FormatStats,
+    f: Option<&FormatStats>,
     wall: Duration,
     mem_limit_bytes: usize,
 ) {
@@ -70,13 +72,11 @@ pub fn print_pipeline_summary(
         p.total_input_lines as f64 / p.total_elapsed.as_secs_f64()
     } else { 0.0 };
 
-    let f_tput = if f.total_elapsed.as_secs_f64() > 0.0 {
-        f.total_input_entries as f64 / f.total_elapsed.as_secs_f64()
-    } else { 0.0 };
-
     let e2e_tput = if wall.as_secs_f64() > 0.0 {
         p.total_input_lines as f64 / wall.as_secs_f64()
     } else { 0.0 };
+
+    let output_lines = f.map_or(p.total_output_entries, |fs| fs.total_output_lines);
 
     eprintln!("\n╔══════════════════════════════════════════════════════════╗");
     eprintln!("║                   Pipeline Summary                      ║");
@@ -96,23 +96,33 @@ pub fn print_pipeline_summary(
         p.wasm_mem_peak_max as f64 / mem_limit_bytes as f64 * 100.0,
     );
     eprintln!("╠══════════════════════════════════════════════════════════╣");
-    eprintln!(
-        "║ Format │ batches={:<6} entries={:<10} lines={:<10}",
-        f.total_batches, f.total_input_entries, f.total_output_lines
-    );
-    eprintln!(
-        "║        │ elapsed={:.2}ms  throughput={:.0} entries/s",
-        f.total_elapsed.as_secs_f64() * 1000.0, f_tput
-    );
-    eprintln!(
-        "║        │ WasmMem(peak)={:.0}KB ({:.1}%)",
-        f.wasm_mem_peak_max as f64 / 1024.0,
-        f.wasm_mem_peak_max as f64 / mem_limit_bytes as f64 * 100.0,
-    );
+    match f {
+        Some(fs) => {
+            let f_tput = if fs.total_elapsed.as_secs_f64() > 0.0 {
+                fs.total_input_entries as f64 / fs.total_elapsed.as_secs_f64()
+            } else { 0.0 };
+            eprintln!(
+                "║ Format │ batches={:<6} entries={:<10} lines={:<10}",
+                fs.total_batches, fs.total_input_entries, fs.total_output_lines
+            );
+            eprintln!(
+                "║        │ elapsed={:.2}ms  throughput={:.0} entries/s",
+                fs.total_elapsed.as_secs_f64() * 1000.0, f_tput
+            );
+            eprintln!(
+                "║        │ WasmMem(peak)={:.0}KB ({:.1}%)",
+                fs.wasm_mem_peak_max as f64 / 1024.0,
+                fs.wasm_mem_peak_max as f64 / mem_limit_bytes as f64 * 100.0,
+            );
+        }
+        None => {
+            eprintln!("║ Format │ (disabled)                                           ║");
+        }
+    }
     eprintln!("╠══════════════════════════════════════════════════════════╣");
     eprintln!(
         "║ E2E    │ input={} lines → output={} lines",
-        p.total_input_lines, f.total_output_lines
+        p.total_input_lines, output_lines
     );
     eprintln!(
         "║        │ wall={:.2}ms  throughput={:.0} lines/s (parse+format parallel)",

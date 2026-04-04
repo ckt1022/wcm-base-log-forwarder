@@ -4,8 +4,7 @@ use std::thread;
 
 use wasmtime::{
     component::{Component, Linker},
-    Config, Engine, InstanceAllocationStrategy, OptLevel, PoolingAllocationConfig, ResourceLimiter,
-    Strategy,
+    Config, Engine, OptLevel, ResourceLimiter, Strategy,
 };
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 
@@ -80,9 +79,12 @@ impl WasiView for MyState {
     }
 }
 
+// 負責把log一條條變成LineItem後塞入channel
 pub fn spawn_stdin_reader(tx: SyncSender<LineItem>) {
+    // 開條thread負責接收log，並放入channel
     thread::spawn(move || {
         let stdin = io::stdin();
+        // 因為stdin是全域資源，需要上鎖確保只有一個thread在修改
         for line in stdin.lock().lines() {
             if let Ok(content) = line {
                 if tx.send(LineItem { bytes: content.into_bytes() }).is_err() {
@@ -102,11 +104,10 @@ pub fn build_runtime(
     config.strategy(Strategy::Cranelift);
     config.cranelift_opt_level(OptLevel::Speed);
 
-    let mut pooling_config = PoolingAllocationConfig::new();
-    pooling_config.total_memories(20);
-    pooling_config.max_memory_size(mem_limit_bytes);
-    config.allocation_strategy(InstanceAllocationStrategy::Pooling(pooling_config));
-
+    // 使用預設的 on-demand allocator：每次 instantiate 都取得全新的清零記憶體。
+    // Pooling allocator 為了效能重複使用記憶體 slot，但不會重置 TinyGo 的零初始化
+    // globals（heap bump pointer 等），導致第二次以後的 instance 繼承舊的 heap 狀態
+    // 而觸發 OOM 或 out-of-bounds memory access。
     let engine = Engine::new(&config)?;
     let mut linker: Linker<MyState> = Linker::new(&engine);
     wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
