@@ -1,0 +1,15 @@
+[package]
+name = "transport-test-host"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "transport-test-host"
+path = "src/main.rs"
+
+[dependencies]
+wasmtime = { version = "42", features = ["component-model"] }
+wasmtime-wasi = "42"
+wasmtime-wasi-http = "42"
+anyhow = "1"
+tokio = { version = "1", features = ["full"] }

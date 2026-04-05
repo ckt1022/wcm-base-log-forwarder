@@ -1,3 +1,0 @@
-使用docker編譯
-sudo docker run --rm   -v "$(pwd)":/src   -v "$(command -v wasm-tools)":/usr/local/bin/wasm-tools:ro   -w /src   tinygo/tinygo:0.40.0   tinygo build -target=wasip2 -o parser.wasm   --wit-package local:l
-og-process.wasm   --wit-world parser-plugin main.go

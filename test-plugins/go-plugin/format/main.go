@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	formatplugin "example.com/internal/local/log-process-format/format-plugin"
+	formatplugin "example.com/internal/local/log-process/format-plugin"
 	"go.bytecodealliance.org/cm"
 )
 
@@ -11,9 +11,10 @@ func init() {
 	// ⚠ 必須在 init() 中綁定，WASM Component 初始化時執行
 	// main() 不會被呼叫
 	formatplugin.Exports.Format = Format
+	formatplugin.Exports.ReportUsage = ReportUsage
 }
 
-func Format(structData cm.List[formatplugin.LogEntry]) (result cm.Result[cm.List[cm.List[uint8]], cm.List[cm.List[uint8]], struct{}]) {
+func Format(structData cm.List[formatplugin.LogEntry]) (result cm.Result[formatplugin.PluginErrorShape, cm.List[cm.List[uint8]], formatplugin.PluginError]) {
 	entries := structData.Slice()
 	encoded := make([]cm.List[uint8], 0, len(entries))
 
@@ -37,7 +38,12 @@ func Format(structData cm.List[formatplugin.LogEntry]) (result cm.Result[cm.List
 		encoded = append(encoded, cm.ToList(line))
 	}
 
-	return cm.OK[cm.Result[cm.List[cm.List[uint8]], cm.List[cm.List[uint8]], struct{}]](cm.ToList(encoded))
+	return cm.OK[cm.Result[formatplugin.PluginErrorShape, cm.List[cm.List[uint8]], formatplugin.PluginError]](cm.ToList(encoded))
+}
+
+// ReportUsage 回傳 0（format plugin 目前不追蹤記憶體）
+func ReportUsage() uint64 {
+	return 0
 }
 
 // WASM Component 不呼叫 main()，但必須宣告

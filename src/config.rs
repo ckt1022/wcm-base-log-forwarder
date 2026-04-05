@@ -25,9 +25,9 @@ impl Default for BatchConfig {
             mem_limit_mb: 256,
             safe_data_ratio: 0.3,
             max_wait: Duration::from_millis(250),
-            max_batch_lines: 50_000,
+            max_batch_lines: 20_000,
             channel_capacity: 5_000,
-            max_format_chunk: 300,
+            max_format_chunk: 100,
         }
     }
 }

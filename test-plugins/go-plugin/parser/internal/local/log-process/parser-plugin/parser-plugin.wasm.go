@@ -6,11 +6,11 @@ import (
 	"go.bytecodealliance.org/cm"
 )
 
-// This file contains wasmimport and wasmexport declarations for "local:log-process".
+// This file contains wasmimport and wasmexport declarations for "local:log-process@0.1.0".
 
 //go:wasmexport parse
 //export parse
-func wasmexport_Parse(rawData0 *cm.List[uint8], rawData1 uint32) (result *cm.Result[ParseErrorShape, cm.List[LogEntry], ParseError]) {
+func wasmexport_Parse(rawData0 *cm.List[uint8], rawData1 uint32) (result *cm.Result[ParseErrorShape, cm.List[ParsedEntry], ParseError]) {
 	rawData := cm.LiftList[cm.List[cm.List[uint8]]]((*cm.List[uint8])(rawData0), (uint32)(rawData1))
 	result_ := Exports.Parse(rawData)
 	result = &result_

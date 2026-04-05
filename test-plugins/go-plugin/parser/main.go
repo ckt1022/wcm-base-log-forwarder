@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"runtime"
 
-	parseprocess "example.com/internal/local/log-process/parse-process"
+	pipelineprocess "example.com/internal/local/log-process/pipeline-process"
 	parserplugin "example.com/internal/local/log-process/parser-plugin"
 	"go.bytecodealliance.org/cm"
 )
@@ -37,7 +37,7 @@ var peak_mem uint64
 //  1. 單行格式錯誤時跳過該行並繼續（原本 return Err 會中止整個 batch）
 //  2. 正確對應 JSON level 字串至 WIT LogLevel enum（原本永遠填 LogLevelDebug）
 //  3. 採樣點移至 cm.ToList 之後，確保捕捉到最終分配峰值
-func Parse(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.LogEntry], parserplugin.ParseError] {
+func Parse(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
 	// ── 記憶體採樣策略說明 ────────────────────────────────────────────────
 	// runtime.ReadMemStats() 每次呼叫都觸發 GC stop-the-world（STW）暫停，
 	// 會直接拉高 parse latency（host 側測到的 parse_ms 含 STW 成本）。
@@ -52,7 +52,7 @@ func Parse(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorSha
 
 	rawSlice := rawData.Slice()
 	// 預分配容量 = 輸入行數，避免 append 多次觸發 realloc
-	entries := make([]parserplugin.LogEntry, 0, len(rawSlice))
+	entries := make([]parserplugin.ParsedEntry, 0, len(rawSlice))
 
 	var skipCount int // 格式錯誤被跳過的行數
 
@@ -83,7 +83,7 @@ func Parse(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorSha
 			pairs = append(pairs, [2]string{key, value})
 		}
 
-		entries = append(entries, parserplugin.LogEntry{
+		entries = append(entries, parserplugin.ParsedEntry{
 			Timestamp: log.Ts,
 			Level:     level,
 			Message:   log.Msg,
@@ -98,7 +98,7 @@ func Parse(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorSha
 
 	_ = skipCount // 可改為輸出至 stderr 追蹤解析失敗率
 
-	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.LogEntry], parserplugin.ParseError]](result)
+	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](result)
 }
 
 // ReportUsage 回傳本次 Parse 期間觀測到的 Go heap 峰值用量（bytes）。
@@ -129,10 +129,10 @@ func samplePeakMem() {
 // parseLogLevel 將 JSON level 字串對應至 WIT LogLevel enum。
 // 使用 binding 自動生成的 UnmarshalText 保持與 WIT 定義一致。
 // 若字串無法識別（如自定義 level 名稱），回傳 LogLevelInfo 作為安全預設值。
-func parseLogLevel(s string) parseprocess.LogLevel {
-	var level parseprocess.LogLevel
+func parseLogLevel(s string) pipelineprocess.LogLevel {
+	var level pipelineprocess.LogLevel
 	if err := level.UnmarshalText([]byte(s)); err != nil {
-		return parseprocess.LogLevelInfo
+		return pipelineprocess.LogLevelInfo
 	}
 	return level
 }

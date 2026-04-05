@@ -1,18 +1,30 @@
-package local:log-process;
+package local:log-process@0.1.0;
 
-// // // // // // // // // // // // // // //
+// ─────────────────────────────────────────────
+// 核心共享型別
+// ─────────────────────────────────────────────
 interface pipeline-process {
-    /// 定義解析後的結構化日誌紀錄
-    record log-entry {
-        /// 建議使用 u64 納秒時間戳以提升效能，若維持 string 則由插件負責解析格式
+
+    /// parser 回傳的原始解析結果，不含 id
+    /// host 收到後統一分配 id，轉換為 log-entry，再傳入後續插件
+    record parsed-entry {
         timestamp: string,
         level: log-level,
         message: string,
-        /// 額外的標籤，使用鍵值對表示
         tags: list<tuple<string, string>>,
     }
 
-    /// 日誌層級 (已擴展為標準 syslog 七級規範)
+    /// 帶有 host 分配 id 的完整條目
+    /// id 由 host 保證在同一批次內唯一，插件不得修改 id
+    record log-entry {
+        id: u64,
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+    }
+
+    /// 日誌層級（syslog 七級）
     enum log-level {
         debug,
         info,
@@ -23,71 +35,220 @@ interface pipeline-process {
         emerg,
     }
 
-    /// 解析錯誤的類型
+    // ── 錯誤型別 ──────────────────────────────
+
+    /// parser 專屬錯誤，語意比通用錯誤更精確
     variant parse-error {
         invalid-format(string),
         unsupported-version(u16),
         corrupted-data,
     }
+
+    /// 所有插件共用的通用錯誤
+    variant plugin-error {
+        invalid-input(string),
+        processing-failed(string),
+        config-error(string),
+        /// 插件回傳了輸入中不存在的 id，host 應視為嚴重錯誤
+        unknown-id(u64),
+        internal-error,
+    }
+
+    // ── id 配對結果型別 ────────────────────────
+    // 插件只回傳「決策」，host 負責對原始 log-entry 執行實際操作
+    // 這確保原始資料不被插件修改（masking-plugin 是唯一例外）
+
+    /// reduction-plugin 使用
+    record filter-result {
+        id: u64,
+        keep: bool,
+    }
+
+    /// enricher-plugin 使用
+    record enrich-result {
+        id: u64,
+        /// 要附加到對應 log-entry.tags 的額外標籤
+        additional-tags: list<tuple<string, string>>,
+    }
+
+    /// route-plugin 使用
+    record route-result {
+        id: u64,
+        /// 此條 log 的轉送目標 URL 列表
+        /// 空 list 表示不轉送（由插件主動決定跳過）
+        urls: list<string>,
+    }
 }
 
-// parse component interface
+// ─────────────────────────────────────────────
+// transport 專用型別（與核心型別分開，避免污染）
+// ─────────────────────────────────────────────
+interface transport-types {
+
+    variant auth-method {
+        none,
+        bearer-token(string),
+        basic-auth(basic-credential),
+        api-key(api-key-config),
+    }
+
+    record basic-credential {
+        username: string,
+        password: string,
+    }
+
+    record api-key-config {
+        /// HTTP 標頭名稱，例如 "X-API-Key"、"Authorization"
+        header-name: string,
+        key: string,
+    }
+
+    record retry-config {
+        max-retries: u32,
+        /// 第一次重試前的等待（毫秒）
+        initial-backoff-ms: u32,
+        /// 重試等待上限（毫秒）
+        max-backoff-ms: u32,
+    }
+
+    record tls-config {
+        /// false 代表跳過憑證驗證，僅用於內網測試
+        verify-peer: bool,
+        /// CA 憑證（PEM 格式），none 則使用系統預設 CA
+        ca-pem: option<string>,
+        /// mTLS 用戶端憑證（PEM 格式）
+        client-cert-pem: option<string>,
+        /// mTLS 用戶端私鑰（PEM 格式）
+        client-key-pem: option<string>,
+    }
+
+    record transport-config {
+        /// 目標端點，例如 "https://logs.example.com/ingest"
+        endpoint: string,
+        auth: auth-method,
+        /// TCP 連線超時（毫秒），0 = 無限等待
+        connect-timeout-ms: u32,
+        /// 完整請求超時（毫秒），0 = 無限等待
+        request-timeout-ms: u32,
+        retry: option<retry-config>,
+        tls: option<tls-config>,
+        /// 自訂 HTTP 標頭，例如追蹤 ID、來源標記
+        extra-headers: list<tuple<string, string>>,
+        /// 每批次最大位元組數，超過則分批發送，0 = 不限制
+        max-batch-bytes: u32,
+    }
+}
+
+// ─────────────────────────────────────────────
+// parser-plugin
+// 回傳 parsed-entry（無 id），host 統一分配 id 後轉為 log-entry
+// ─────────────────────────────────────────────
 world parser-plugin {
-    use pipeline-process.{log-entry, parse-error};
+    use pipeline-process.{parsed-entry, parse-error};
     include wasi:cli/imports@0.2.0;
-    /// 核心解析函數
-    /// 傳入 [][]byte (list<list<u8>>)
-    /// 回傳 結構化結果的列表，或是一個解析錯誤
-    export parse: func(raw-data: list<list<u8>>) -> result<list<log-entry>, parse-error>;
+
+    export parse: func(raw-data: list<list<u8>>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
 }
 
+// ─────────────────────────────────────────────
+// enricher-plugin
+// 回傳 enrich-result，host 依 id 將 additional-tags 合併進原始 log-entry
+// ─────────────────────────────────────────────
 world enricher-plugin {
-    use pipeline-process.{log-entry};
+    use pipeline-process.{log-entry, enrich-result, plugin-error};
 
-    // return list of key-value 
-    /// 優化：回傳 list<list<...>> 以對應輸入的每一條 log-entry
-    export enrich: func(struct-data: list<log-entry>) -> result<list<list<tuple<string, string>>>>;
+    export enrich: func(
+        struct-data: list<log-entry>
+    ) -> result<list<enrich-result>, plugin-error>;
+
+    export report-usage: func() -> u64;
 }
 
-// result <bool>代表是否要傳送，false為丟棄
+// ─────────────────────────────────────────────
+// reduction-plugin
+// 回傳 filter-result，host 依 id 決定是否將該條 log 移出後續流程
+// ─────────────────────────────────────────────
 world reduction-plugin {
-    use pipeline-process.{log-entry};
+    use pipeline-process.{log-entry, filter-result, plugin-error};
 
-    /// 優化：回傳 list<bool>，長度需與輸入的 struct-data 一致
-    export filter: func(struct-data: list<log-entry>) -> result<list<bool>>;
+    export filter: func(
+        struct-data: list<log-entry>
+    ) -> result<list<filter-result>, plugin-error>;
+
+    export report-usage: func() -> u64;
 }
 
-// 傳入結構化日誌陣列，回傳字串陣列作為每條log的tag，由host查表進行配對
-// 需要事先在配置文件建立好配對表供查詢
-// result list<tag,url>
+// ─────────────────────────────────────────────
+// route-plugin
+// 回傳 route-result，host 依 id 取得 URL 後執行實際轉送
+// ─────────────────────────────────────────────
 world route-plugin {
-    use pipeline-process.{log-entry};
-    
-    /// 優化：回傳 list<list<string>>，因為單條日誌可能配對到多個 tag/target
-    export route: func(struct-data: list<log-entry>, wasm-name: list<string>) -> result<list<list<string>>>;
+    use pipeline-process.{log-entry, route-result, plugin-error};
+
+    export route: func(
+        struct-data: list<log-entry>
+    ) -> result<list<route-result>, plugin-error>;
+
+    export report-usage: func() -> u64;
 }
 
-// masking component interface
+// ─────────────────────────────────────────────
+// masking-plugin
+// 唯一允許回傳修改後 log-entry 的插件
+// 因為欄位值替換（message 遮罩）是結構性修改，host 無法代勞
+// host 收到後以 id 確認對應關係，再用修改後版本替換原始版本
+// ─────────────────────────────────────────────
 world masking-plugin {
-    use pipeline-process.{log-entry};
+    use pipeline-process.{log-entry, plugin-error};
 
-    /// 對敏感資訊進行遮罩處理，回傳修改後的結構化日誌
-    export mask: func(struct-data: list<log-entry>) -> result<list<log-entry>>;
+    export mask: func(
+        struct-data: list<log-entry>
+    ) -> result<list<log-entry>, plugin-error>;
+
+    export report-usage: func() -> u64;
 }
 
-// 對結構化的log進行格式化 syslog/json/....
-// 並編碼，能夠讓transport直接進行傳輸的byte
+// ─────────────────────────────────────────────
+// format-plugin
+// ─────────────────────────────────────────────
 world format-plugin {
-    use pipeline-process.{log-entry};
+    use pipeline-process.{log-entry, plugin-error};
     include wasi:cli/imports@0.2.0;
 
-    /// 優化：回傳 list<list<u8>>，讓每一條結構化日誌對應一個獨立的編碼後 byte 陣列
-    export format: func(struct-data: list<log-entry>) -> result<list<list<u8>>>;
+    export format: func(
+        struct-data: list<log-entry>
+    ) -> result<list<list<u8>>, plugin-error>;
+
+    export report-usage: func() -> u64;
 }
 
-// transport component interface
+// ─────────────────────────────────────────────
+// transport-plugin
+// ─────────────────────────────────────────────
 world transport-plugin {
-    /// 最終傳輸插件，接收 format 後的位元組進行發送
-    export send: func(output-data: list<list<u8>>) -> result<_, string>;
+    use pipeline-process.{plugin-error};
+    use transport-types.{transport-config};
+
+    // 網路能力（Rust 插件使用）
+    import wasi:http/outgoing-handler@0.2.0;
+    import wasi:http/types@0.2.0;
+    import wasi:io/streams@0.2.0;
+    import wasi:io/poll@0.2.0;
+    import wasi:clocks/monotonic-clock@0.2.0;
+
+    // TinyGo 插件請改用：
+    // include wasi:cli/imports@0.2.0;
+    // import wasi:http/outgoing-handler@0.2.0;
+    // import wasi:http/types@0.2.0;
+
+    /// 插件初始化，必須在 send 之前呼叫一次
+    /// 重複呼叫視為重新設定（不累加舊設定）
+    export init: func(config: transport-config) -> result<_, plugin-error>;
+
+    /// 批次傳送已格式化的 bytes
+    /// 若設定了 max-batch-bytes，插件需自行分批處理
+    export send: func(output-data: list<list<u8>>) -> result<_, plugin-error>;
+
+    export report-usage: func() -> u64;
 }

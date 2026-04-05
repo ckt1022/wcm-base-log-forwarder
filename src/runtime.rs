@@ -10,7 +10,7 @@ use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
 
 use crate::app::{
     format_bindings::FormatPlugin,
-    local::log_process::pipeline_process::LogEntry,
+    local::log_process::pipeline_process::{LogEntry, ParsedEntry},
     MyLimiter, MyState, ParserPlugin,
 };
 use crate::config::{Batch, BatchConfig, FlushReason, FormatStats, LineItem, ParseStats};
@@ -161,10 +161,23 @@ fn do_parse_batch(
     let started = Instant::now();
 
     let result = match plugin.call_parse(&mut store, &batch.lines) {
-        Ok(Ok(entries)) => {
+        Ok(Ok(parsed)) => {
             let elapsed = started.elapsed();
             let go_heap_peak = plugin.call_report_usage(&mut store).unwrap_or(0);
             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+
+            // 由 host 分配 id：使用 (seq * MAX_BATCH + index) 保證全域唯一
+            let entries: Vec<LogEntry> = parsed
+                .into_iter()
+                .enumerate()
+                .map(|(i, p): (usize, ParsedEntry)| LogEntry {
+                    id: seq * 100_000 + i as u64,
+                    timestamp: p.timestamp,
+                    level: p.level,
+                    message: p.message,
+                    tags: p.tags,
+                })
+                .collect();
 
             print_flush_header(seq, batch, reason);
             print_parse_batch(seq, input_lines, input_bytes, entries.len(),
@@ -236,6 +249,7 @@ fn format_loop(
                             }
                             batch_output_lines += lines.len();
                             
+                            /*
                             // 測試format功能
                             let mut count = 0;
                             for line_bytes in &lines {
@@ -247,6 +261,7 @@ fn format_loop(
                                     count += 1;
                                 }
                             }
+                            */
                         }
                         Ok(Err(_)) => {
                             eprintln!("[format-error] batch={} chunk={}", pb.seq, chunk_idx);

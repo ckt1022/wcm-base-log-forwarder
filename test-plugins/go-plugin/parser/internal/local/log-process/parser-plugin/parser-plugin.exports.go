@@ -6,16 +6,12 @@ import (
 	"go.bytecodealliance.org/cm"
 )
 
-// Exports represents the caller-defined exports from "local:log-process/parser-plugin".
+// Exports represents the caller-defined exports from "local:log-process/parser-plugin@0.1.0".
 var Exports struct {
 	// Parse represents the caller-defined, exported function "parse".
 	//
-	// 核心解析函數
-	// 傳入 [][]byte (list<list<u8>>)
-	// 回傳 結構化結果的列表，或是一個解析錯誤
-	//
-	//	parse: func(raw-data: list<list<u8>>) -> result<list<log-entry>, parse-error>
-	Parse func(rawData cm.List[cm.List[uint8]]) (result cm.Result[ParseErrorShape, cm.List[LogEntry], ParseError])
+	//	parse: func(raw-data: list<list<u8>>) -> result<list<parsed-entry>, parse-error>
+	Parse func(rawData cm.List[cm.List[uint8]]) (result cm.Result[ParseErrorShape, cm.List[ParsedEntry], ParseError])
 
 	// ReportUsage represents the caller-defined, exported function "report-usage".
 	//

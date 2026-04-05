@@ -13,7 +13,7 @@ use crate::config::LineItem;
 // parser-plugin world：產生 ParserPlugin 及 pipeline-process 所有型別
 wasmtime::component::bindgen!({
     world: "parser-plugin",
-    path: "wit/log_host.wit",
+    path: "wit",
 });
 
 // format-plugin world：用 `with` 重用上面已生成的 LogEntry / LogLevel，
@@ -21,7 +21,7 @@ wasmtime::component::bindgen!({
 pub mod format_bindings {
     wasmtime::component::bindgen!({
         world: "format-plugin",
-        path: "wit/log_host.wit",
+        path: "wit",
         with: {
             "local:log-process/pipeline-process":
                 super::local::log_process::pipeline_process,
