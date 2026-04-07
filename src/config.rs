@@ -5,7 +5,7 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct BatchConfig {
     pub mem_limit_mb: usize,
     pub safe_data_ratio: f64,
@@ -15,9 +15,15 @@ pub struct BatchConfig {
     /// 每次呼叫 format plugin 的最大 entry 數。
     /// TinyGo GC 在大批次時無法及時回收中間字串緩衝區，需分批呼叫。
     pub max_format_chunk: usize,
+    /// Transport plugin 目標端點 URL。
+    pub transport_endpoint: String,
+    /// 每次呼叫 transport send() 的最大累積 byte 數（一次對應一個 HTTP POST）。
+    /// WASI blocking-write-and-flush 單次寫入上限為 4096 B（sync/async 皆適用）；
+    /// plugin 必須在內部分批寫入 HTTP body（每次 ≤ 4096 B）。
+    /// 此值控制每次 send() 傳入的資料總量，預設 2048 B，確保 plugin 寫入安全。
+    /// 若 plugin 已正確實作分批寫入，可大幅調高（例如 256 KB）以減少 POST 次數。
+    pub max_transport_bytes: usize,
 }
-
-
 
 impl Default for BatchConfig {
     fn default() -> Self {
@@ -28,6 +34,8 @@ impl Default for BatchConfig {
             max_batch_lines: 20_000,
             channel_capacity: 5_000,
             max_format_chunk: 100,
+            transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
+            max_transport_bytes: 8 * 1024, // 8 KB；plugin 內部以 4096 B 寫入（2 次 write/POST），Val API 呼叫次數減少 4×
         }
     }
 }
@@ -132,5 +140,19 @@ pub struct FormatStats {
     pub total_output_lines: u64,
     pub total_elapsed: Duration,
     /// WASM 線性記憶體峰值（各 batch 最大值）
+    pub wasm_mem_peak_max: usize,
+}
+
+#[derive(Default)]
+pub struct TransportStats {
+    pub total_batches: u64,
+    /// 傳送的格式化行數
+    pub total_input_lines: u64,
+    /// 傳送的總 byte 數（格式化輸出大小）
+    pub total_input_bytes: u64,
+    /// transport plugin report-usage() 回報的累計 byte 數
+    pub total_bytes_reported: u64,
+    pub total_elapsed: Duration,
+    /// WASM 線性記憶體峰值
     pub wasm_mem_peak_max: usize,
 }

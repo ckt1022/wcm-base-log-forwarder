@@ -3,73 +3,134 @@ use std::thread;
 use std::time::Instant;
 
 use wasmtime::{
-    component::{Component, Linker},
+    component::{Component, Linker, Val},
     Engine, Store,
 };
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
+use wasmtime_wasi_http::WasiHttpCtx;
 
 use crate::app::{
     format_bindings::FormatPlugin,
     local::log_process::pipeline_process::{LogEntry, ParsedEntry},
     MyLimiter, MyState, ParserPlugin,
 };
-use crate::config::{Batch, BatchConfig, FlushReason, FormatStats, LineItem, ParseStats};
-use crate::output::{print_flush_header, print_format_batch, print_parse_batch, print_pipeline_summary};
+use crate::config::{
+    Batch, BatchConfig, FlushReason, FormatStats, LineItem, ParseStats, TransportStats,
+};
+use crate::output::{
+    print_flush_header, print_format_batch, print_parse_batch, print_pipeline_summary,
+    print_transport_batch,
+};
 
-// 從 parse 送往 format 的批次資料
+// ── 階段間傳遞的批次結構 ────────────────────────────────────────────────────
+
 struct ParsedBatch {
     entries: Vec<LogEntry>,
     seq: u64,
 }
 
+struct FormattedBatch {
+    lines: Vec<Vec<u8>>,
+    seq: u64,
+    total_bytes: usize,
+}
+
 // ── 對外入口 ─────────────────────────────────────────────────────────────
 
-/// Pipeline 入口：
-///   stdin → parse thread → channel<ParsedBatch> → [format loop] → println!
+/// Pipeline 入口：stdin → [parse thread] → [format thread] → [transport thread]
 ///
-/// `format` 為 `None` 時跳過 format 階段；未來其他可選階段以相同方式擴充。
+/// Parse / format 使用 sync WASI（typed bindgen）。
+/// Transport 使用 async WASI + HTTP，在獨立 single-thread tokio runtime 內執行，
+/// 解除 sync 模式下 blocking-write-and-flush ≤ 4096 B 的限制。
 pub fn run_pipeline(
     rx_raw: Receiver<LineItem>,
-    engine_parse: Engine,
-    cmp_parse: Component,
-    lnk_parse: Linker<MyState>,
-    format: Option<(&Engine, &Component, &Linker<MyState>)>,
+    parse: Option<(Engine, Component, Linker<MyState>)>,
+    format: Option<(Engine, Component, Linker<MyState>)>,
+    transport: Option<(Engine, Component, Linker<MyState>)>,
     cfg: BatchConfig,
 ) -> wasmtime::Result<()> {
     let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
 
-    // channel 容量設小（32 batch）：避免 parse 跑太快把大量 LogEntry 堆在記憶體
     let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(32);
+    let (tx_formatted, rx_formatted) = std::sync::mpsc::sync_channel::<FormattedBatch>(16);
+
+    // Extract fields needed by multiple closures before any move.
+    let endpoint = cfg.transport_endpoint.clone();
+    let max_format_chunk = cfg.max_format_chunk;
+    let max_transport_bytes = cfg.max_transport_bytes;
+    let cfg_for_parse = cfg.clone();
 
     let wall_start = Instant::now();
 
-    // Parse 在獨立 thread 執行
-    let parse_handle = thread::spawn(move || {
-        parse_loop(rx_raw, tx_parsed, engine_parse, cmp_parse, lnk_parse, cfg, mem_limit_bytes)
-    });
-
-    // Format 在主 thread 執行（可借用 format 元件），或直接捨棄批次
-    let fmt_stats = match format {
-        Some((engine_fmt, cmp_fmt, lnk_fmt)) => {
-            Some(format_loop(rx_parsed, engine_fmt, cmp_fmt, lnk_fmt, mem_limit_bytes, cfg.max_format_chunk)?)
-        }
-        None => {
-            // format 停用：排空 channel 讓 parse thread 能正常結束
-            drain_loop(rx_parsed);
-            None
-        }
+    // ── Parse thread (sync) ───────────────────────────────────────────────
+    let parse_handle =
+    if let Some((engine, component, linker)) = parse {
+        Some(thread::spawn(move || {
+            parse_loop(rx_raw, tx_parsed, engine, component, linker, cfg_for_parse, mem_limit_bytes)
+        }))
+    } else {
+        drop(tx_parsed);
+        thread::spawn(move || { while rx_raw.recv().is_ok() {} });
+        None
     };
+
+    // ── Format thread (sync) ──────────────────────────────────────────────
+    let format_handle =
+    if let Some((engine, component, linker)) = format {
+        Some(thread::spawn(move || {
+            format_loop(
+                rx_parsed, tx_formatted,
+                engine, component, linker,
+                mem_limit_bytes, max_format_chunk,
+            )
+        }))
+    } else {
+        drop(tx_formatted);
+        thread::spawn(move || { while rx_parsed.recv().is_ok() {} });
+        None
+    };
+
+    // ── Transport thread (async) ──────────────────────────────────────────
+    // Transport uses async WASI + HTTP; wrapped in a single-thread tokio runtime
+    // so that call_async can drive non-blocking I/O without write-size limits.
+    let transport_handle =
+    if let Some((engine, component, linker)) = transport {
+        Some(thread::spawn(move || {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(transport_loop(
+                    rx_formatted, engine, component, linker,
+                    mem_limit_bytes, endpoint, max_transport_bytes,
+                ))
+        }))
+    } else {
+        thread::spawn(move || { while rx_formatted.recv().is_ok() {} });
+        None
+    };
+
+    // ── Collect results ───────────────────────────────────────────────────
+    let parse_stats = parse_handle
+        .map(|h| h.join().expect("parse thread panicked"))
+        .transpose()?;
+    let format_stats = format_handle
+        .map(|h| h.join().expect("format thread panicked"))
+        .transpose()?;
+    let transport_stats = transport_handle
+        .map(|h| h.join().expect("transport thread panicked"))
+        .transpose()?;
 
     let wall_elapsed = wall_start.elapsed();
 
-    let parse_stats = parse_handle.join().expect("parse thread panicked")?;
-
-    print_pipeline_summary(&parse_stats, fmt_stats.as_ref(), wall_elapsed, mem_limit_bytes);
+    if let Some(ps) = &parse_stats {
+        print_pipeline_summary(ps, format_stats.as_ref(), transport_stats.as_ref(), wall_elapsed, mem_limit_bytes);
+    }
 
     Ok(())
 }
 
-// ── Parse Loop ───────────────────────────────────────────────────────────
+// ── Parse Loop (sync) ─────────────────────────────────────────────────────
 
 fn parse_loop(
     rx: Receiver<LineItem>,
@@ -105,7 +166,10 @@ fn parse_loop(
                         size: size_trigger, time: false,
                         line_count: line_trigger, eof: false,
                     };
-                    if let Some(pb) = do_parse_batch(&engine, &component, &linker, &mut batch, seq, mem_limit_bytes, reason, &mut stats)? {
+                    if let Some(pb) = do_parse_batch(
+                        &engine, &component, &linker, &mut batch, seq,
+                        mem_limit_bytes, reason, &mut stats,
+                    )? {
                         if tx.send(pb).is_err() { break; }
                     }
                     seq += 1;
@@ -115,7 +179,10 @@ fn parse_loop(
             Err(RecvTimeoutError::Timeout) => {
                 if !batch.is_empty() {
                     let reason = FlushReason { size: false, time: true, line_count: false, eof: false };
-                    if let Some(pb) = do_parse_batch(&engine, &component, &linker, &mut batch, seq, mem_limit_bytes, reason, &mut stats)? {
+                    if let Some(pb) = do_parse_batch(
+                        &engine, &component, &linker, &mut batch, seq,
+                        mem_limit_bytes, reason, &mut stats,
+                    )? {
                         if tx.send(pb).is_err() { break; }
                     }
                     seq += 1;
@@ -124,7 +191,10 @@ fn parse_loop(
             Err(RecvTimeoutError::Disconnected) => {
                 if !batch.is_empty() {
                     let reason = FlushReason { size: false, time: false, line_count: false, eof: true };
-                    if let Some(pb) = do_parse_batch(&engine, &component, &linker, &mut batch, seq, mem_limit_bytes, reason, &mut stats)? {
+                    if let Some(pb) = do_parse_batch(
+                        &engine, &component, &linker, &mut batch, seq,
+                        mem_limit_bytes, reason, &mut stats,
+                    )? {
                         let _ = tx.send(pb);
                     }
                 }
@@ -150,6 +220,7 @@ fn do_parse_batch(
         ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
         table: ResourceTable::new(),
         limiter: MyLimiter::new(mem_limit_bytes),
+        http: WasiHttpCtx::new(),
     };
     let mut store = Store::new(engine, state);
     store.limiter(|s| &mut s.limiter);
@@ -166,7 +237,6 @@ fn do_parse_batch(
             let go_heap_peak = plugin.call_report_usage(&mut store).unwrap_or(0);
             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
 
-            // 由 host 分配 id：使用 (seq * MAX_BATCH + index) 保證全域唯一
             let entries: Vec<LogEntry> = parsed
                 .into_iter()
                 .enumerate()
@@ -208,13 +278,14 @@ fn do_parse_batch(
     Ok(result)
 }
 
-// ── Format Loop ──────────────────────────────────────────────────────────
+// ── Format Loop (sync) ────────────────────────────────────────────────────
 
 fn format_loop(
     rx: Receiver<ParsedBatch>,
-    engine: &Engine,
-    component: &Component,
-    linker: &Linker<MyState>,
+    tx: SyncSender<FormattedBatch>,
+    engine: Engine,
+    component: Component,
+    linker: Linker<MyState>,
     mem_limit_bytes: usize,
     max_chunk: usize,
 ) -> wasmtime::Result<FormatStats> {
@@ -225,21 +296,21 @@ fn format_loop(
             Ok(pb) => {
                 let entry_count = pb.entries.len();
                 let batch_started = Instant::now();
-                let mut batch_output_lines: usize = 0;
+                let mut all_lines: Vec<Vec<u8>> = Vec::new();
                 let mut batch_wasm_peak: usize = 0;
                 let mut batch_ok = true;
 
-                // 分成小批次呼叫，避免 TinyGo GC 無法及時回收大批次的中間字串緩衝
                 for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
                     let state = MyState {
                         ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
                         table: ResourceTable::new(),
                         limiter: MyLimiter::new(mem_limit_bytes),
+                        http: WasiHttpCtx::new(),
                     };
-                    let mut store = Store::new(engine, state);
+                    let mut store = Store::new(&engine, state);
                     store.limiter(|s| &mut s.limiter);
 
-                    let plugin = FormatPlugin::instantiate(&mut store, component, linker)?;
+                    let plugin = FormatPlugin::instantiate(&mut store, &component, &linker)?;
 
                     match plugin.call_format(&mut store, chunk) {
                         Ok(Ok(lines)) => {
@@ -247,21 +318,7 @@ fn format_loop(
                             if wasm_mem_peak > batch_wasm_peak {
                                 batch_wasm_peak = wasm_mem_peak;
                             }
-                            batch_output_lines += lines.len();
-                            
-                            /*
-                            // 測試format功能
-                            let mut count = 0;
-                            for line_bytes in &lines {
-                                if std::str::from_utf8(line_bytes).is_err() {
-                                    eprintln!("[format-warn] batch={} chunk={} non-utf8 skipped", pb.seq, chunk_idx);
-                                }
-                                if count < 1 {
-                                    println!("前五條log: {}",String::from_utf8_lossy(&line_bytes));
-                                    count += 1;
-                                }
-                            }
-                            */
+                            all_lines.extend(lines);
                         }
                         Ok(Err(_)) => {
                             eprintln!("[format-error] batch={} chunk={}", pb.seq, chunk_idx);
@@ -276,27 +333,187 @@ fn format_loop(
 
                 if batch_ok {
                     let elapsed = batch_started.elapsed();
-                    print_format_batch(pb.seq, entry_count, batch_output_lines,
+                    let output_lines = all_lines.len();
+                    let total_bytes: usize = all_lines.iter().map(|l| l.len()).sum();
+
+                    print_format_batch(pb.seq, entry_count, output_lines,
                                        batch_wasm_peak, mem_limit_bytes, elapsed);
+
                     stats.total_batches += 1;
                     stats.total_input_entries += entry_count as u64;
-                    stats.total_output_lines += batch_output_lines as u64;
+                    stats.total_output_lines += output_lines as u64;
                     stats.total_elapsed += elapsed;
                     if batch_wasm_peak > stats.wasm_mem_peak_max {
                         stats.wasm_mem_peak_max = batch_wasm_peak;
                     }
+
+                    let fb = FormattedBatch { lines: all_lines, seq: pb.seq, total_bytes };
+                    if tx.send(fb).is_err() { break; }
                 }
             }
-            Err(_) => break, // channel 關閉，parse thread 已結束
+            Err(_) => break, // parse thread finished
         }
     }
 
     Ok(stats)
 }
 
-// ── Drain Loop（format 停用時使用）────────────────────────────────────────
+// ── Transport Loop (async) ────────────────────────────────────────────────
 
-/// 排空 ParsedBatch channel，讓 parse thread 不會 block 在 tx.send()。
-fn drain_loop(rx: Receiver<ParsedBatch>) {
-    while rx.recv().is_ok() {}
+/// Transport loop — 使用 Val API + async 呼叫 transport-plugin。
+///
+/// 執行於 single-thread tokio runtime，透過 `call_async` 驅動 wasi:http 非阻塞 I/O，
+/// 解除 sync 模式下 blocking-write-and-flush ≤ 4096 B 的限制。
+/// 單一長存活 Store：init 只呼叫一次，send 對每個 chunk 呼叫一次。
+async fn transport_loop(
+    rx: Receiver<FormattedBatch>,
+    engine: Engine,
+    component: Component,
+    linker: Linker<MyState>,
+    mem_limit_bytes: usize,
+    endpoint: String,
+    max_chunk_bytes: usize,
+) -> wasmtime::Result<TransportStats> {
+    let state = MyState {
+        ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+        table: ResourceTable::new(),
+        limiter: MyLimiter::new(mem_limit_bytes),
+        http: WasiHttpCtx::new(),
+    };
+    let mut store = Store::new(&engine, state);
+    store.limiter(|s| &mut s.limiter);
+
+    let instance = linker.instantiate_async(&mut store, &component).await?;
+
+    // ── init ──────────────────────────────────────────────────────────────
+    let init_fn = instance
+        .get_func(&mut store, "init")
+        .ok_or_else(|| wasmtime::Error::msg("transport component has no export 'init'"))?;
+
+    let config_val = make_transport_config_val(&endpoint);
+    let mut init_results = vec![Val::Bool(false)];
+    init_fn.call_async(&mut store, &[config_val], &mut init_results).await?;
+
+    if !is_ok_result(&init_results[0]) {
+        eprintln!("[transport] init() failed: {:?}", init_results[0]);
+        return Ok(TransportStats::default());
+    }
+    eprintln!("[transport] init() -> Ok  endpoint={}", endpoint);
+
+    // ── send loop ─────────────────────────────────────────────────────────
+    let send_fn = instance
+        .get_func(&mut store, "send")
+        .ok_or_else(|| wasmtime::Error::msg("transport component has no export 'send'"))?;
+
+    let mut stats = TransportStats::default();
+
+    loop {
+        // recv() is blocking; in a single-thread tokio runtime with no other tasks
+        // this is acceptable — the thread blocks until format stage sends data.
+        match rx.recv() {
+            Ok(batch) => {
+                let seq = batch.seq;
+                let batch_started = Instant::now();
+                let mut batch_ok = true;
+                let mut batch_lines_sent: usize = 0;
+                let mut batch_bytes_sent: usize = 0;
+                let mut batch_wasm_peak: usize = 0;
+
+                // 以累積 byte 數為單位分批，而非固定行數。
+                // 每一批對應一次 HTTP POST；plugin 內部仍須以 ≤ 4096 B 分批寫入 body。
+                let mut chunk_start = 0;
+                while chunk_start < batch.lines.len() {
+                    let mut chunk_end = chunk_start;
+                    let mut acc_bytes = 0usize;
+                    while chunk_end < batch.lines.len() {
+                        let line_len = batch.lines[chunk_end].len();
+                        if acc_bytes > 0 && acc_bytes + line_len > max_chunk_bytes {
+                            break;
+                        }
+                        acc_bytes += line_len;
+                        chunk_end += 1;
+                    }
+                    let chunk = &batch.lines[chunk_start..chunk_end];
+                    let chunk_bytes = acc_bytes;
+                    let output_data = Val::List(
+                        chunk.iter()
+                            .map(|line| Val::List(line.iter().map(|&b| Val::U8(b)).collect()))
+                            .collect(),
+                    );
+
+                    let mut send_results = vec![Val::Bool(false)];
+
+                    //println!("chunk len = {}", chunk.len());
+
+                    match send_fn.call_async(&mut store, &[output_data], &mut send_results).await {
+                        Ok(()) => {
+                            let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+                            if wasm_mem_peak > batch_wasm_peak {
+                                batch_wasm_peak = wasm_mem_peak;
+                            }
+                            if is_ok_result(&send_results[0]) {
+                                batch_lines_sent += chunk.len();
+                                batch_bytes_sent += chunk_bytes;
+                            } else {
+                                eprintln!("[transport-error] send batch={} result={:?}", seq, send_results[0]);
+                                batch_ok = false;
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("[transport-trap] send batch={}: {:?}", seq, e);
+                            batch_ok = false;
+                            break;
+                        }
+                    }
+                    chunk_start = chunk_end;
+                }
+
+                if batch_ok && batch_lines_sent > 0 {
+                    let elapsed = batch_started.elapsed();
+                    print_transport_batch(seq, batch_lines_sent, batch_bytes_sent,
+                                         batch_wasm_peak, mem_limit_bytes, elapsed);
+                    stats.total_batches += 1;
+                    stats.total_input_lines += batch_lines_sent as u64;
+                    stats.total_input_bytes += batch_bytes_sent as u64;
+                    stats.total_elapsed += elapsed;
+                    if batch_wasm_peak > stats.wasm_mem_peak_max {
+                        stats.wasm_mem_peak_max = batch_wasm_peak;
+                    }
+                }
+            }
+            Err(_) => break, // format thread finished
+        }
+    }
+
+    // ── report-usage ──────────────────────────────────────────────────────
+    if let Some(usage_fn) = instance.get_func(&mut store, "report-usage") {
+        let mut usage_results = vec![Val::U64(0)];
+        if usage_fn.call_async(&mut store, &[], &mut usage_results).await.is_ok() {
+            if let Val::U64(bytes) = usage_results[0] {
+                stats.total_bytes_reported = bytes;
+                eprintln!("[transport] report-usage() -> {} bytes", bytes);
+            }
+        }
+    }
+
+    Ok(stats)
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+fn make_transport_config_val(endpoint: &str) -> Val {
+    Val::Record(vec![
+        ("endpoint".into(), Val::String(endpoint.into())),
+        ("auth".into(), Val::Variant("none".into(), None)),
+        ("connect-timeout-ms".into(), Val::U32(5_000)),
+        ("request-timeout-ms".into(), Val::U32(10_000)),
+        ("retry".into(), Val::Option(None)),
+        ("tls".into(), Val::Option(None)),
+        ("extra-headers".into(), Val::List(vec![])),
+        ("max-batch-bytes".into(), Val::U32(4096)),
+    ])
+}
+
+fn is_ok_result(val: &Val) -> bool {
+    matches!(val, Val::Result(Ok(_)))
 }

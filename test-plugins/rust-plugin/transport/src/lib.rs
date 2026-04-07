@@ -168,16 +168,24 @@ fn send_batch(body_bytes: &[u8], config: &TransportConfig) -> Result<(), PluginE
             .write()
             .map_err(|_| PluginError::ProcessingFailed("get write stream failed".into()))?;
 
-        stream
-            .blocking_write_and_flush(body_bytes)
-            .map_err(|e| match e {
-                StreamError::LastOperationFailed(err) => {
-                    PluginError::ProcessingFailed(format!("write error: {}", err.to_debug_string()))
-                }
-                StreamError::Closed => {
-                    PluginError::ProcessingFailed("stream closed prematurely".into())
-                }
-            })?;
+        // blocking_write_and_flush 每次最多寫 4096 B（WASI spec 限制），
+        // 必須迴圈分批寫入直到整個 body 傳完。
+        const WASI_WRITE_LIMIT: usize = 4096;
+        let mut offset = 0;
+        while offset < body_bytes.len() {
+            let end = (offset + WASI_WRITE_LIMIT).min(body_bytes.len());
+            stream
+                .blocking_write_and_flush(&body_bytes[offset..end])
+                .map_err(|e| match e {
+                    StreamError::LastOperationFailed(err) => {
+                        PluginError::ProcessingFailed(format!("write error: {}", err.to_debug_string()))
+                    }
+                    StreamError::Closed => {
+                        PluginError::ProcessingFailed("stream closed prematurely".into())
+                    }
+                })?;
+            offset = end;
+        }
 
         drop(stream);
         OutgoingBody::finish(out_body, None)

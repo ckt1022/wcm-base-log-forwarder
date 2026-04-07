@@ -7,6 +7,7 @@ use wasmtime::{
     Config, Engine, OptLevel, ResourceLimiter, Strategy,
 };
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
+use wasmtime_wasi_http::WasiHttpCtx;
 
 use crate::config::LineItem;
 
@@ -68,6 +69,9 @@ pub struct MyState {
     pub ctx: WasiCtx,
     pub table: ResourceTable,
     pub limiter: MyLimiter,
+    /// HTTP context — only populated for transport plugin stores;
+    /// parse/format stores carry a default WasiHttpCtx but never link HTTP functions.
+    pub http: WasiHttpCtx,
 }
 
 impl WasiView for MyState {
@@ -79,12 +83,19 @@ impl WasiView for MyState {
     }
 }
 
+impl wasmtime_wasi_http::WasiHttpView for MyState {
+    fn ctx(&mut self) -> &mut WasiHttpCtx {
+        &mut self.http
+    }
+    fn table(&mut self) -> &mut ResourceTable {
+        &mut self.table
+    }
+}
+
 // 負責把log一條條變成LineItem後塞入channel
 pub fn spawn_stdin_reader(tx: SyncSender<LineItem>) {
-    // 開條thread負責接收log，並放入channel
     thread::spawn(move || {
         let stdin = io::stdin();
-        // 因為stdin是全域資源，需要上鎖確保只有一個thread在修改
         for line in stdin.lock().lines() {
             if let Ok(content) = line {
                 if tx.send(LineItem { bytes: content.into_bytes() }).is_err() {
@@ -95,24 +106,45 @@ pub fn spawn_stdin_reader(tx: SyncSender<LineItem>) {
     });
 }
 
+/// Build an engine/component/linker for parse or format plugins (WASI only, no HTTP).
 pub fn build_runtime(
-    mem_limit_bytes: usize,
+    _mem_limit_bytes: usize,
     wasm_path: String,
-) -> wasmtime::Result<(Engine, Linker<MyState>, Component)> {
+) -> wasmtime::Result<(Engine, Component, Linker<MyState>)> {
     let mut config = Config::new();
     config.wasm_component_model(true);
     config.strategy(Strategy::Cranelift);
     config.cranelift_opt_level(OptLevel::Speed);
 
-    // 使用預設的 on-demand allocator：每次 instantiate 都取得全新的清零記憶體。
-    // Pooling allocator 為了效能重複使用記憶體 slot，但不會重置 TinyGo 的零初始化
-    // globals（heap bump pointer 等），導致第二次以後的 instance 繼承舊的 heap 狀態
-    // 而觸發 OOM 或 out-of-bounds memory access。
     let engine = Engine::new(&config)?;
     let mut linker: Linker<MyState> = Linker::new(&engine);
     wasmtime_wasi::p2::add_to_linker_sync(&mut linker)?;
 
     let component = Component::from_file(&engine, wasm_path)?;
 
-    Ok((engine, linker, component))
+    Ok((engine, component, linker))
+}
+
+/// Build an engine/component/linker for the transport plugin (WASI + HTTP, async).
+///
+/// `add_to_linker_async` + `add_only_http_to_linker_async` enable non-blocking I/O
+/// so that `Func::call_async` can drive HTTP requests without the 4096 B write limit
+/// that exists in sync WASI.
+pub fn build_transport_runtime(
+    _mem_limit_bytes: usize,
+    wasm_path: String,
+) -> wasmtime::Result<(Engine, Component, Linker<MyState>)> {
+    let mut config = Config::new();
+    config.wasm_component_model(true);
+    config.strategy(Strategy::Cranelift);
+    config.cranelift_opt_level(OptLevel::Speed);
+
+    let engine = Engine::new(&config)?;
+    let mut linker: Linker<MyState> = Linker::new(&engine);
+    wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
+    wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
+
+    let component = Component::from_file(&engine, wasm_path)?;
+
+    Ok((engine, component, linker))
 }

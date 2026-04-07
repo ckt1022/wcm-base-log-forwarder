@@ -114,3 +114,100 @@ This tool is suitable for:
 
 - 刪除 `wit/log_host.wit` 並改用整個 `wit/` 目錄（`path: "wit"`）後，`format_bindings` 的 `with` 區塊必須使用正確的 Rust 模組路徑 `local::log_process::pipeline_process`（底線分隔，對應 WIT 的 kebab-case `local:log-process/pipeline-process`）
 - 兩個 bindgen（parser 與 format）共用同一份 `pipeline-process` 型別的前提是 `format_bindings` 的 `with` 設定正確指向 parser bindgen 生成的模組，否則 channel 傳遞 `Vec<LogEntry>` 時會出現型別不相容錯誤
+
+---
+
+## Transport Plugin 整合 — 遇到的問題與解決方法
+
+### 問題一：transport.wasm 非 component 格式
+
+- **現象**：載入 `transport.wasm` 時報錯 `attempted to parse a wasm module with a component parser`
+- **原因**：`wasm-compose` 輸出兩個檔案：`transport.wasm`（原始 module）與 `transport_component.wasm`（已組合的 component）；pipeline 需要的是後者
+- **解決方法**：`src/main.rs` 的路徑改為 `transport_component.wasm`
+
+---
+
+### 問題二：wasmtime sync WASI blocking-write 限制 4096 B
+
+- **現象**：第一批次呼叫 `send()` 時 trap：`Buffer too large for blocking-write-and-flush (expected at most 4096)`；後續所有批次繼續 trap：`cannot enter component instance`
+- **原因**：
+  - wasmtime sync 模式下 `blocking-write-and-flush` 每次最多寫入 4096 B
+  - transport plugin（Rust）將整個 batch 的資料一次性寫入 HTTP request body，大批次（~260 KB）遠超限制
+  - 第一次 trap 後 component instance 進入損壞狀態，後續呼叫全部失敗
+- **解決方法**：在 host 端（`transport_loop`）對 `FormattedBatch.lines` 分片，每片最多 `max_transport_chunk`（預設 20 行 ≈ 2–4 KB）呼叫一次 `send()`；每次呼叫觸發一個獨立 HTTP POST 請求
+
+---
+
+### 問題三：`parse_handle` 超出作用域
+
+- **現象**：`parse_handle` 在 `match` block 內定義，離開 block 後無法 `.join()`，導致編譯失敗
+- **解決方法**：將 `parse_handle` 宣告為 `Option<JoinHandle<...>>`，在 `if let Some(...)` 外部持有
+
+---
+
+### 問題四：`BatchConfig` 移入 closure 後無法再使用
+
+- **現象**：`cfg` 被 parse closure 的 `move` 捕獲後，後續取 `cfg.transport_endpoint` 時編譯報錯 `borrow of moved value`
+- **原因**：`BatchConfig` 原本實作 `Copy`（`#[derive(Clone, Copy)]`），加入 `transport_endpoint: String` 後 `String` 不能 `Copy`，trait 自動失效
+- **解決方法**：改為只 `#[derive(Clone)]`，在 spawn 前預先 `clone()` 或個別 `clone` 需要的欄位，再傳入各 closure
+
+---
+
+### 問題五：`post_return()` deprecated
+
+- **現象**：呼叫 `Func::post_return()` 出現編譯警告 `use of deprecated method: no longer needs to be called`
+- **原因**：wasmtime 42.x 已將 `post_return` 改為 no-op 並標記 deprecated
+- **解決方法**：移除所有 `post_return()` 呼叫
+
+---
+
+## 重大改動
+
+### Pipeline 架構：三段並行 Thread
+
+- **改動前**：parse 在獨立 thread，format 在主 thread（串行）
+- **改動後**：parse / format / transport 各自在獨立 thread，以 `sync_channel` 背壓串聯
+
+```
+stdin → [reader thread]
+             ↓  LineItem channel (cap 5000)
+        [parse thread]
+             ↓  ParsedBatch channel (cap 32)
+        [format thread]
+             ↓  FormattedBatch channel (cap 16)
+        [transport thread]
+```
+
+- 任一階段停用時自動 spawn drain thread 排空 channel，確保上游不 block
+
+---
+
+### `MyState` 加入 HTTP 支援
+
+- 新增 `http: WasiHttpCtx` 欄位，實作 `wasmtime_wasi_http::WasiHttpView`
+- parse / format 的 store 帶著預設 `WasiHttpCtx::new()` 但 linker 不加入 HTTP 函式，無額外開銷
+- `build_transport_runtime()` 在 linker 額外呼叫 `add_only_http_to_linker_sync()`，使 transport component 能執行 HTTP 請求
+
+---
+
+### Transport Loop 設計
+
+- 使用 **Val API**（動態型別）呼叫 transport component，避免 bindgen 需要映射複雜 wasi:http 型別
+- 單一長存活 Store：`init()` 只呼叫一次，`send()` 對每個 `FormattedBatch` 的每個 chunk 各呼叫一次
+- 結束後呼叫 `report-usage()` 取得 plugin 自行累計的傳送 byte 數
+- 新增 `max_transport_chunk`（預設 20 行）控制每次 `send()` 的資料大小，規避 wasmtime sync WASI 4096 B 寫入限制
+
+---
+
+### Transport 統計數據（TransportStats）
+
+| 欄位 | 說明 |
+|---|---|
+| `total_batches` | 成功傳送的批次數 |
+| `total_input_lines` | 傳送的格式化行數 |
+| `total_input_bytes` | Host 計算的傳送 byte 數 |
+| `total_bytes_reported` | Plugin `report-usage()` 回報的累計 byte 數 |
+| `total_elapsed` | Transport 累計耗時 |
+| `wasm_mem_peak_max` | WASM 線性記憶體峰值 |
+
+Pipeline summary 末尾新增 Trans 區塊，與 Parse / Format 格式一致。

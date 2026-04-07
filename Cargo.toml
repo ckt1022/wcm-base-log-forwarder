@@ -6,4 +6,6 @@ edition = "2024"
 [dependencies]
 wasmtime = "42.0.1"
 wasmtime-wasi = "42.0.1"
+wasmtime-wasi-http = "42.0.1"
 wit-bindgen = "0.55.0"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time"] }
