@@ -32,13 +32,20 @@ pub mod format_bindings {
 
 /// WASM 線性記憶體追蹤器，實作 ResourceLimiter 介面。
 pub struct MyLimiter {
+    pub max_allocation: usize,
     mem_limit_bytes: usize,
     pub wasm_mem_peak: usize,
 }
 
 impl MyLimiter {
     pub fn new(mem_limit_bytes: usize) -> Self {
-        Self { mem_limit_bytes, wasm_mem_peak: 0 }
+        Self { mem_limit_bytes, wasm_mem_peak: 0 ,max_allocation:0}
+    }
+    pub fn print_max(&self,type_of_max:&str){
+        let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
+        if type_of_max == "format"{
+            println!("{type_of_max} 該次實例最大memoey用量:{},佔比: {}",self.max_allocation,ratio);
+        }
     }
 }
 
@@ -52,7 +59,12 @@ impl ResourceLimiter for MyLimiter {
         if desired > self.wasm_mem_peak {
             self.wasm_mem_peak = desired;
         }
-        Ok(desired <= self.mem_limit_bytes)
+        let grow = desired <= self.mem_limit_bytes;
+        println!("是否同意記憶體增長 : {grow}, 目前的記憶體大小 : {desired}");
+        if desired > self.max_allocation {
+            self.max_allocation = desired;
+        }
+        Ok(grow)
     }
 
     fn table_growing(
@@ -108,7 +120,6 @@ pub fn spawn_stdin_reader(tx: SyncSender<LineItem>) {
 
 /// Build an engine/component/linker for parse or format plugins (WASI only, no HTTP).
 pub fn build_runtime(
-    _mem_limit_bytes: usize,
     wasm_path: String,
 ) -> wasmtime::Result<(Engine, Component, Linker<MyState>)> {
     let mut config = Config::new();
@@ -131,7 +142,6 @@ pub fn build_runtime(
 /// so that `Func::call_async` can drive HTTP requests without the 4096 B write limit
 /// that exists in sync WASI.
 pub fn build_transport_runtime(
-    _mem_limit_bytes: usize,
     wasm_path: String,
 ) -> wasmtime::Result<(Engine, Component, Linker<MyState>)> {
     let mut config = Config::new();

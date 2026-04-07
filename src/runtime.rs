@@ -49,6 +49,7 @@ pub fn run_pipeline(
     transport: Option<(Engine, Component, Linker<MyState>)>,
     cfg: BatchConfig,
 ) -> wasmtime::Result<()> {
+    // 設定每個instance的最大輸入上限
     let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
 
     let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(32);
@@ -131,7 +132,7 @@ pub fn run_pipeline(
 }
 
 // ── Parse Loop (sync) ─────────────────────────────────────────────────────
-
+// Wasmtime 的資源限制是 store-level
 fn parse_loop(
     rx: Receiver<LineItem>,
     tx: SyncSender<ParsedBatch>,
@@ -274,6 +275,8 @@ fn do_parse_batch(
         }
     };
 
+    //store.data().limiter.print_max("parse");
+
     batch.clear();
     Ok(result)
 }
@@ -309,7 +312,7 @@ fn format_loop(
                     };
                     let mut store = Store::new(&engine, state);
                     store.limiter(|s| &mut s.limiter);
-
+                    
                     let plugin = FormatPlugin::instantiate(&mut store, &component, &linker)?;
 
                     match plugin.call_format(&mut store, chunk) {
@@ -329,6 +332,7 @@ fn format_loop(
                             batch_ok = false;
                         }
                     }
+                    store.data().limiter.print_max("format");
                 }
 
                 if batch_ok {

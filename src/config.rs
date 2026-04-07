@@ -28,12 +28,12 @@ pub struct BatchConfig {
 impl Default for BatchConfig {
     fn default() -> Self {
         Self {
-            mem_limit_mb: 256,
-            safe_data_ratio: 0.3,
-            max_wait: Duration::from_millis(250),
-            max_batch_lines: 20_000,
+            mem_limit_mb: 128,
+            safe_data_ratio: 0.7,
+            max_wait: Duration::from_millis(1000),
+            max_batch_lines: 30_000,
             channel_capacity: 5_000,
-            max_format_chunk: 100,
+            max_format_chunk: 150,
             transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
             max_transport_bytes: 8 * 1024, // 8 KB；plugin 內部以 4096 B 寫入（2 次 write/POST），Val API 呼叫次數減少 4×
         }

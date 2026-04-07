@@ -33,35 +33,42 @@ fn main() -> wasmtime::Result<()> {
         )),
     };
 
+    // 判斷啟動哪些stage
     let stages = PipelineStages {
         format: true,
-        transport: true,
+        transport: false,
     };
 
+    // 
     let cfg = BatchConfig::default();
-    let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
+    let mem_limit_bytes = cfg.mem_limit_mb;
     let safe_data_budget = (mem_limit_bytes as f64 * cfg.safe_data_ratio) as usize;
 
     output::print_startup(&cfg, safe_data_budget, &stages);
 
+    // 接收輸入與送進channel between    input -> channel -> parse
     let (tx, rx) = std::sync::mpsc::sync_channel::<config::LineItem>(cfg.channel_capacity);
     app::spawn_stdin_reader(tx);
 
+    // stage wasm runtime engine amd component and linker
+    // engine,component可以重複使用，用來建立store
+    // 不同instance用相同engine，不同store
     let (engine_parse, component_parse, linker_parse) =
-        app::build_runtime(mem_limit_bytes, path.parse)?;
+        app::build_runtime(path.parse)?;
 
     let format_runtime = if stages.format {
-        Some(app::build_runtime(mem_limit_bytes, path.format)?)
+        Some(app::build_runtime(path.format)?)
     } else {
         None
     };
 
     let transport_runtime = if stages.transport {
-        Some(app::build_transport_runtime(mem_limit_bytes, path.transport)?)
+        Some(app::build_transport_runtime(path.transport)?)
     } else {
         None
     };
 
+    // runpipeline
     runtime::run_pipeline(
         rx,
         Some((engine_parse, component_parse, linker_parse)),
