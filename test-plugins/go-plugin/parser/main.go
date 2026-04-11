@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"runtime"
+	"strconv"
+	"strings"
 
-	pipelineprocess "example.com/internal/local/log-process/pipeline-process"
 	parserplugin "example.com/internal/local/log-process/parser-plugin"
+	pipelineprocess "example.com/internal/local/log-process/pipeline-process"
 	"go.bytecodealliance.org/cm"
 )
 
@@ -18,7 +20,8 @@ type Self_log struct {
 }
 
 func init() {
-	parserplugin.Exports.Parse = Parse
+	// ParseLogfmt // Parse // ParseSys
+	parserplugin.Exports.Parse = ParseSys
 	parserplugin.Exports.ReportUsage = ReportUsage
 }
 
@@ -101,6 +104,88 @@ func Parse(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorSha
 	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](result)
 }
 
+// ParseLogfmt 將 rawData（list<list<u8>>）解析為 logfmt 格式的 LogEntry 列表。
+//
+// 格式範例：
+//
+//	ts=2026-04-11T12:00:00Z level=info msg="Request completed successfully" service=api-gateway code=200
+//
+// 行為與 JSON Parse 保持一致：
+//  1. 單行格式錯誤時跳過該行並繼續
+//  2. level 由 level=... 對應至 WIT LogLevel enum
+//  3. ts / level / msg 作為主欄位，其餘 key=value 進入 Tags
+func ParseLogfmt(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
+	peak_mem = 0
+	samplePeakMem()
+
+	rawSlice := rawData.Slice()
+	entries := make([]parserplugin.ParsedEntry, 0, len(rawSlice))
+
+	var skipCount int
+
+	for _, rawBuf := range rawSlice {
+		data := rawBuf.Slice()
+
+		entry, err := parse_logfmt(data)
+		if err != nil {
+			skipCount++
+			continue
+		}
+
+		entries = append(entries, entry)
+	}
+
+	result := cm.ToList(entries)
+	samplePeakMem()
+
+	_ = skipCount
+
+	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](result)
+}
+
+// ParseSys 將 rawData（list<list<u8>>）解析為 syslog 格式的 LogEntry 列表。
+//
+// 支援的格式為本專案 generator 產出的 RFC5424-like 單行格式：
+//
+//	<PRI>1 TIMESTAMP HOST APP-NAME - - - MESSAGE key=value ...
+//
+// 範例：
+//
+//	<14>1 2026-04-11T12:00:00Z worker-03 auth-service - - - Health check passed level=info code=200 service=auth-service
+//
+// 行為：
+//  1. 單行格式錯誤時跳過該行並繼續
+//  2. 若尾端 key=value 含 level，優先使用該欄位；否則 fallback 至 PRI severity
+//  3. host / app_name 與其他 key=value 一併進入 Tags
+func ParseSys(rawData cm.List[cm.List[uint8]]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
+	peak_mem = 0
+	samplePeakMem()
+
+	rawSlice := rawData.Slice()
+	entries := make([]parserplugin.ParsedEntry, 0, len(rawSlice))
+
+	var skipCount int
+
+	for _, rawBuf := range rawSlice {
+		data := rawBuf.Slice()
+
+		entry, err := parse_sys(data)
+		if err != nil {
+			skipCount++
+			continue
+		}
+
+		entries = append(entries, entry)
+	}
+
+	result := cm.ToList(entries)
+	samplePeakMem()
+
+	_ = skipCount
+
+	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](result)
+}
+
 // ReportUsage 回傳本次 Parse 期間觀測到的 Go heap 峰值用量（bytes）。
 //
 // ⚠ 此值僅代表 Go runtime heap 層面的記憶體用量（HeapInuse），
@@ -135,6 +220,263 @@ func parseLogLevel(s string) pipelineprocess.LogLevel {
 		return pipelineprocess.LogLevelInfo
 	}
 	return level
+}
+
+// parse_logfmt 解析單行 logfmt，並轉為 ParsedEntry。
+//
+// 規則：
+//   - ts / level / msg 取出作為主欄位
+//   - 其餘 key=value 進入 Tags
+//   - 支援 quoted value，例如 msg="hello world"
+//   - 若缺少 level，則 fallback 為 LogLevelInfo
+func parse_logfmt(data []byte) (parserplugin.ParsedEntry, error) {
+	fields, err := parseLogfmtFields(string(data))
+	if err != nil {
+		return parserplugin.ParsedEntry{}, err
+	}
+
+	ts := fields["ts"]
+	msg := fields["msg"]
+	level := parseLogLevel(fields["level"])
+
+	pairs := make([][2]string, 0, len(fields))
+	for k, v := range fields {
+		switch k {
+		case "ts", "level", "msg":
+			continue
+		default:
+			pairs = append(pairs, [2]string{k, v})
+		}
+	}
+
+	return parserplugin.ParsedEntry{
+		Timestamp: ts,
+		Level:     level,
+		Message:   msg,
+		Tags:      cm.ToList(pairs),
+	}, nil
+}
+
+// parse_sys 解析單行 syslog，並轉為 ParsedEntry。
+//
+// 支援格式：
+//
+//	<PRI>1 TIMESTAMP HOST APP-NAME - - - MESSAGE key=value ...
+//
+// 注意：
+//   - 這裡針對目前 generator 產出的 RFC5424-like 格式做解析
+//   - MESSAGE 後尾端若帶有 logfmt 欄位（例如 level=info code=200），會進一步拆解
+//   - 若 level 欄位不存在，則使用 PRI 推導 severity 對應的 LogLevel
+func parse_sys(data []byte) (parserplugin.ParsedEntry, error) {
+	line := strings.TrimSpace(string(data))
+	if line == "" {
+		return parserplugin.ParsedEntry{}, strconv.ErrSyntax
+	}
+
+	// PRI：例如 <14>
+	if !strings.HasPrefix(line, "<") {
+		return parserplugin.ParsedEntry{}, strconv.ErrSyntax
+	}
+	endPRI := strings.IndexByte(line, '>')
+	if endPRI <= 1 {
+		return parserplugin.ParsedEntry{}, strconv.ErrSyntax
+	}
+
+	pri, err := strconv.Atoi(line[1:endPRI])
+	if err != nil {
+		return parserplugin.ParsedEntry{}, err
+	}
+	severity := pri % 8
+
+	rest := line[endPRI+1:]
+
+	// VERSION TIMESTAMP HOST APP-NAME PROCID MSGID STRUCTURED-DATA MSG
+	// 本 generator 固定輸出：
+	//   1 ts host svc - - - message level=... code=...
+	parts := strings.SplitN(rest, " ", 8)
+	if len(parts) < 8 {
+		return parserplugin.ParsedEntry{}, strconv.ErrSyntax
+	}
+
+	version := parts[0]
+	ts := parts[1]
+	host := parts[2]
+	app := parts[3]
+	procid := parts[4]
+	msgid := parts[5]
+	structuredData := parts[6]
+	msgAndMore := parts[7]
+
+	if version != "1" {
+		return parserplugin.ParsedEntry{}, strconv.ErrSyntax
+	}
+
+	// 目前 generator 固定為 "- - -"
+	_ = procid
+	_ = msgid
+	_ = structuredData
+
+	msgAndMore = strings.TrimSpace(msgAndMore)
+
+	// 以 " level=" 作為 message 與尾端 key=value 的切點
+	msg := msgAndMore
+	fieldPart := ""
+
+	if idx := strings.Index(msgAndMore, " level="); idx >= 0 {
+		msg = strings.TrimSpace(msgAndMore[:idx])
+		fieldPart = strings.TrimSpace(msgAndMore[idx+1:])
+	}
+
+	fields := map[string]string{}
+	if fieldPart != "" {
+		fields, err = parseLogfmtFields(fieldPart)
+		if err != nil {
+			return parserplugin.ParsedEntry{}, err
+		}
+	}
+
+	levelStr := fields["level"]
+	var level pipelineprocess.LogLevel
+	if levelStr != "" {
+		level = parseLogLevel(levelStr)
+	} else {
+		level = syslogSeverityToLogLevel(severity)
+	}
+
+	pairs := make([][2]string, 0, len(fields)+2)
+	pairs = append(pairs,
+		[2]string{"host", host},
+		[2]string{"app_name", app},
+	)
+
+	for k, v := range fields {
+		if k == "level" {
+			continue
+		}
+		pairs = append(pairs, [2]string{k, v})
+	}
+
+	return parserplugin.ParsedEntry{
+		Timestamp: ts,
+		Level:     level,
+		Message:   msg,
+		Tags:      cm.ToList(pairs),
+	}, nil
+}
+
+// parseLogfmtFields 將 logfmt 字串解析為 map[string]string。
+//
+// 支援：
+//   - key=value
+//   - key="value with spaces"
+//   - 常見 escape：\\ \" \n \t \r
+//
+// 限制：
+//   - 不做型別推斷，全部保留為字串
+//   - 遇到不合法語法直接回傳錯誤
+func parseLogfmtFields(s string) (map[string]string, error) {
+	fields := make(map[string]string)
+	i := 0
+	n := len(s)
+
+	for i < n {
+		for i < n && s[i] == ' ' {
+			i++
+		}
+		if i >= n {
+			break
+		}
+
+		keyStart := i
+		for i < n && s[i] != '=' && s[i] != ' ' {
+			i++
+		}
+		if i >= n || s[i] != '=' {
+			return nil, strconv.ErrSyntax
+		}
+		key := s[keyStart:i]
+		i++ // skip '='
+
+		if i >= n {
+			fields[key] = ""
+			break
+		}
+
+		var val string
+		if s[i] == '"' {
+			i++ // skip opening quote
+
+			var b strings.Builder
+			for i < n {
+				switch s[i] {
+				case '\\':
+					if i+1 >= n {
+						return nil, strconv.ErrSyntax
+					}
+					i++
+					switch s[i] {
+					case '\\', '"':
+						b.WriteByte(s[i])
+					case 'n':
+						b.WriteByte('\n')
+					case 't':
+						b.WriteByte('\t')
+					case 'r':
+						b.WriteByte('\r')
+					default:
+						// 保守接受未知 escape，避免 parser 過度嚴格
+						b.WriteByte(s[i])
+					}
+					i++
+				case '"':
+					i++
+					val = b.String()
+					goto doneValue
+				default:
+					b.WriteByte(s[i])
+					i++
+				}
+			}
+			return nil, strconv.ErrSyntax
+		} else {
+			valStart := i
+			for i < n && s[i] != ' ' {
+				i++
+			}
+			val = s[valStart:i]
+		}
+
+	doneValue:
+		fields[key] = val
+
+		for i < n && s[i] == ' ' {
+			i++
+		}
+	}
+
+	return fields, nil
+}
+
+// syslogSeverityToLogLevel 將 syslog PRI 的 severity 映射至 WIT LogLevel enum。
+//
+// 對應規則：
+//   - 0~3 => Error
+//   - 4   => Warn
+//   - 5~6 => Info
+//   - 7   => Debug
+func syslogSeverityToLogLevel(sev int) pipelineprocess.LogLevel {
+	switch sev {
+	case 0, 1, 2, 3:
+		return pipelineprocess.LogLevelError
+	case 4:
+		return pipelineprocess.LogLevelWarn
+	case 5, 6:
+		return pipelineprocess.LogLevelInfo
+	case 7:
+		return pipelineprocess.LogLevelDebug
+	default:
+		return pipelineprocess.LogLevelInfo
+	}
 }
 
 func main() {}

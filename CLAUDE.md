@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`wcm-base-log-forwarder` is a research tool evaluating the WebAssembly Component Model (WCM) for high-throughput log processing. The host runtime is Rust (wasmtime); plugins are compiled to WASM via TinyGo (currently) with Go, C++, and Python planned.
+`wcm-base-log-forwarder` 這項專案是我想用來寫論文的。架構上是利用wasm component model，把log forwarder中的每個
+stage都插件化，想利用wasm的安全性，提出一個具有市面上的大部分log forwarder功能、吞吐量等等指標不輸、更加彈性化的日誌轉發。所以目標上希望傳輸吞吐量高、CPU使用率低、MEM占比低，彼此權衡。
+請你以你是架構設計者的角度給建議，對於plugin的修改也沒關係，重點是wit提供的介面要乾淨明確，好實作。
 
 ## Commands
 
@@ -12,6 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 cargo build           # debug
+#不要用release進行測試
 cargo build --release # optimized
 ```
 
@@ -87,7 +90,6 @@ stdin → [reader thread] → LineItem channel (cap 5000)
 | Transport | `test-plugins/go-plugin/transport/` | TinyGo | Stub |
 
 ### Performance Baseline
-
 Parse: ~12 500 entries/sec (current bottleneck). Format: ~18 000 entries/sec.
 
 ## Research Context

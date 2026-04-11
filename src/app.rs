@@ -43,8 +43,8 @@ impl MyLimiter {
     }
     pub fn print_max(&self,type_of_max:&str){
         let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
-        if type_of_max == "format"{
-            println!("{type_of_max} 該次實例最大memoey用量:{},佔比: {}",self.max_allocation,ratio);
+        if type_of_max == "parse"{
+            println!("{} 該次實例最大memoey用量:{},佔比: {}",type_of_max,self.max_allocation,ratio);
         }
     }
 }
@@ -60,7 +60,7 @@ impl ResourceLimiter for MyLimiter {
             self.wasm_mem_peak = desired;
         }
         let grow = desired <= self.mem_limit_bytes;
-        println!("是否同意記憶體增長 : {grow}, 目前的記憶體大小 : {desired}");
+        //println!("是否同意記憶體增長 : {grow}, current={_current} desired={desired} max={_maximum:?}");
         if desired > self.max_allocation {
             self.max_allocation = desired;
         }

@@ -1,0 +1,96 @@
+package local:log-process@0.1.0;
+
+// ─────────────────────────────────────────────
+// 核心共享型別
+// ─────────────────────────────────────────────
+interface pipeline-process {
+
+    /// parser 回傳的原始解析結果，不含 id
+    /// host 收到後統一分配 id，轉換為 log-entry，再傳入後續插件
+    record parsed-entry {
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+    }
+
+    /// 帶有 host 分配 id 的完整條目
+    /// id 由 host 保證在同一批次內唯一，插件不得修改 id
+    record log-entry {
+        id: u64,
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+    }
+
+    /// 日誌層級（syslog 七級）
+    enum log-level {
+        debug,
+        info,
+        warn,
+        error,
+        crit,
+        alert,
+        emerg,
+    }
+
+    // ── 錯誤型別 ──────────────────────────────
+
+    /// parser 專屬錯誤，語意比通用錯誤更精確
+    variant parse-error {
+        invalid-format(string),
+        unsupported-version(u16),
+        corrupted-data,
+    }
+
+    /// 所有插件共用的通用錯誤
+    variant plugin-error {
+        invalid-input(string),
+        processing-failed(string),
+        config-error(string),
+        /// 插件回傳了輸入中不存在的 id，host 應視為嚴重錯誤
+        unknown-id(u64),
+        internal-error,
+    }
+
+    // ── id 配對結果型別 ────────────────────────
+    // 插件只回傳「決策」，host 負責對原始 log-entry 執行實際操作
+    // 這確保原始資料不被插件修改（masking-plugin 是唯一例外）
+
+    /// reduction-plugin 使用
+    record filter-result {
+        id: u64,
+        keep: bool,
+    }
+
+    /// enricher-plugin 使用
+    record enrich-result {
+        id: u64,
+        /// 要附加到對應 log-entry.tags 的額外標籤
+        additional-tags: list<tuple<string, string>>,
+    }
+
+    /// route-plugin 使用
+    record route-result {
+        id: u64,
+        /// 此條 log 的轉送目標 URL 列表
+        /// 空 list 表示不轉送（由插件主動決定跳過）
+        urls: list<string>,
+    }
+}
+
+
+// ─────────────────────────────────────────────
+// format-plugin
+// ─────────────────────────────────────────────
+world format-plugin {
+    use pipeline-process.{log-entry, plugin-error};
+    include wasi:cli/imports@0.2.0;
+
+    export format: func(
+        struct-data: list<log-entry>
+    ) -> result<list<list<u8>>, plugin-error>;
+
+    export report-usage: func() -> u64;
+}

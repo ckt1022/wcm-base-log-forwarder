@@ -1,15 +1,27 @@
 #!/usr/bin/env python3
 """
 Simple HTTP log receiver for testing the transport WASM component.
-Listens on port 8080, accepts POST /ingest, prints received payload.
+Listens on port 8080, accepts POST /ingest, prints per-batch summary only.
+Uses ThreadingHTTPServer to handle concurrent requests from multiple workers.
 """
 
 import sys
-import json
+import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 
 PORT = 8080
-RECEIVED_BATCHES = []
+
+# Thread-safe counters
+_lock = threading.Lock()
+_total_batches = 0
+_total_bytes = 0
+_total_lines = 0
+
+
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """Handles each request in a separate thread."""
+    daemon_threads = True
 
 
 class LogReceiver(BaseHTTPRequestHandler):
@@ -23,7 +35,6 @@ class LogReceiver(BaseHTTPRequestHandler):
         if length_header is not None:
             body = self.rfile.read(int(length_header))
         else:
-            # No Content-Length: read in chunks until done
             chunks = []
             while True:
                 chunk = self.rfile.read(4096)
@@ -32,19 +43,22 @@ class LogReceiver(BaseHTTPRequestHandler):
                 chunks.append(chunk)
             body = b"".join(chunks)
 
-        RECEIVED_BATCHES.append(body)
+        n_lines = body.count(b"\n")
+        #print(body)
+        global _total_batches, _total_bytes, _total_lines
+        with _lock:
+            _total_batches += 1
+            _total_bytes += len(body)
+            _total_lines += n_lines
+            batch_num = _total_batches
+            tb = _total_bytes
+            tl = _total_lines
 
-        print(f"\n[server] --- Received batch #{len(RECEIVED_BATCHES)} ---")
-        print(f"[server] Content-Type: {self.headers.get('Content-Type', '(none)')}")
-        print(f"[server] Bytes: {len(body)}")
-
-        # Try to print each line
-        for i, line in enumerate(body.splitlines(), 1):
-            try:
-                decoded = line.decode("utf-8")
-                print(f"[server] Line {i}: {decoded}")
-            except Exception:
-                print(f"[server] Line {i}: <binary {len(line)} bytes>")
+        print(
+            f"[server] batch #{batch_num:>5}  {len(body):>8} B  {n_lines:>6} lines"
+            f"  | cumulative: {tb:>10} B  {tl:>8} lines",
+            flush=True,
+        )
 
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -52,18 +66,23 @@ class LogReceiver(BaseHTTPRequestHandler):
         self.wfile.write(b'{"status":"ok"}')
 
     def log_message(self, fmt, *args):
-        # Suppress default access log (we print our own)
-        pass
+        pass  # suppress default access log
 
 
 def main():
-    server = HTTPServer(("127.0.0.1", PORT), LogReceiver)
-    print(f"[server] Listening on http://127.0.0.1:{PORT}/ingest")
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), LogReceiver)
+    print(f"[server] Listening on http://127.0.0.1:{PORT}/ingest (multi-threaded)")
     print("[server] Press Ctrl+C to stop.\n")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print(f"\n[server] Stopped. Total batches received: {len(RECEIVED_BATCHES)}")
+        with _lock:
+            print(
+                f"\n[server] Stopped."
+                f"  Total batches={_total_batches}"
+                f"  bytes={_total_bytes}"
+                f"  lines={_total_lines}"
+            )
 
 
 if __name__ == "__main__":

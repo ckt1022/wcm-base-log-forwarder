@@ -25,7 +25,7 @@ fn main() -> wasmtime::Result<()> {
         )),
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test-plugins/go-plugin/format/format.wasm"
+            "/test-plugins/cpp-plugin/format/format.wasm"
         )),
         transport: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -36,12 +36,20 @@ fn main() -> wasmtime::Result<()> {
     // 判斷啟動哪些stage
     let stages = PipelineStages {
         format: true,
-        transport: false,
+        transport: true,
     };
 
     // 
     let cfg = BatchConfig::default();
-    let mem_limit_bytes = cfg.mem_limit_mb;
+
+    // 驗證設定並印出每個參數的實際用途與是否為預設值
+    cfg.print_config_table();
+    if let Err(e) = cfg.validate_and_describe() {
+        eprintln!("[config-error] {}", e);
+        std::process::exit(1);
+    }
+
+    let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024; // fix: 正確換算為 bytes
     let safe_data_budget = (mem_limit_bytes as f64 * cfg.safe_data_ratio) as usize;
 
     output::print_startup(&cfg, safe_data_budget, &stages);

@@ -20,23 +20,174 @@ pub struct BatchConfig {
     /// 每次呼叫 transport send() 的最大累積 byte 數（一次對應一個 HTTP POST）。
     /// WASI blocking-write-and-flush 單次寫入上限為 4096 B（sync/async 皆適用）；
     /// plugin 必須在內部分批寫入 HTTP body（每次 ≤ 4096 B）。
-    /// 此值控制每次 send() 傳入的資料總量，預設 2048 B，確保 plugin 寫入安全。
+    /// 此值控制每次 send() 傳入的資料總量，預設 32 KB，確保 plugin 寫入安全。
     /// 若 plugin 已正確實作分批寫入，可大幅調高（例如 256 KB）以減少 POST 次數。
     pub max_transport_bytes: usize,
+    /// 平行 transport worker 數量。每個 worker 持有獨立 WASM store，
+    /// 共用同一個 FormattedBatch channel，允許同時進行多個 HTTP POST。
+    pub transport_workers: usize,
 }
 
 impl Default for BatchConfig {
     fn default() -> Self {
         Self {
-            mem_limit_mb: 128,
+            mem_limit_mb: 256,
             safe_data_ratio: 0.7,
-            max_wait: Duration::from_millis(1000),
+            max_wait: Duration::from_millis(50),
             max_batch_lines: 30_000,
-            channel_capacity: 5_000,
-            max_format_chunk: 150,
+            channel_capacity: 50_000,
+            max_format_chunk: 10000,
             transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
-            max_transport_bytes: 8 * 1024, // 8 KB；plugin 內部以 4096 B 寫入（2 次 write/POST），Val API 呼叫次數減少 4×
+            max_transport_bytes: 128 * 1024,
+            transport_workers: 5,
         }
+    }
+}
+
+impl BatchConfig {
+    /// 驗證所有參數是否合理，並說明每個欄位實際影響哪條程式碼路徑。
+    ///
+    /// 回傳 `Err(說明)` 若有明顯錯誤設定，否則印出每個參數的使用狀況後回傳 `Ok(())`。
+    pub fn validate_and_describe(&self) -> Result<(), String> {
+        // ── 範圍驗證 ──────────────────────────────────────────────────────
+        // 每個斷言後面的 "(used at ...)" 說明這個值真正被消費的地方，
+        // 方便日後確認某個欄位是否還有在用。
+
+        // mem_limit_mb
+        // used at: runtime.rs run_pipeline → mem_limit_bytes = mem_limit_mb * 1024 * 1024
+        //          → MyLimiter::new(mem_limit_bytes) 限制每個 WASM store 的線性記憶體上限
+        // BUG: main.rs:44 用了 cfg.mem_limit_mb 而非 * 1024*1024，safe_data_budget 計算錯誤
+        if self.mem_limit_mb < 64 {
+            return Err(format!("mem_limit_mb={} 過小（建議 >= 64 MB）", self.mem_limit_mb));
+        }
+
+        // safe_data_ratio
+        // used at: runtime.rs parse_loop → safe_data_budget = mem_limit_bytes * ratio
+        //          → 當 batch 累積 bytes > safe_data_budget 時觸發提前 flush（size trigger）
+        // 注意: main.rs 也計算了 safe_data_budget 但因 mem_limit_bytes bug 導致實際為 179 bytes，
+        //       該值只用於 print_startup，不影響 parse_loop 的判斷。
+        if !(0.0 < self.safe_data_ratio && self.safe_data_ratio < 1.0) {
+            return Err(format!("safe_data_ratio={} 必須在 (0.0, 1.0) 之間", self.safe_data_ratio));
+        }
+
+        // max_wait
+        // used at: runtime.rs parse_loop → rx.recv_timeout(max_wait) 的 timeout 值
+        //          → 觸發 time-based flush（即使 batch 未滿也會送出）
+        if self.max_wait.is_zero() {
+            return Err("max_wait 不能為 0（parse loop 會無限 spin）".to_string());
+        }
+
+        // max_batch_lines
+        // used at: runtime.rs parse_loop → batch.len() >= max_batch_lines 時觸發 line-count flush
+        //          → 限制單次傳入 WASM parser 的最大行數，防止 WASM 堆積太多資料
+        if self.max_batch_lines == 0 {
+            return Err("max_batch_lines 不能為 0".to_string());
+        }
+
+        // channel_capacity
+        // used at: main.rs → sync_channel::<LineItem>(channel_capacity)
+        //          → 只控制 stdin→parse 的 LineItem channel 容量
+        // 警告: ParsedBatch channel (parse→format) 和 FormattedBatch channel (format→transport)
+        //       目前在 runtime.rs:56-57 硬編碼為 20_000，不受此參數控制。
+        if self.channel_capacity < self.max_batch_lines {
+            eprintln!(
+                "[config-warn] channel_capacity={} < max_batch_lines={}，\
+                 stdin channel 可能在單個 batch 積滿前就阻塞",
+                self.channel_capacity, self.max_batch_lines
+            );
+        }
+
+        // max_format_chunk
+        // used at: runtime.rs format_loop → pb.entries.chunks(max_format_chunk)
+        //          → 將大批次拆成小塊，每塊各自建立新 WASM store 呼叫 format plugin
+        //          → 目的：避免 TinyGo GC 在大批次時無法回收中間字串，導致 WASM OOM
+        if self.max_format_chunk == 0 {
+            return Err("max_format_chunk 不能為 0".to_string());
+        }
+        if self.max_format_chunk > self.max_batch_lines {
+            eprintln!(
+                "[config-warn] max_format_chunk={} > max_batch_lines={}，\
+                 format 拆塊無實際效果（每批只有一塊）",
+                self.max_format_chunk, self.max_batch_lines
+            );
+        }
+
+        // transport_endpoint
+        // used at: runtime.rs transport_worker → make_transport_config_val(endpoint)
+        //          → 傳入 transport WASM plugin 的 init() 作為目標 URL
+        if !self.transport_endpoint.starts_with("http://")
+            && !self.transport_endpoint.starts_with("https://")
+        {
+            return Err(format!(
+                "transport_endpoint='{}' 不是合法的 HTTP/HTTPS URL",
+                self.transport_endpoint
+            ));
+        }
+
+        // max_transport_bytes
+        // used at: runtime.rs transport_worker → while acc_bytes + line_len <= max_transport_bytes
+        //          → 控制每次呼叫 transport plugin send() 的最大 byte 數
+        //          → 每次 send() 對應一個 HTTP POST
+        // 注意: transport WASM plugin 內部仍須以 ≤ 4096 B 分批呼叫 blocking_write_and_flush
+        if self.max_transport_bytes < 4096 {
+            return Err(format!(
+                "max_transport_bytes={} 過小（至少需 4096 B，等於一次 WASI write）",
+                self.max_transport_bytes
+            ));
+        }
+
+        // transport_workers
+        // used at: runtime.rs run_pipeline → for i in 0..transport_workers { spawn worker }
+        //          → 每個 worker 持有獨立 WASM store，共用 rx_formatted channel（Mutex 保護）
+        //          → 允許同時進行多個 HTTP POST
+        if self.transport_workers == 0 {
+            return Err("transport_workers 不能為 0".to_string());
+        }
+
+        Ok(())
+    }
+
+    /// 以表格形式印出每個參數的值、用途、以及是否為預設值。
+    pub fn print_config_table(&self) {
+        let default = BatchConfig::default();
+        let rows: &[(&str, String, &str, bool)] = &[
+            ("mem_limit_mb",       format!("{} MB", self.mem_limit_mb),
+             "每個 WASM store 線性記憶體上限 (runtime.rs MyLimiter)",
+             self.mem_limit_mb == default.mem_limit_mb),
+            ("safe_data_ratio",    format!("{:.0}%", self.safe_data_ratio * 100.0),
+             "parse batch size 觸發提前 flush 的閾值 (runtime.rs parse_loop)",
+             self.safe_data_ratio == default.safe_data_ratio),
+            ("max_wait",           format!("{} ms", self.max_wait.as_millis()),
+             "parse 時間觸發 flush 的等待上限 (runtime.rs parse_loop recv_timeout)",
+             self.max_wait == default.max_wait),
+            ("max_batch_lines",    format!("{}", self.max_batch_lines),
+             "parse 行數觸發 flush 的上限 (runtime.rs parse_loop)",
+             self.max_batch_lines == default.max_batch_lines),
+            ("channel_capacity",   format!("{}", self.channel_capacity),
+             "stdin→parse LineItem channel 容量 [注意: parsed/formatted channel 硬編碼 20000]",
+             self.channel_capacity == default.channel_capacity),
+            ("max_format_chunk",   format!("{}", self.max_format_chunk),
+             "format plugin 每次呼叫的最大 entry 數 (runtime.rs format_loop chunks)",
+             self.max_format_chunk == default.max_format_chunk),
+            ("transport_endpoint", self.transport_endpoint.clone(),
+             "transport plugin init() 目標 URL (runtime.rs make_transport_config_val)",
+             self.transport_endpoint == default.transport_endpoint),
+            ("max_transport_bytes",format!("{} KB", self.max_transport_bytes / 1024),
+             "每次 transport send() 的最大 byte 數 = 一個 HTTP POST 大小",
+             self.max_transport_bytes == default.max_transport_bytes),
+            ("transport_workers",  format!("{}", self.transport_workers),
+             "並行 transport worker 數量，每個持有獨立 WASM store",
+             self.transport_workers == default.transport_workers),
+        ];
+
+        eprintln!("┌{:─<28}┬{:─<14}┬{:─<7}┬{:─<58}┐", "", "", "", "");
+        eprintln!("│ {:26} │ {:12} │ {:5} │ {:56} │", "參數", "值", "預設", "用途");
+        eprintln!("├{:─<28}┼{:─<14}┼{:─<7}┼{:─<58}┤", "", "", "", "");
+        for (name, val, desc, is_default) in rows {
+            eprintln!("│ {:26} │ {:12} │ {:5} │ {:56} │",
+                name, val, if *is_default { "✓" } else { "●" }, desc);
+        }
+        eprintln!("└{:─<28}┴{:─<14}┴{:─<7}┴{:─<58}┘", "", "", "", "");
     }
 }
 

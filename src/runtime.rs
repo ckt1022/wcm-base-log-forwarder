@@ -1,4 +1,5 @@
 use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
 
@@ -52,13 +53,14 @@ pub fn run_pipeline(
     // 設定每個instance的最大輸入上限
     let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
 
-    let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(32);
-    let (tx_formatted, rx_formatted) = std::sync::mpsc::sync_channel::<FormattedBatch>(16);
+    let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(20000);
+    let (tx_formatted, rx_formatted) = std::sync::mpsc::sync_channel::<FormattedBatch>(20000);
 
     // Extract fields needed by multiple closures before any move.
     let endpoint = cfg.transport_endpoint.clone();
     let max_format_chunk = cfg.max_format_chunk;
     let max_transport_bytes = cfg.max_transport_bytes;
+    let transport_workers = cfg.transport_workers;
     let cfg_for_parse = cfg.clone();
 
     let wall_start = Instant::now();
@@ -91,20 +93,56 @@ pub fn run_pipeline(
         None
     };
 
-    // ── Transport thread (async) ──────────────────────────────────────────
-    // Transport uses async WASI + HTTP; wrapped in a single-thread tokio runtime
-    // so that call_async can drive non-blocking I/O without write-size limits.
+    println!("checkpoint 1");
+
+    // ── Transport thread (async, N workers) ──────────────────────────────
+    // N 個 worker 各自持有獨立 WASM store，共享同一個 rx_formatted（Mutex 保護）。
+    // 每個 worker 在自己的 single-thread tokio runtime 中執行，允許同時進行多個 HTTP POST。
     let transport_handle =
     if let Some((engine, component, linker)) = transport {
         Some(thread::spawn(move || {
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(transport_loop(
-                    rx_formatted, engine, component, linker,
-                    mem_limit_bytes, endpoint, max_transport_bytes,
-                ))
+            println!("checkpoint 2");
+            let rx_shared = Arc::new(Mutex::new(rx_formatted));
+            let mut worker_handles = Vec::new();
+
+            for i in 0..transport_workers {
+                let rx = Arc::clone(&rx_shared);
+                let eng = engine.clone();
+                let comp = component.clone();
+                let lnk = linker.clone();
+                let ep = endpoint.clone();
+
+                worker_handles.push(thread::spawn(move || {
+                    tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap()
+                        .block_on(transport_worker(
+                            rx, eng, comp, lnk,
+                            mem_limit_bytes, ep, max_transport_bytes,i
+                        ))
+                }));
+            }
+
+            // 匯總所有 worker 的統計數據
+            let mut combined = TransportStats::default();
+            for h in worker_handles {
+                match h.join() {
+                    Ok(Ok(stats)) => {
+                        combined.total_batches       += stats.total_batches;
+                        combined.total_input_lines   += stats.total_input_lines;
+                        combined.total_input_bytes   += stats.total_input_bytes;
+                        combined.total_bytes_reported += stats.total_bytes_reported;
+                        combined.total_elapsed       += stats.total_elapsed;
+                        if stats.wasm_mem_peak_max > combined.wasm_mem_peak_max {
+                            combined.wasm_mem_peak_max = stats.wasm_mem_peak_max;
+                        }
+                    }
+                    Ok(Err(e)) => return Err(e),
+                    Err(_)    => return Err(wasmtime::Error::msg("transport worker panicked")),
+                }
+            }
+            Ok(combined)
         }))
     } else {
         thread::spawn(move || { while rx_formatted.recv().is_ok() {} });
@@ -275,7 +313,7 @@ fn do_parse_batch(
         }
     };
 
-    //store.data().limiter.print_max("parse");
+    store.data().limiter.print_max("parse");
 
     batch.clear();
     Ok(result)
@@ -362,22 +400,23 @@ fn format_loop(
     Ok(stats)
 }
 
-// ── Transport Loop (async) ────────────────────────────────────────────────
+// ── Transport Worker (async) ──────────────────────────────────────────────
 
-/// Transport loop — 使用 Val API + async 呼叫 transport-plugin。
+/// 單一 transport worker — 使用 Val API + async 呼叫 transport-plugin。
 ///
-/// 執行於 single-thread tokio runtime，透過 `call_async` 驅動 wasi:http 非阻塞 I/O，
-/// 解除 sync 模式下 blocking-write-and-flush ≤ 4096 B 的限制。
-/// 單一長存活 Store：init 只呼叫一次，send 對每個 chunk 呼叫一次。
-async fn transport_loop(
-    rx: Receiver<FormattedBatch>,
+/// 多個 worker 共享同一 Arc<Mutex<Receiver>>，各自持有獨立 Store，
+/// 可同時進行多個 HTTP POST，解除單一 worker 的 serial 限制。
+async fn transport_worker(
+    rx: Arc<Mutex<Receiver<FormattedBatch>>>,
     engine: Engine,
     component: Component,
     linker: Linker<MyState>,
     mem_limit_bytes: usize,
     endpoint: String,
     max_chunk_bytes: usize,
+    id: usize,
 ) -> wasmtime::Result<TransportStats> {
+    //println!("checkpoint 3");
     let state = MyState {
         ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
         table: ResourceTable::new(),
@@ -412,9 +451,12 @@ async fn transport_loop(
     let mut stats = TransportStats::default();
 
     loop {
-        // recv() is blocking; in a single-thread tokio runtime with no other tasks
-        // this is acceptable — the thread blocks until format stage sends data.
-        match rx.recv() {
+        // 從共享 receiver 取得下一個批次：lock → recv → release。
+        // 持鎖期間呼叫 blocking recv()；其他 worker 等待鎖。
+        // 一旦 batch 到達，此 worker 取走並立即釋放鎖，讓下一個 worker 等待。
+        //println!("開鎖 {}",id);
+        let recv_result = rx.lock().unwrap().recv();
+        match recv_result {
             Ok(batch) => {
                 let seq = batch.seq;
                 let batch_started = Instant::now();
@@ -452,6 +494,7 @@ async fn transport_loop(
                     match send_fn.call_async(&mut store, &[output_data], &mut send_results).await {
                         Ok(()) => {
                             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+                            //println!("wasm_mem_peak = {}", wasm_mem_peak);
                             if wasm_mem_peak > batch_wasm_peak {
                                 batch_wasm_peak = wasm_mem_peak;
                             }
@@ -510,10 +553,12 @@ fn make_transport_config_val(endpoint: &str) -> Val {
         ("endpoint".into(), Val::String(endpoint.into())),
         ("auth".into(), Val::Variant("none".into(), None)),
         ("connect-timeout-ms".into(), Val::U32(5_000)),
-        ("request-timeout-ms".into(), Val::U32(10_000)),
+        ("request-timeout-ms".into(), Val::U32(30_000)),
         ("retry".into(), Val::Option(None)),
         ("tls".into(), Val::Option(None)),
         ("extra-headers".into(), Val::List(vec![])),
+        // 0 = 不在 plugin 內部二次切割；host 已按 max_transport_bytes 分批，
+        // 每次 send() 對應一個 HTTP POST，plugin 只做 4096 B write 迴圈。
         ("max-batch-bytes".into(), Val::U32(4096)),
     ])
 }
