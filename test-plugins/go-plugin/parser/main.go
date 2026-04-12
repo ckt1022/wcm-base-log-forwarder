@@ -21,7 +21,7 @@ type Self_log struct {
 
 func init() {
 	// ParseLogfmt // Parse // ParseSys
-	parserplugin.Exports.Parse = ParseSys
+	parserplugin.Exports.Parse = Parse
 	parserplugin.Exports.ReportUsage = ReportUsage
 }
 

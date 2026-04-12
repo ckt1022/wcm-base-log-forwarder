@@ -21,7 +21,8 @@ fn main() -> wasmtime::Result<()> {
     let path = PluginPath {
         parse: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test-plugins/go-plugin/parser/parser.wasm"
+            "/test-plugins/go-plugin/parser/parser.wasm",
+            //"/test-plugins/go-plugin/parser/parser_json.wasm"
         )),
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),

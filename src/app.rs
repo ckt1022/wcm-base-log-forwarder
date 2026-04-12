@@ -30,6 +30,21 @@ pub mod format_bindings {
     });
 }
 
+// transport-plugin world：async 模式（需 WASI HTTP），重用 pipeline-process 的 PluginError。
+// 用 typed bindgen 取代 Val API，讓 list<list<u8>> 直接映射成 &[Vec<u8>]，
+// 省去原本每個 byte 都建立一個 Val::U8 enum 的 37x 額外成本。
+pub mod transport_bindings {
+    wasmtime::component::bindgen!({
+        world: "transport-plugin",
+        path: "wit",
+        exports: { default: async },
+        with: {
+            "local:log-process/pipeline-process":
+                super::local::log_process::pipeline_process,
+        }
+    });
+}
+
 /// WASM 線性記憶體追蹤器，實作 ResourceLimiter 介面。
 pub struct MyLimiter {
     pub max_allocation: usize,

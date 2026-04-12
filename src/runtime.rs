@@ -4,7 +4,7 @@ use std::thread;
 use std::time::Instant;
 
 use wasmtime::{
-    component::{Component, Linker, Val},
+    component::{Component, Linker},
     Engine, Store,
 };
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
@@ -13,6 +13,10 @@ use wasmtime_wasi_http::WasiHttpCtx;
 use crate::app::{
     format_bindings::FormatPlugin,
     local::log_process::pipeline_process::{LogEntry, ParsedEntry},
+    transport_bindings::{
+        local::log_process::transport_types::{AuthMethod, TransportConfig},
+        TransportPlugin,
+    },
     MyLimiter, MyState, ParserPlugin,
 };
 use crate::config::{
@@ -93,7 +97,7 @@ pub fn run_pipeline(
         None
     };
 
-    println!("checkpoint 1");
+    //println!("checkpoint 1");
 
     // ── Transport thread (async, N workers) ──────────────────────────────
     // N 個 worker 各自持有獨立 WASM store，共享同一個 rx_formatted（Mutex 保護）。
@@ -101,7 +105,7 @@ pub fn run_pipeline(
     let transport_handle =
     if let Some((engine, component, linker)) = transport {
         Some(thread::spawn(move || {
-            println!("checkpoint 2");
+            //println!("checkpoint 2");
             let rx_shared = Arc::new(Mutex::new(rx_formatted));
             let mut worker_handles = Vec::new();
 
@@ -414,9 +418,8 @@ async fn transport_worker(
     mem_limit_bytes: usize,
     endpoint: String,
     max_chunk_bytes: usize,
-    id: usize,
+    _id: usize,
 ) -> wasmtime::Result<TransportStats> {
-    //println!("checkpoint 3");
     let state = MyState {
         ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
         table: ResourceTable::new(),
@@ -426,35 +429,36 @@ async fn transport_worker(
     let mut store = Store::new(&engine, state);
     store.limiter(|s| &mut s.limiter);
 
-    let instance = linker.instantiate_async(&mut store, &component).await?;
+    let plugin = TransportPlugin::instantiate_async(&mut store, &component, &linker).await?;
 
     // ── init ──────────────────────────────────────────────────────────────
-    let init_fn = instance
-        .get_func(&mut store, "init")
-        .ok_or_else(|| wasmtime::Error::msg("transport component has no export 'init'"))?;
-
-    let config_val = make_transport_config_val(&endpoint);
-    let mut init_results = vec![Val::Bool(false)];
-    init_fn.call_async(&mut store, &[config_val], &mut init_results).await?;
-
-    if !is_ok_result(&init_results[0]) {
-        eprintln!("[transport] init() failed: {:?}", init_results[0]);
-        return Ok(TransportStats::default());
+    let config = TransportConfig {
+        endpoint: endpoint.clone(),
+        auth: AuthMethod::None,
+        connect_timeout_ms: 5_000,
+        request_timeout_ms: 30_000,
+        retry: None,
+        tls: None,
+        extra_headers: vec![],
+        // 0 = host already splits by max_transport_bytes; plugin only does 4096 B writes.
+        max_batch_bytes: 4096,
+    };
+    match plugin.call_init(&mut store, &config).await? {
+        Ok(()) => {}
+        Err(e) => {
+            eprintln!("[transport] init() failed: {:?}", e);
+            return Ok(TransportStats::default());
+        }
     }
     eprintln!("[transport] init() -> Ok  endpoint={}", endpoint);
 
     // ── send loop ─────────────────────────────────────────────────────────
-    let send_fn = instance
-        .get_func(&mut store, "send")
-        .ok_or_else(|| wasmtime::Error::msg("transport component has no export 'send'"))?;
-
     let mut stats = TransportStats::default();
 
     loop {
         // 從共享 receiver 取得下一個批次：lock → recv → release。
         // 持鎖期間呼叫 blocking recv()；其他 worker 等待鎖。
         // 一旦 batch 到達，此 worker 取走並立即釋放鎖，讓下一個 worker 等待。
-        //println!("開鎖 {}",id);
         let recv_result = rx.lock().unwrap().recv();
         match recv_result {
             Ok(batch) => {
@@ -481,33 +485,20 @@ async fn transport_worker(
                     }
                     let chunk = &batch.lines[chunk_start..chunk_end];
                     let chunk_bytes = acc_bytes;
-                    let output_data = Val::List(
-                        chunk.iter()
-                            .map(|line| Val::List(line.iter().map(|&b| Val::U8(b)).collect()))
-                            .collect(),
-                    );
 
-                    let mut send_results = vec![Val::Bool(false)];
-
-                    //println!("chunk len = {}", chunk.len());
-
-                    match send_fn.call_async(&mut store, &[output_data], &mut send_results).await {
+                    // typed bindgen: 直接傳 &[Vec<u8>]，wasmtime 寫入 WASM 線性記憶體，
+                    // 省去原本 Val::List(Val::U8 per byte) 的 37x enum 包裝成本。
+                    match plugin.call_send(&mut store, chunk).await? {
                         Ok(()) => {
                             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
-                            //println!("wasm_mem_peak = {}", wasm_mem_peak);
                             if wasm_mem_peak > batch_wasm_peak {
                                 batch_wasm_peak = wasm_mem_peak;
                             }
-                            if is_ok_result(&send_results[0]) {
-                                batch_lines_sent += chunk.len();
-                                batch_bytes_sent += chunk_bytes;
-                            } else {
-                                eprintln!("[transport-error] send batch={} result={:?}", seq, send_results[0]);
-                                batch_ok = false;
-                            }
+                            batch_lines_sent += chunk.len();
+                            batch_bytes_sent += chunk_bytes;
                         }
                         Err(e) => {
-                            eprintln!("[transport-trap] send batch={}: {:?}", seq, e);
+                            eprintln!("[transport-error] send batch={}: {:?}", seq, e);
                             batch_ok = false;
                             break;
                         }
@@ -533,36 +524,9 @@ async fn transport_worker(
     }
 
     // ── report-usage ──────────────────────────────────────────────────────
-    if let Some(usage_fn) = instance.get_func(&mut store, "report-usage") {
-        let mut usage_results = vec![Val::U64(0)];
-        if usage_fn.call_async(&mut store, &[], &mut usage_results).await.is_ok() {
-            if let Val::U64(bytes) = usage_results[0] {
-                stats.total_bytes_reported = bytes;
-                eprintln!("[transport] report-usage() -> {} bytes", bytes);
-            }
-        }
-    }
+    let bytes = plugin.call_report_usage(&mut store).await?;
+    stats.total_bytes_reported = bytes;
+    eprintln!("[transport] report-usage() -> {} bytes", bytes);
 
     Ok(stats)
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-fn make_transport_config_val(endpoint: &str) -> Val {
-    Val::Record(vec![
-        ("endpoint".into(), Val::String(endpoint.into())),
-        ("auth".into(), Val::Variant("none".into(), None)),
-        ("connect-timeout-ms".into(), Val::U32(5_000)),
-        ("request-timeout-ms".into(), Val::U32(30_000)),
-        ("retry".into(), Val::Option(None)),
-        ("tls".into(), Val::Option(None)),
-        ("extra-headers".into(), Val::List(vec![])),
-        // 0 = 不在 plugin 內部二次切割；host 已按 max_transport_bytes 分批，
-        // 每次 send() 對應一個 HTTP POST，plugin 只做 4096 B write 迴圈。
-        ("max-batch-bytes".into(), Val::U32(4096)),
-    ])
-}
-
-fn is_ok_result(val: &Val) -> bool {
-    matches!(val, Val::Result(Ok(_)))
 }

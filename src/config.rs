@@ -32,11 +32,11 @@ impl Default for BatchConfig {
     fn default() -> Self {
         Self {
             mem_limit_mb: 256,
-            safe_data_ratio: 0.7,
-            max_wait: Duration::from_millis(50),
-            max_batch_lines: 30_000,
+            safe_data_ratio: 0.6,
+            max_wait: Duration::from_millis(200),
+            max_batch_lines: 20_000,
             channel_capacity: 50_000,
-            max_format_chunk: 10000,
+            max_format_chunk: 20000,
             transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
             max_transport_bytes: 128 * 1024,
             transport_workers: 5,
