@@ -22,9 +22,9 @@
 
 ### 週 1–2：Transport + Formatter（最優先）
 
-- [ ] 實作 `transport-plugin` WIT 介面（stdout / HTTP POST / file）
-- [ ] 實作 `formatter-plugin`（JSON 格式輸出）
-- [ ] 驗證 parser → formatter → transport 的端到端流程
+~~- [ ] 實作 `transport-plugin` WIT 介面（stdout / HTTP POST / file）~~
+~~- [ ] 實作 `formatter-plugin`（JSON 格式輸出）~~
+~~- [ ] 驗證 parser → formatter → transport 的端到端流程~~
 
 ### 週 3–4：Enricher + Reduction
 
@@ -66,7 +66,7 @@
 
 ### 週 11–12：錯誤隔離與恢復
 
-- [ ] 插件 crash 的 recovery 機制（不能讓一個壞插件搞垮整個 forwarder）
+~~- [ ] 插件 crash 的 recovery 機制（不能讓一個壞插件搞垮整個 forwarder）~~
 - [ ] Poison message 處理（無法解析的 log：skip / dead-letter queue）
 - [ ] 加入結構化的 error log 輸出
 

@@ -31,12 +31,12 @@ pub struct BatchConfig {
 impl Default for BatchConfig {
     fn default() -> Self {
         Self {
-            mem_limit_mb: 256,
-            safe_data_ratio: 0.6,
+            mem_limit_mb: 2048,
+            safe_data_ratio: 0.5,
             max_wait: Duration::from_millis(200),
-            max_batch_lines: 20_000,
-            channel_capacity: 50_000,
-            max_format_chunk: 20000,
+            max_batch_lines: 100_000,
+            channel_capacity: 150_000,
+            max_format_chunk: 50000,
             transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
             max_transport_bytes: 128 * 1024,
             transport_workers: 5,
@@ -191,15 +191,6 @@ impl BatchConfig {
     }
 }
 
-pub struct LineItem {
-    pub bytes: Vec<u8>,
-}
-
-impl LineItem {
-    pub fn total_size_bytes(&self) -> usize {
-        size_of::<LineItem>() + self.bytes.capacity() * size_of::<u8>()
-    }
-}
 
 /// 追蹤 channel 目前積壓的條數與 byte 數。
 /// Clone 後共享同一組 Atomic，可分別交給 sender thread 和 receiver thread。
@@ -239,7 +230,7 @@ impl ChannelStats {
 }
 
 pub struct Batch {
-    pub lines: Vec<Vec<u8>>,
+    pub lines: Vec<String>,
     pub bytes: usize,
     pub created_at: Instant,
 }
@@ -251,7 +242,7 @@ impl Batch {
     pub fn is_empty(&self) -> bool { self.lines.is_empty() }
     pub fn len(&self) -> usize { self.lines.len() }
     pub fn elapsed(&self) -> Duration { self.created_at.elapsed() }
-    pub fn push(&mut self, line: Vec<u8>) {
+    pub fn push(&mut self, line: String) {
         self.bytes += line.len();
         self.lines.push(line);
     }

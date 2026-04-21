@@ -147,7 +147,7 @@ world parser-plugin {
     use pipeline-process.{parsed-entry, parse-error};
     include wasi:cli/imports@0.2.0;
 
-    export parse: func(raw-data: list<list<u8>>) -> result<list<parsed-entry>, parse-error>;
+    export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
 }
 

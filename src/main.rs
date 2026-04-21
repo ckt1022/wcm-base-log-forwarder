@@ -21,8 +21,10 @@ fn main() -> wasmtime::Result<()> {
     let path = PluginPath {
         parse: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test-plugins/go-plugin/parser/parser.wasm",
-            //"/test-plugins/go-plugin/parser/parser_json.wasm"
+            //"/test-plugins/go-plugin/parser/parser.wasm",
+            //"/test-plugins/go-plugin/parse_str/parser_str_json.wasm",
+            "/test-plugins/go-plugin/parse_str/parser_str_sys.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_str_fmt.wasm"
         )),
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -36,8 +38,8 @@ fn main() -> wasmtime::Result<()> {
 
     // 判斷啟動哪些stage
     let stages = PipelineStages {
-        format: true,
-        transport: true,
+        format: false,
+        transport: false,
     };
 
     // 
@@ -56,7 +58,7 @@ fn main() -> wasmtime::Result<()> {
     output::print_startup(&cfg, safe_data_budget, &stages);
 
     // 接收輸入與送進channel between    input -> channel -> parse
-    let (tx, rx) = std::sync::mpsc::sync_channel::<config::LineItem>(cfg.channel_capacity);
+    let (tx, rx) = std::sync::mpsc::sync_channel::<String>(cfg.channel_capacity);
     app::spawn_stdin_reader(tx);
 
     // stage wasm runtime engine amd component and linker

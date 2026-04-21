@@ -23,7 +23,7 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
     eprintln!("========================");
 }
 
-pub fn print_flush_header(seq: u64, batch: &Batch, reason: FlushReason) {
+pub fn print_flush_header(seq: u64, batch: &Batch, reason: &FlushReason) {
     eprintln!(
         "\n--- Flush #{} (size={} time={} lines={} eof={}) | {} lines {} bytes age={}ms ---",
         seq, reason.size, reason.time, reason.line_count, reason.eof,

@@ -9,7 +9,6 @@ use wasmtime::{
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::WasiHttpCtx;
 
-use crate::config::LineItem;
 
 // parser-plugin world：產生 ParserPlugin 及 pipeline-process 所有型別
 wasmtime::component::bindgen!({
@@ -120,12 +119,12 @@ impl wasmtime_wasi_http::WasiHttpView for MyState {
 }
 
 // 負責把log一條條變成LineItem後塞入channel
-pub fn spawn_stdin_reader(tx: SyncSender<LineItem>) {
+pub fn spawn_stdin_reader(tx: SyncSender<String>) {
     thread::spawn(move || {
         let stdin = io::stdin();
         for line in stdin.lock().lines() {
             if let Ok(content) = line {
-                if tx.send(LineItem { bytes: content.into_bytes() }).is_err() {
+                if tx.send(content).is_err() {
                     break;
                 }
             }
