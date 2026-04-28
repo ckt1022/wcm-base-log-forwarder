@@ -514,8 +514,11 @@ fn do_parse_batch(
     let result = match plugin.call_parse(&mut store, &batch.lines) {
         Ok(Ok(parsed)) => {
             let elapsed = started.elapsed();
-            let go_heap_peak = plugin.call_report_usage(&mut store).unwrap_or(0);
+            // report-usage() 現在回傳 component 內部執行時間（ns）。
+            let component_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+            let grow_count = store.data().limiter.grow_count;
+            let grow_delta_bytes = store.data().limiter.grow_total_delta_bytes;
 
             let entries: Vec<LogEntry> = parsed
                 .into_iter()
@@ -530,16 +533,22 @@ fn do_parse_batch(
                 .collect();
 
             print_flush_header(seq, batch, &reason);
-            print_parse_batch(seq, input_lines, input_bytes, entries.len(),
-                              go_heap_peak, wasm_mem_peak, mem_limit_bytes, elapsed);
+            print_parse_batch(
+                seq, input_lines, input_bytes, entries.len(),
+                component_ns, wasm_mem_peak, mem_limit_bytes, elapsed,
+                grow_count, grow_delta_bytes,
+            );
 
             stats.total_batches += 1;
             stats.total_input_lines += input_lines as u64;
             stats.total_input_bytes += input_bytes as u64;
             stats.total_output_entries += entries.len() as u64;
             stats.total_elapsed += elapsed;
-            if go_heap_peak > stats.go_heap_peak_max { stats.go_heap_peak_max = go_heap_peak; }
+            if component_ns > stats.go_heap_peak_max { stats.go_heap_peak_max = component_ns; }
             if wasm_mem_peak > stats.wasm_mem_peak_max { stats.wasm_mem_peak_max = wasm_mem_peak; }
+            stats.total_grow_count += grow_count;
+            stats.total_grow_delta_bytes += grow_delta_bytes;
+            stats.total_component_ns += component_ns;
 
             Some(ParsedBatch { entries, seq })
         }

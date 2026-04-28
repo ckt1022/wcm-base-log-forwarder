@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	parserplugin "example.com/internal/local/log-process/parser-plugin"
 	pipelineprocess "example.com/internal/local/log-process/pipeline-process"
@@ -19,15 +19,15 @@ type Self_log struct {
 }
 
 func init() {
-	parserplugin.Exports.Parse = ParseSys
+	parserplugin.Exports.Parse = ParseLogfmt
 	parserplugin.Exports.ReportUsage = ReportUsage
 }
 
-var peak_mem uint64
+var lastExecNs int64
 
-// Parse 將 rawData（list<string>）解析為 LogEntry 列表。
-func Parse(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
-	peak_mem = 0
+// Parse 將 rawData（list<string>）解析為 JSON 格式的 LogEntry 列表。
+func ParseJson(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
+	start := time.Now()
 
 	rawSlice := rawData.Slice()
 	entries := make([]parserplugin.ParsedEntry, 0, len(rawSlice))
@@ -35,7 +35,6 @@ func Parse(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.L
 	var skipCount int
 
 	for _, rawStr := range rawSlice {
-		// 直接將 string 轉為 []byte，不需要額外的 .Slice() 呼叫
 		data := []byte(rawStr)
 
 		var log Self_log
@@ -62,13 +61,14 @@ func Parse(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.L
 	result := cm.ToList(entries)
 
 	_ = skipCount
+	lastExecNs = time.Since(start).Nanoseconds()
 
 	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](result)
 }
 
 // ParseLogfmt 將 rawData（list<string>）解析為 logfmt 格式的 LogEntry 列表。
 func ParseLogfmt(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
-	peak_mem = 0
+	start := time.Now()
 
 	rawSlice := rawData.Slice()
 	entries := make([]parserplugin.ParsedEntry, 0, len(rawSlice))
@@ -95,13 +95,14 @@ func ParseLogfmt(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape
 	result := cm.ToList(entries)
 
 	_ = skipCount
+	lastExecNs = time.Since(start).Nanoseconds()
 
 	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](result)
 }
 
 // ParseSys 將 rawData（list<string>）解析為 syslog 格式的 LogEntry 列表。
 func ParseSys(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
-	peak_mem = 0
+	start := time.Now()
 
 	rawSlice := rawData.Slice()
 	entries := make([]parserplugin.ParsedEntry, 0, len(rawSlice))
@@ -128,22 +129,13 @@ func ParseSys(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, c
 	result := cm.ToList(entries)
 
 	_ = skipCount
+	lastExecNs = time.Since(start).Nanoseconds()
 
 	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](result)
 }
 
-// ── 以下函式完全不變 ──────────────────────────────────────────────────────────
-
 func ReportUsage() uint64 {
-	return peak_mem
-}
-
-func samplePeakMem() {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	if m.HeapInuse > peak_mem {
-		peak_mem = m.HeapInuse
-	}
+	return uint64(lastExecNs)
 }
 
 func parseLogLevel(s string) pipelineprocess.LogLevel {

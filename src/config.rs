@@ -33,7 +33,7 @@ impl Default for BatchConfig {
         Self {
             mem_limit_mb: 256,
             safe_data_ratio: 0.5,
-            max_wait: Duration::from_millis(500),
+            max_wait: Duration::from_millis(5000),
             max_batch_lines: 50_000,
             channel_capacity: 150_000,
             max_format_chunk: 50000,
@@ -273,6 +273,12 @@ pub struct ParseStats {
     pub go_heap_peak_max: u64,
     /// WASM 線性記憶體峰值（各 batch 最大值）
     pub wasm_mem_peak_max: usize,
+    /// 累計 memory.grow 觸發次數（各 batch 加總）
+    pub total_grow_count: u64,
+    /// 累計 memory.grow 增量 bytes（各 batch 加總）
+    pub total_grow_delta_bytes: u64,
+    /// 累計 component 內部回報的執行時間 ns（各 batch 加總）
+    pub total_component_ns: u64,
 }
 
 #[derive(Default)]

@@ -49,11 +49,21 @@ pub struct MyLimiter {
     pub max_allocation: usize,
     mem_limit_bytes: usize,
     pub wasm_mem_peak: usize,
+    /// 本次 store 生命週期內 memory.grow 被觸發的次數。
+    pub grow_count: u64,
+    /// 每次 grow 的 (desired - current) 累加，代表實際申請的增量 bytes。
+    pub grow_total_delta_bytes: u64,
 }
 
 impl MyLimiter {
     pub fn new(mem_limit_bytes: usize) -> Self {
-        Self { mem_limit_bytes, wasm_mem_peak: 0 ,max_allocation:0}
+        Self {
+            mem_limit_bytes,
+            wasm_mem_peak: 0,
+            max_allocation: 0,
+            grow_count: 0,
+            grow_total_delta_bytes: 0,
+        }
     }
     pub fn print_max(&self,type_of_max:&str){
         let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
@@ -66,7 +76,7 @@ impl MyLimiter {
 impl ResourceLimiter for MyLimiter {
     fn memory_growing(
         &mut self,
-        _current: usize,
+        current: usize,
         desired: usize,
         _maximum: Option<usize>,
     ) -> wasmtime::Result<bool> {
@@ -74,10 +84,11 @@ impl ResourceLimiter for MyLimiter {
             self.wasm_mem_peak = desired;
         }
         let grow = desired <= self.mem_limit_bytes;
-        //println!("是否同意記憶體增長 : {grow}, current={_current} desired={desired} max={_maximum:?}");
         if desired > self.max_allocation {
             self.max_allocation = desired;
         }
+        self.grow_count += 1;
+        self.grow_total_delta_bytes += (desired.saturating_sub(current)) as u64;
         Ok(grow)
     }
 

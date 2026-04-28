@@ -38,19 +38,24 @@ pub fn print_parse_batch(
     input_lines: usize,
     input_bytes: usize,
     output_entries: usize,
-    go_heap_peak: u64,
+    component_ns: u64,
     wasm_mem_peak: usize,
     mem_limit_bytes: usize,
     elapsed: Duration,
+    grow_count: u64,
+    grow_delta_bytes: u64,
 ) {
     let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
     let tput = output_entries as f64 / elapsed.as_secs_f64().max(1e-9);
+    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
+    let component_ms = component_ns as f64 / 1_000_000.0;
+    let abi_ms = (elapsed_ms - component_ms).max(0.0);
     eprintln!(
-        "[parse #{seq}] In={input_lines} lines/{input_bytes}B  Out={output_entries} entries  \
-         GoHeap={:.0}KB  WasmMem={:.0}KB({ratio:.1}%)  Time={:.2}ms  {tput:.0} entries/s",
-        go_heap_peak as f64 / 1024.0,
+        "[parse #{seq}] In={input_lines}/{input_bytes}B  Out={output_entries}  \
+         Time={elapsed_ms:.2}ms (component={component_ms:.2}ms abi+store={abi_ms:.2}ms)  \
+         Grow={grow_count}x/{:.0}KB  WasmMem={:.0}KB({ratio:.1}%)  {tput:.0} entries/s",
+        grow_delta_bytes as f64 / 1024.0,
         wasm_mem_peak as f64 / 1024.0,
-        elapsed.as_secs_f64() * 1000.0,
     );
 }
 
@@ -118,9 +123,17 @@ pub fn print_pipeline_summary(
         "║        │ elapsed={:.2}ms  throughput={:.0} lines/s",
         p.total_elapsed.as_secs_f64() * 1000.0, p_tput
     );
+    let total_abi_ms = (p.total_elapsed.as_secs_f64() * 1000.0
+        - p.total_component_ns as f64 / 1_000_000.0).max(0.0);
     eprintln!(
-        "║        │ GoHeap(peak)={:.0}KB  WasmMem(peak)={:.0}KB ({:.1}%)",
-        p.go_heap_peak_max as f64 / 1024.0,
+        "║        │ component={:.0}ms  abi+store={:.0}ms",
+        p.total_component_ns as f64 / 1_000_000.0,
+        total_abi_ms,
+    );
+    eprintln!(
+        "║        │ grows={} total_delta={:.0}KB  WasmMem(peak)={:.0}KB ({:.1}%)",
+        p.total_grow_count,
+        p.total_grow_delta_bytes as f64 / 1024.0,
         p.wasm_mem_peak_max as f64 / 1024.0,
         p.wasm_mem_peak_max as f64 / mem_limit_bytes as f64 * 100.0,
     );
