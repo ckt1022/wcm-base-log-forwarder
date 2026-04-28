@@ -314,7 +314,7 @@ wasm-tools component wit parser.wasm
 ```bash
 GOROOT=/usr/local/go PATH="/usr/local/go/bin:$PATH" \
 tinygo build -target=wasip2 -o parser.wasm \
-  --wit-package local:log-process@0.1.0.wasm --wit-world parser-plugin main.go
+  --wit-package local:log-process@0.2.0.wasm --wit-world parser-plugin main.go
 ```
 
 **修改了 `wit/log_plugin.wit`：**

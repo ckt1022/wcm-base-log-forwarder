@@ -31,10 +31,10 @@ pub struct BatchConfig {
 impl Default for BatchConfig {
     fn default() -> Self {
         Self {
-            mem_limit_mb: 2048,
+            mem_limit_mb: 256,
             safe_data_ratio: 0.5,
-            max_wait: Duration::from_millis(200),
-            max_batch_lines: 100_000,
+            max_wait: Duration::from_millis(500),
+            max_batch_lines: 50_000,
             channel_capacity: 150_000,
             max_format_chunk: 50000,
             transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),

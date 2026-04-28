@@ -10,6 +10,7 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
         if stages.transport { " → transport" } else { "" },
     );
     eprintln!("=== WCM Log Forwarder ===");
+    eprintln!("Parse Batch Max Size {}",cfg.max_batch_lines);
     eprintln!("Memory Limit : {} MB", cfg.mem_limit_mb);
     eprintln!(
         "Safe Budget  : {} KB ({:.0}% of limit)",
@@ -20,6 +21,7 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
     if stages.transport {
         eprintln!("Endpoint     : {}", cfg.transport_endpoint);
     }
+
     eprintln!("========================");
 }
 

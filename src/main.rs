@@ -23,8 +23,9 @@ fn main() -> wasmtime::Result<()> {
             env!("CARGO_MANIFEST_DIR"),
             //"/test-plugins/go-plugin/parser/parser.wasm",
             //"/test-plugins/go-plugin/parse_str/parser_str_json.wasm",
-            "/test-plugins/go-plugin/parse_str/parser_str_sys.wasm"
-            //"/test-plugins/go-plugin/parse_str/parser_str_fmt.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_str_sys.wasm"
+            "/test-plugins/go-plugin/parse_str/parser_str_fmt.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_str_fmt_pre.wasm"
         )),
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -46,7 +47,7 @@ fn main() -> wasmtime::Result<()> {
     let cfg = BatchConfig::default();
 
     // 驗證設定並印出每個參數的實際用途與是否為預設值
-    cfg.print_config_table();
+    //cfg.print_config_table();
     if let Err(e) = cfg.validate_and_describe() {
         eprintln!("[config-error] {}", e);
         std::process::exit(1);
