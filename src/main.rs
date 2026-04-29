@@ -22,9 +22,9 @@ fn main() -> wasmtime::Result<()> {
         parse: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
             //"/test-plugins/go-plugin/parse_str/parser_json.wasm",
-            "/test-plugins/go-plugin/parse_str/parser_str_sys.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_sys.wasm"
             //"/test-plugins/go-plugin/noop-parser/noop_parser.wasm" //測量SYS只有輸入，沒有邏輯
-            //"/test-plugins/go-plugin/parse_str/parser_fmt.wasm"
+            "/test-plugins/go-plugin/parse_str/parser_fmt_GC.wasm"
         )),
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),

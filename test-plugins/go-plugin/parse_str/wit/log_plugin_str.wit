@@ -90,5 +90,6 @@ world parser-plugin {
 
     export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
+    export reset: func();
 }
 

@@ -71,6 +71,15 @@ impl MyLimiter {
             println!("{} 該次實例最大memoey用量:{},佔比: {}",type_of_max,self.max_allocation,ratio);
         }
     }
+
+    /// 重置每批次的增量統計，在 Store 重用時於 parse() 前呼叫。
+    /// `wasm_mem_peak` 不重置：它追蹤 Store 生命週期最高水位，
+    /// 跨批次重用後不會再觸發 memory.grow，本欄反映第一批的峰值即可。
+    pub fn reset_batch_stats(&mut self) {
+        self.grow_count = 0;
+        self.grow_total_delta_bytes = 0;
+        self.max_allocation = 0;
+    }
 }
 
 impl ResourceLimiter for MyLimiter {
