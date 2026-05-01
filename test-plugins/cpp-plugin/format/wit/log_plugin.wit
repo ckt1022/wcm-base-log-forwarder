@@ -90,7 +90,7 @@ world format-plugin {
 
     export format: func(
         struct-data: list<log-entry>
-    ) -> result<list<list<u8>>, plugin-error>;
+    ) -> result<list<u8>, plugin-error>;
 
     export report-usage: func() -> u64;
 }

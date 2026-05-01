@@ -26,8 +26,8 @@ use crate::config::{
     Batch, BatchConfig, FlushReason, FormatStats, ParseStats, TransportStats,
 };
 use crate::output::{
-    print_flush_header, print_format_batch, print_parse_batch, print_pipeline_summary,
-    print_transport_batch,
+    print_flush_header, print_format_batch, print_parse_aggregate, print_parse_batch,
+    print_pipeline_summary, print_transport_batch,
 };
 
 // ── 階段間傳遞的批次結構 ────────────────────────────────────────────────────
@@ -43,13 +43,23 @@ struct FormattedBatch {
     total_bytes: usize,
 }
 
+// ── Parse 平行化常數與 WorkBatch ──────────────────────────────────────────────
+
+const PARSE_WORKERS: usize = 2;
+
+/// dispatcher 分發給 parse worker 的工作單元。
+struct WorkBatch {
+    lines: Vec<String>,
+    bytes: usize,
+    seq: u64,
+    reason: FlushReason,
+    created_at: Instant,
+}
+
 // ── Parse Store Pool ──────────────────────────────────────────────────────────
 //
-// 保持 POOL_TARGET_SIZE 個 Store 存活：
-//   - 1 個正在處理 batch（已從 pool 取出）
-//   - 2 個閒置備援（OOM 時立刻遞補，不需等重新 instantiate）
-//
-// 正常流程：acquire → parse() → report_usage() → reset() → release
+// 每個 parse worker 持有一個獨立的 ParsePool（POOL_TARGET_SIZE 個備援 instance）。
+// 正常流程：acquire → parse() → discard_and_replenish
 // OOM 流程：acquire → parse() OOM → discard_and_replenish → acquire 備援 → retry
 
 const POOL_TARGET_SIZE: usize = 3;
@@ -108,14 +118,11 @@ impl ParsePool {
         let plugin = ParserPlugin::instantiate(&mut store, &self.component, &self.linker)?;
         self.current_count += 1;
         let id = self.current_count;
-        Ok(ParseInstance { id,store, plugin })
+        Ok(ParseInstance { id, store, plugin })
     }
 
-    /// pool 低於 target_size 時補充，補充失敗則印 log 並停止（不 panic）。
     fn replenish(&mut self) {
-        let mut count = 0;
         while self.ready.len() < self.target_size {
-            count += 1;
             match self.create_one() {
                 Ok(inst) => self.ready.push_back(inst),
                 Err(e) => {
@@ -129,7 +136,6 @@ impl ParsePool {
         }
     }
 
-    /// 取出一個閒置實例；pool 為空時緊急建立一個。
     fn acquire(&mut self) -> wasmtime::Result<ParseInstance> {
         if let Some(inst) = self.ready.pop_front() {
             Ok(inst)
@@ -139,24 +145,23 @@ impl ParsePool {
         }
     }
 
-    /// 成功完成 batch 後歸還：先呼叫 reset() 觸發 TinyGo GC，再補充 pool。
+    /*
     fn release(&mut self, mut inst: ParseInstance) {
         match inst.plugin.call_reset(&mut inst.store) {
             Ok(()) => self.ready.push_back(inst),
             Err(e) => eprintln!("[pool] reset() failed, discarding instance: {}", e),
-            // inst 在此 scope 結束時 drop
         }
         self.replenish();
     }
+    */
 
-    /// OOM 後丟棄毀損實例，補充 pool 使備援數恢復到 target。
     fn discard_and_replenish(&mut self, inst: ParseInstance) {
         drop(inst);
         self.replenish();
     }
 }
 
-// ── 對外入口 ─────────────────────────────────────────────────────────────
+// ── 對外入口 ──────────────────────────────────────────────────────────────────
 
 /// Pipeline 入口：stdin → [parse thread] → [format thread] → [transport thread]
 pub fn run_pipeline(
@@ -179,7 +184,7 @@ pub fn run_pipeline(
 
     let wall_start = Instant::now();
 
-    // ── Parse thread (sync) ───────────────────────────────────────────────
+    // ── Parse thread（dispatcher + N workers）────────────────────────────────
     let parse_handle =
     if let Some((engine, component, linker)) = parse {
         Some(thread::spawn(move || {
@@ -191,7 +196,7 @@ pub fn run_pipeline(
         None
     };
 
-    // ── Format thread (sync) ──────────────────────────────────────────────
+    // ── Format thread (sync) ──────────────────────────────────────────────────
     let format_handle =
     if let Some((engine, component, linker)) = format {
         Some(thread::spawn(move || {
@@ -207,7 +212,7 @@ pub fn run_pipeline(
         None
     };
 
-    // ── Transport thread (async, N workers) ──────────────────────────────
+    // ── Transport thread (async, N workers) ───────────────────────────────────
     let transport_handle =
     if let Some((engine, component, linker)) = transport {
         Some(thread::spawn(move || {
@@ -237,17 +242,17 @@ pub fn run_pipeline(
             for h in worker_handles {
                 match h.join() {
                     Ok(Ok(stats)) => {
-                        combined.total_batches       += stats.total_batches;
-                        combined.total_input_lines   += stats.total_input_lines;
-                        combined.total_input_bytes   += stats.total_input_bytes;
+                        combined.total_batches        += stats.total_batches;
+                        combined.total_input_lines    += stats.total_input_lines;
+                        combined.total_input_bytes    += stats.total_input_bytes;
                         combined.total_bytes_reported += stats.total_bytes_reported;
-                        combined.total_elapsed       += stats.total_elapsed;
+                        combined.total_elapsed        += stats.total_elapsed;
                         if stats.wasm_mem_peak_max > combined.wasm_mem_peak_max {
                             combined.wasm_mem_peak_max = stats.wasm_mem_peak_max;
                         }
                     }
                     Ok(Err(e)) => return Err(e),
-                    Err(_)    => return Err(wasmtime::Error::msg("transport worker panicked")),
+                    Err(_)     => return Err(wasmtime::Error::msg("transport worker panicked")),
                 }
             }
             Ok(combined)
@@ -257,7 +262,7 @@ pub fn run_pipeline(
         None
     };
 
-    // ── Collect results ───────────────────────────────────────────────────
+    // ── Collect results ───────────────────────────────────────────────────────
     let parse_stats = parse_handle
         .map(|h| h.join().expect("parse thread panicked"))
         .transpose()?;
@@ -277,7 +282,15 @@ pub fn run_pipeline(
     Ok(())
 }
 
-// ── Parse Loop (pool-based, Store reuse) ─────────────────────────────────────
+// ── Parse：orchestrator ───────────────────────────────────────────────────────
+//
+// 架構：
+//   parse_loop（主 thread）
+//     ├─ parse_dispatcher（跑在主 thread 上，累積 batch 並送 WorkBatch）
+//     └─ parse_worker × PARSE_WORKERS（各自持有 ParsePool，搶 rx_work 處理）
+//
+// WorkBatch channel 關閉（dispatcher 結束後 tx_work drop）→ workers 排完後退出。
+// 主 thread 等所有 workers 結束，彙總統計並印出 wall-clock 總吞吐。
 
 fn parse_loop(
     rx: Receiver<String>,
@@ -288,12 +301,70 @@ fn parse_loop(
     cfg: BatchConfig,
     mem_limit_bytes: usize,
 ) -> wasmtime::Result<ParseStats> {
-    let mut pool = ParsePool::new(engine, component, linker, mem_limit_bytes, POOL_TARGET_SIZE,0)?;
+    let wall_start = Instant::now();
+
+    let (tx_work, rx_work) = std::sync::mpsc::sync_channel::<WorkBatch>(64);
+    let rx_work = Arc::new(Mutex::new(rx_work));
+
+    // 啟動 PARSE_WORKERS 個 worker thread
+    let mut worker_handles = Vec::new();
+    for worker_id in 0..PARSE_WORKERS {
+        let rx_w   = Arc::clone(&rx_work);
+        let tx_p   = tx.clone();
+        let eng    = engine.clone();
+        let comp   = component.clone();
+        let lnk    = linker.clone();
+        worker_handles.push(thread::spawn(move || {
+            parse_worker(worker_id, rx_w, tx_p, eng, comp, lnk, mem_limit_bytes)
+        }));
+    }
+
+    // dispatcher 跑在目前 thread，結束後 tx_work 自動 drop
+    parse_dispatcher(rx, tx_work, &cfg, mem_limit_bytes);
+
+    // 彙總 workers 的統計
+    let wall_elapsed = wall_start.elapsed();
+    let mut combined  = ParseStats::default();
+    let mut total_errors: u32 = 0;
+
+    for (i, h) in worker_handles.into_iter().enumerate() {
+        match h.join() {
+            Ok(Ok((stats, errs))) => {
+                combined.total_batches          += stats.total_batches;
+                combined.total_input_lines      += stats.total_input_lines;
+                combined.total_input_bytes      += stats.total_input_bytes;
+                combined.total_output_entries   += stats.total_output_entries;
+                combined.total_elapsed          += stats.total_elapsed;
+                combined.total_component_ns     += stats.total_component_ns;
+                combined.total_grow_count       += stats.total_grow_count;
+                combined.total_grow_delta_bytes += stats.total_grow_delta_bytes;
+                if stats.go_heap_peak_max  > combined.go_heap_peak_max  { combined.go_heap_peak_max  = stats.go_heap_peak_max; }
+                if stats.wasm_mem_peak_max > combined.wasm_mem_peak_max { combined.wasm_mem_peak_max = stats.wasm_mem_peak_max; }
+                total_errors += errs;
+            }
+            Ok(Err(e)) => return Err(e),
+            Err(_) => return Err(wasmtime::Error::msg(format!("parse worker {} panicked", i))),
+        }
+    }
+
+    print_parse_aggregate(&combined, PARSE_WORKERS, wall_elapsed, total_errors);
+    Ok(combined)
+}
+
+// ── Parse：dispatcher ─────────────────────────────────────────────────────────
+//
+// 負責從 rx_raw 累積行、觸發 flush 條件後把 WorkBatch 送進 tx_work。
+// 不碰 WASM，只做 batching 邏輯。
+
+fn parse_dispatcher(
+    rx: Receiver<String>,
+    tx: SyncSender<WorkBatch>,
+    cfg: &BatchConfig,
+    mem_limit_bytes: usize,
+) {
     let mut batch = Batch::new();
     let mut seq: u64 = 0;
     let safe_data_budget = (mem_limit_bytes as f64 * cfg.safe_data_ratio) as usize;
-    let mut stats = ParseStats::default();
-    let mut error_count: u32 = 0;
 
     loop {
         let timeout = if batch.is_empty() {
@@ -310,9 +381,7 @@ fn parse_loop(
 
                 if size_trigger || line_trigger {
                     let reason = FlushReason { size: size_trigger, time: false, line_count: line_trigger, eof: false };
-                    if !flush_batch(&mut pool, &mut batch, seq, &reason, &mut stats, &tx, &mut error_count, 3) {
-                        break;
-                    }
+                    if send_work_batch(&mut batch, seq, reason, &tx).is_err() { break; }
                     seq += 1;
                 }
                 batch.push(item);
@@ -321,9 +390,7 @@ fn parse_loop(
             Err(RecvTimeoutError::Timeout) => {
                 if !batch.is_empty() {
                     let reason = FlushReason { size: false, time: true, line_count: false, eof: false };
-                    if !flush_batch(&mut pool, &mut batch, seq, &reason, &mut stats, &tx, &mut error_count, 3) {
-                        break;
-                    }
+                    if send_work_batch(&mut batch, seq, reason, &tx).is_err() { break; }
                     seq += 1;
                 }
             }
@@ -331,20 +398,72 @@ fn parse_loop(
             Err(RecvTimeoutError::Disconnected) => {
                 if !batch.is_empty() {
                     let reason = FlushReason { size: false, time: false, line_count: false, eof: true };
-                    flush_batch(&mut pool, &mut batch, seq, &reason, &mut stats, &tx, &mut error_count, 3);
+                    let _ = send_work_batch(&mut batch, seq, reason, &tx);
                 }
                 break;
             }
         }
     }
+}
 
-    println!("Error Batch Count = {error_count}");
-    Ok(stats)
+fn send_work_batch(
+    batch: &mut Batch,
+    seq: u64,
+    reason: FlushReason,
+    tx: &SyncSender<WorkBatch>,
+) -> Result<(), ()> {
+    let created_at = batch.created_at;
+    let lines = std::mem::take(&mut batch.lines);
+    let bytes  = batch.bytes;
+    batch.bytes      = 0;
+    batch.created_at = Instant::now();
+    tx.send(WorkBatch { lines, bytes, seq, reason, created_at }).map_err(|_| ())
+}
+
+// ── Parse：worker ─────────────────────────────────────────────────────────────
+//
+// 每個 worker 持有獨立 ParsePool，搶 rx_work 中的 WorkBatch，
+// 完成 WASM parse 後把 ParsedBatch 推給下游 tx。
+
+fn parse_worker(
+    worker_id: usize,
+    rx: Arc<Mutex<Receiver<WorkBatch>>>,
+    tx: SyncSender<ParsedBatch>,
+    engine: Engine,
+    component: Component,
+    linker: Linker<MyState>,
+    mem_limit_bytes: usize,
+) -> wasmtime::Result<(ParseStats, u32)> {
+    let mut pool = ParsePool::new(engine, component, linker, mem_limit_bytes, POOL_TARGET_SIZE, 0)?;
+    let mut stats = ParseStats::default();
+    let mut error_count: u32 = 0;
+
+    loop {
+        let wb = match rx.lock().unwrap().recv() {
+            Ok(wb) => wb,
+            Err(_) => break,
+        };
+
+        let seq    = wb.seq;
+        let reason = wb.reason;
+        let mut batch = Batch { lines: wb.lines, bytes: wb.bytes, created_at: wb.created_at };
+
+        if !worker_flush_batch(worker_id, &mut pool, &mut batch, seq, &reason, &mut stats, &tx, &mut error_count, 3) {
+            break;
+        }
+    }
+
+    eprintln!(
+        "[parse-worker-{}] done  batches={}  entries={}  errors={}",
+        worker_id, stats.total_batches, stats.total_output_entries, error_count,
+    );
+    Ok((stats, error_count))
 }
 
 /// 取 instance、執行 parse、處理 OOM 重試，最終送出 ParsedBatch。
-/// 回傳 false 表示下游 channel 已關閉，parse loop 應停止。
-fn flush_batch(
+/// 回傳 false 表示下游 channel 已關閉，worker 應停止。
+fn worker_flush_batch(
+    worker_id: usize,
     pool: &mut ParsePool,
     batch: &mut Batch,
     seq: u64,
@@ -358,30 +477,29 @@ fn flush_batch(
         let mut inst = match pool.acquire() {
             Ok(i) => i,
             Err(e) => {
-                eprintln!("[pool] cannot acquire instance (batch={}): {}", seq, e);
+                eprintln!("[worker{}][pool] cannot acquire (batch={}): {}", worker_id, seq, e);
                 batch.clear();
                 return true;
             }
         };
         inst.store.data_mut().limiter.reset_batch_stats();
 
-        match do_parse_batch(&mut inst, batch, seq, pool.mem_limit_bytes, reason, stats) {
+        match do_parse_batch(worker_id, &mut inst, batch, seq, pool.mem_limit_bytes, reason, stats) {
             Ok(Some(pb)) => {
                 //pool.release(inst);
                 pool.discard_and_replenish(inst);
                 return tx.send(pb).is_ok();
             }
             Ok(None) => {
-                // parse 語意錯誤（非 OOM），歸還 instance，跳過這批
                 //pool.release(inst);
                 pool.discard_and_replenish(inst);
                 return true;
             }
             Err(e) => {
-                eprintln!("[OOM {}/{}] batch={}: {}", attempt + 1, max_retries + 1, seq, e);
+                eprintln!("[worker{}][OOM {}/{}] batch={}: {}", worker_id, attempt + 1, max_retries + 1, seq, e);
                 pool.discard_and_replenish(inst);
                 if attempt == max_retries {
-                    eprintln!("[OOM] exceeded retries, skip batch {}", seq);
+                    eprintln!("[worker{}][OOM] exceeded retries, skip batch {}", worker_id, seq);
                     *error_count += 1;
                     write_error_file("以下這批是OOM", &batch.lines);
                     batch.clear();
@@ -393,6 +511,7 @@ fn flush_batch(
 }
 
 fn do_parse_batch(
+    worker_id: usize,
     inst: &mut ParseInstance,
     batch: &mut Batch,
     seq: u64,
@@ -411,7 +530,7 @@ fn do_parse_batch(
             let wasm_mem_peak = inst.store.data().limiter.wasm_mem_peak;
             let grow_count = inst.store.data().limiter.grow_count;
             let grow_delta_bytes = inst.store.data().limiter.grow_total_delta_bytes;
-            let number = inst.id;
+            let inst_id = inst.id;
 
             let entries: Vec<LogEntry> = parsed
                 .into_iter()
@@ -425,31 +544,38 @@ fn do_parse_batch(
                 })
                 .collect();
 
-
             print_flush_header(seq, batch, reason);
             print_parse_batch(
-                seq, input_lines, input_bytes, entries.len(),
+                worker_id, seq, input_lines, input_bytes, entries.len(),
                 component_ns, wasm_mem_peak, mem_limit_bytes, elapsed,
                 grow_count, grow_delta_bytes,
             );
-            // 測試輸出
-            println!("[實例編號:{}][測試log解析結果] time:{}  /  tag:{}={}",number,entries[4].timestamp,entries[0].tags[1].0,entries[0].tags[0].1);
-
-            stats.total_batches += 1;
-            stats.total_input_lines += input_lines as u64;
-            stats.total_input_bytes += input_bytes as u64;
-            stats.total_output_entries += entries.len() as u64;
-            stats.total_elapsed += elapsed;
-            if component_ns > stats.go_heap_peak_max { stats.go_heap_peak_max = component_ns; }
-            if wasm_mem_peak > stats.wasm_mem_peak_max { stats.wasm_mem_peak_max = wasm_mem_peak; }
-            stats.total_grow_count += grow_count;
+            
+            println!(
+                "[w{worker_id}-inst{}][測試log解析結果] time:{} / tag1:{}={}/ tag2:{}={}",
+                inst_id, entries[4].timestamp, entries[6].tags[1].0, entries[6].tags[0].1,entries[19].tags[1].0, entries[7].tags[0].1
+            );
+            /*
+            println!(
+                "[w{worker_id}-inst{}][測試log解析結果] time:{} msg:{}",
+                inst_id, entries[4].timestamp,entries[2].message
+            );
+            */
+            stats.total_batches          += 1;
+            stats.total_input_lines      += input_lines as u64;
+            stats.total_input_bytes      += input_bytes as u64;
+            stats.total_output_entries   += entries.len() as u64;
+            stats.total_elapsed          += elapsed;
+            stats.total_component_ns     += component_ns;
+            stats.total_grow_count       += grow_count;
             stats.total_grow_delta_bytes += grow_delta_bytes;
-            stats.total_component_ns += component_ns;
+            if component_ns > stats.go_heap_peak_max  { stats.go_heap_peak_max  = component_ns; }
+            if wasm_mem_peak > stats.wasm_mem_peak_max { stats.wasm_mem_peak_max = wasm_mem_peak; }
 
             Some(ParsedBatch { entries, seq })
         }
         Ok(Err(e)) => {
-            eprintln!("[parse-error] batch={} {:?}", seq, e);
+            eprintln!("[worker{}][parse-error] batch={} {:?}", worker_id, seq, e);
             None
         }
         Err(e) => return Err(e),
@@ -472,7 +598,7 @@ fn write_error_file(header: &str, lines: &[String]) {
     }
 }
 
-// ── Format Loop (sync) ────────────────────────────────────────────────────
+// ── Format Loop (sync) ────────────────────────────────────────────────────────
 
 fn format_loop(
     rx: Receiver<ParsedBatch>,
@@ -534,10 +660,10 @@ fn format_loop(
                     print_format_batch(pb.seq, entry_count, output_lines,
                                        batch_wasm_peak, mem_limit_bytes, elapsed);
 
-                    stats.total_batches += 1;
+                    stats.total_batches       += 1;
                     stats.total_input_entries += entry_count as u64;
-                    stats.total_output_lines += output_lines as u64;
-                    stats.total_elapsed += elapsed;
+                    stats.total_output_lines  += output_lines as u64;
+                    stats.total_elapsed       += elapsed;
                     if batch_wasm_peak > stats.wasm_mem_peak_max {
                         stats.wasm_mem_peak_max = batch_wasm_peak;
                     }
@@ -553,7 +679,7 @@ fn format_loop(
     Ok(stats)
 }
 
-// ── Transport Worker (async) ──────────────────────────────────────────────
+// ── Transport Worker (async) ──────────────────────────────────────────────────
 
 async fn transport_worker(
     rx: Arc<Mutex<Receiver<FormattedBatch>>>,
@@ -614,9 +740,7 @@ async fn transport_worker(
                     let mut acc_bytes = 0usize;
                     while chunk_end < batch.lines.len() {
                         let line_len = batch.lines[chunk_end].len();
-                        if acc_bytes > 0 && acc_bytes + line_len > max_chunk_bytes {
-                            break;
-                        }
+                        if acc_bytes > 0 && acc_bytes + line_len > max_chunk_bytes { break; }
                         acc_bytes += line_len;
                         chunk_end += 1;
                     }
@@ -626,9 +750,7 @@ async fn transport_worker(
                     match plugin.call_send(&mut store, chunk).await? {
                         Ok(()) => {
                             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
-                            if wasm_mem_peak > batch_wasm_peak {
-                                batch_wasm_peak = wasm_mem_peak;
-                            }
+                            if wasm_mem_peak > batch_wasm_peak { batch_wasm_peak = wasm_mem_peak; }
                             batch_lines_sent += chunk.len();
                             batch_bytes_sent += chunk_bytes;
                         }
@@ -645,10 +767,10 @@ async fn transport_worker(
                     let elapsed = batch_started.elapsed();
                     print_transport_batch(seq, batch_lines_sent, batch_bytes_sent,
                                          batch_wasm_peak, mem_limit_bytes, elapsed);
-                    stats.total_batches += 1;
+                    stats.total_batches     += 1;
                     stats.total_input_lines += batch_lines_sent as u64;
                     stats.total_input_bytes += batch_bytes_sent as u64;
-                    stats.total_elapsed += elapsed;
+                    stats.total_elapsed     += elapsed;
                     if batch_wasm_peak > stats.wasm_mem_peak_max {
                         stats.wasm_mem_peak_max = batch_wasm_peak;
                     }

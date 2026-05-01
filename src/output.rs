@@ -34,6 +34,7 @@ pub fn print_flush_header(seq: u64, batch: &Batch, reason: &FlushReason) {
 }
 
 pub fn print_parse_batch(
+    worker_id: usize,
     seq: u64,
     input_lines: usize,
     input_bytes: usize,
@@ -51,11 +52,31 @@ pub fn print_parse_batch(
     let component_ms = component_ns as f64 / 1_000_000.0;
     let abi_ms = (elapsed_ms - component_ms).max(0.0);
     eprintln!(
-        "[parse #{seq}] In={input_lines}/{input_bytes}B  Out={output_entries}  \
+        "[parse-w{worker_id} #{seq}] In={input_lines}/{input_bytes}B  Out={output_entries}  \
          Time={elapsed_ms:.2}ms (component={component_ms:.2}ms abi+store={abi_ms:.2}ms)  \
          Grow={grow_count}x/{:.0}KB  WasmMem={:.0}KB({ratio:.1}%)  {tput:.0} entries/s",
         grow_delta_bytes as f64 / 1024.0,
         wasm_mem_peak as f64 / 1024.0,
+    );
+}
+
+pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, wall: Duration, errors: u32) {
+    let wall_tput = stats.total_output_entries as f64 / wall.as_secs_f64().max(1e-9);
+    let sum_worker_tput = stats.total_output_entries as f64
+        / stats.total_elapsed.as_secs_f64().max(1e-9);
+    eprintln!(
+        "\n[parse-aggregate] workers={workers}  batches={}  entries={}  errors={errors}",
+        stats.total_batches, stats.total_output_entries,
+    );
+    eprintln!(
+        "                  wall={:.3}s  throughput={:.0} entries/s  (wall-clock, all workers)",
+        wall.as_secs_f64(),
+        wall_tput,
+    );
+    eprintln!(
+        "                  sum-worker-elapsed={:.0}ms  avg-worker-throughput={:.0} entries/s",
+        stats.total_elapsed.as_secs_f64() * 1000.0,
+        sum_worker_tput,
     );
 }
 
@@ -120,7 +141,7 @@ pub fn print_pipeline_summary(
         p.total_batches, p.total_input_lines, p.total_output_entries
     );
     eprintln!(
-        "║        │ elapsed={:.2}ms  throughput={:.0} lines/s",
+        "║        │ sum-worker-elapsed={:.2}ms  avg-worker-throughput={:.0} lines/s",
         p.total_elapsed.as_secs_f64() * 1000.0, p_tput
     );
     let total_abi_ms = (p.total_elapsed.as_secs_f64() * 1000.0

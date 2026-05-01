@@ -1,105 +1,123 @@
 #include "parser_plugin.h"
-#include <stdio.h>
+#include "cJSON.h"
 #include <stdlib.h>
 #include <string.h>
 
-// 模擬 cJSON 的解析邏輯（實務上請將 cJSON.c 編譯進去）
-// 這裡假設你已經包含了 cJSON 庫來處理 JSON
-#include "cJSON.h" 
+static uint64_t g_processed_records = 0;
 
-// ---------------------------------------------------------
-// 輔助函式：將 cJSON 物件轉化為 WIT 的 LogEntry 結構
-// ---------------------------------------------------------
-static bool fill_log_entry(cJSON *json, parser_plugin_log_entry_t *entry) {
-    cJSON *ts = cJSON_GetObjectItemCaseSensitive(json, "ts");
-    cJSON *level = cJSON_GetObjectItemCaseSensitive(json, "level");
-    cJSON *msg = cJSON_GetObjectItemCaseSensitive(json, "msg");
-    cJSON *att = cJSON_GetObjectItemCaseSensitive(json, "att");
+/**
+ * 輔助函數：將 cJSON 物件中的欄位轉換為 Tags 列表
+ * 包含：1. 根目錄下的非保留欄位 2. "att" 物件內的所有欄位
+ */
+static void collect_all_tags(cJSON *root, parser_plugin_list_tuple2_string_string_t *ret_tags) {
+    int total_tags = 0;
+    cJSON *att_obj = cJSON_GetObjectItemCaseSensitive(root, "att");
 
-    // 1. 處理 Timestamp
-    parser_plugin_string_dup(&entry->timestamp, cJSON_IsString(ts) ? ts->valuestring : "");
+    // 第一階段：計算總標籤數
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, root) {
+        // 跳過保留鍵與 att 物件本身
+        if (strcmp(item->string, "ts") == 0 || 
+            strcmp(item->string, "level") == 0 || 
+            strcmp(item->string, "msg") == 0 ||
+            strcmp(item->string, "att") == 0) {
+            continue;
+        }
+        total_tags++;
+    }
 
-    // 2. 處理 Level (Go 版本固定設為 0)
-    entry->level = LOCAL_LOG_PROCESS_PARSE_PROCESS_LOG_LEVEL_DEBUG;
+    if (cJSON_IsObject(att_obj)) {
+        total_tags += cJSON_GetArraySize(att_obj);
+    }
 
-    // 3. 處理 Message
-    parser_plugin_string_dup(&entry->message, cJSON_IsString(msg) ? msg->valuestring : "");
+    ret_tags->len = total_tags;
+    if (total_tags == 0) {
+        ret_tags->ptr = NULL;
+        return;
+    }
 
-    // 4. 處理 Tags (對應 Go 的 map[string]string -> list<tuple<string, string>>)
-    if (cJSON_IsObject(att)) {
-        int count = cJSON_GetArraySize(att);
-        entry->tags.len = count;
-        entry->tags.ptr = (parser_plugin_tuple2_string_string_t*) malloc(count * sizeof(parser_plugin_tuple2_string_string_t));
-        
-        int i = 0;
-        cJSON *child = NULL;
-        cJSON_ArrayForEach(child, att) {
-            parser_plugin_string_dup(&entry->tags.ptr[i].f0, child->string);       // Key
-            parser_plugin_string_dup(&entry->tags.ptr[i].f1, cJSON_GetStringValue(child)); // Value
+    ret_tags->ptr = (parser_plugin_tuple2_string_string_t*)malloc(total_tags * sizeof(parser_plugin_tuple2_string_string_t));
+
+    int i = 0;
+    // 第二階段：填充根目錄下的欄位
+    cJSON_ArrayForEach(item, root) {
+        if (strcmp(item->string, "ts") == 0 || 
+            strcmp(item->string, "level") == 0 || 
+            strcmp(item->string, "msg") == 0 ||
+            strcmp(item->string, "att") == 0) {
+            continue;
+        }
+        parser_plugin_string_dup(&ret_tags->ptr[i].f0, item->string);
+        parser_plugin_string_dup(&ret_tags->ptr[i].f1, cJSON_IsString(item) ? item->valuestring : cJSON_PrintUnformatted(item));
+        i++;
+    }
+
+    // 第三階段：填充 att 內的欄位
+    if (cJSON_IsObject(att_obj)) {
+        cJSON *att_item = NULL;
+        cJSON_ArrayForEach(att_item, att_obj) {
+            parser_plugin_string_dup(&ret_tags->ptr[i].f0, att_item->string);
+            parser_plugin_string_dup(&ret_tags->ptr[i].f1, cJSON_IsString(att_item) ? att_item->valuestring : cJSON_PrintUnformatted(att_item));
             i++;
         }
-    } else {
-        entry->tags.len = 0;
-        entry->tags.ptr = NULL;
+    }
+}
+
+/**
+ * 映射字串 Log Level 到系統定義的數值
+ */
+static uint8_t map_level(const char *level_str) {
+    if (level_str == NULL) return LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_INFO;
+    if (strcasecmp(level_str, "debug") == 0) return LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_DEBUG;
+    if (strcasecmp(level_str, "info") == 0)  return LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_INFO;
+    if (strcasecmp(level_str, "warn") == 0)  return LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_WARN;
+    if (strcasecmp(level_str, "error") == 0) return LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_ERROR;
+    return LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_INFO;
+}
+
+bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data, 
+                                 parser_plugin_list_parsed_entry_t *ret, 
+                                 parser_plugin_parse_error_t *err) {
+    
+    size_t num_elements = raw_data->len;
+    ret->ptr = (parser_plugin_parsed_entry_t*)calloc(num_elements, sizeof(parser_plugin_parsed_entry_t));
+    ret->len = num_elements;
+
+    for (size_t i = 0; i < num_elements; i++) {
+        cJSON *root = cJSON_ParseWithLength((const char *)raw_data->ptr[i].ptr, raw_data->ptr[i].len);
+
+        if (root == NULL) {
+            err->tag = LOCAL_LOG_PROCESS_PIPELINE_PROCESS_PARSE_ERROR_INVALID_FORMAT;
+            parser_plugin_string_dup(&err->val.invalid_format, "JSON Parse Error");
+            return false;
+        }
+
+        // 1. 解析 ts (timestamp)
+        cJSON *ts = cJSON_GetObjectItemCaseSensitive(root, "ts");
+        parser_plugin_string_dup(&ret->ptr[i].timestamp, cJSON_IsString(ts) ? ts->valuestring : "");
+
+        // 2. 解析 level (處理字串轉數值)
+        cJSON *lv = cJSON_GetObjectItemCaseSensitive(root, "level");
+        if (cJSON_IsNumber(lv)) {
+            ret->ptr[i].level = (uint8_t)lv->valueint;
+        } else {
+            ret->ptr[i].level = map_level(cJSON_IsString(lv) ? lv->valuestring : NULL);
+        }
+
+        // 3. 解析 msg (message)
+        cJSON *msg = cJSON_GetObjectItemCaseSensitive(root, "msg");
+        parser_plugin_string_dup(&ret->ptr[i].message, cJSON_IsString(msg) ? msg->valuestring : "");
+
+        // 4. 自動收集所有標籤 (含根目錄非保留欄位與 att 物件)
+        collect_all_tags(root, &ret->ptr[i].tags);
+
+        cJSON_Delete(root);
+        g_processed_records++;
     }
 
     return true;
 }
 
-// ---------------------------------------------------------
-// 實作導出函數: Parse
-// ---------------------------------------------------------
-bool exports_parser_plugin_parse(
-    parser_plugin_list_list_u8_t *raw_data, 
-    parser_plugin_list_log_entry_t *ret, 
-    parser_plugin_parse_error_t *err
-) {
-    // 預先分配回傳列表的空間
-    ret->len = raw_data->len;
-    ret->ptr = (parser_plugin_log_entry_t*) calloc(ret->len, sizeof(parser_plugin_log_entry_t));
-
-    for (size_t i = 0; i < raw_data->len; i++) {
-        // 將 uint8 陣列視為字串進行解析 (需注意 null-terminated)
-        char *json_str = (char*) malloc(raw_data->ptr[i].len + 1);
-        memcpy(json_str, raw_data->ptr[i].ptr, raw_data->ptr[i].len);
-        json_str[raw_data->ptr[i].len] = '\0';
-
-        cJSON *json = cJSON_Parse(json_str);
-        free(json_str);
-
-        if (json == NULL) {
-            // 解析失敗：設定錯誤訊息並返回 false (對應 Go 的 wit_types.Err)
-            err->tag = LOCAL_LOG_PROCESS_PARSE_PROCESS_PARSE_ERROR_INVALID_FORMAT;
-            parser_plugin_string_dup(&err->val.invalid_format, "Invalid JSON format");
-            
-            // 清理已分配的記憶體
-            for (size_t j = 0; j < i; j++) {
-                local_log_process_parse_process_log_entry_free(&ret->ptr[j]);
-            }
-            free(ret->ptr);
-            parser_plugin_list_list_u8_free(raw_data);
-            return false;
-        }
-
-        // 填充結構化數據
-        fill_log_entry(json, &ret->ptr[i]);
-        cJSON_Delete(json);
-    }
-
-    // 依照 WIT 規範：必須釋放輸入參數的所有權
-    parser_plugin_list_list_u8_free(raw_data);
-
-    return true; // 成功返回
-}
-
-// ---------------------------------------------------------
-// 實作導出函數: ReportUsage
-// ---------------------------------------------------------
-#include <malloc.h>
-
 uint64_t exports_parser_plugin_report_usage(void) {
-    // 在 WASI 環境中，mallinfo 可提供目前的記憶體分配資訊
-    // 對應 Go 的 runtime.ReadMemStats 中的 Alloc
-    struct mallinfo mi = mallinfo();
-    return (uint64_t)mi.uordblks; // 已經被 malloc 使用掉的總空間 (位元組)
+    return g_processed_records;
 }

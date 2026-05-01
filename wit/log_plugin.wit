@@ -149,9 +149,6 @@ world parser-plugin {
 
     export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
-    /// 觸發 plugin 內部 GC，釋放上一批次的堆積物件。
-    /// host 在每次 parse() 成功後呼叫，使 Store 可跨批次重用而不需重新 instantiate。
-    export reset: func();
 }
 
 // ─────────────────────────────────────────────

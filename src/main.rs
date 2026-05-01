@@ -22,9 +22,10 @@ fn main() -> wasmtime::Result<()> {
         parse: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
             //"/test-plugins/go-plugin/parse_str/parser_json.wasm",
-            //"/test-plugins/go-plugin/parse_str/parser_sys.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_sys.wasm",
+            "/test-plugins/cpp-plugin/parse/parser_c_json.wasm"
             //"/test-plugins/go-plugin/noop-parser/noop_parser.wasm" //測量SYS只有輸入，沒有邏輯
-            "/test-plugins/go-plugin/parse_str/parser_fmt_GC.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_fmt_GC.wasm"
         )),
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -38,7 +39,7 @@ fn main() -> wasmtime::Result<()> {
 
     // 判斷啟動哪些stage
     let stages = PipelineStages {
-        format: false,
+        format: true,
         transport: false,
     };
 
@@ -52,7 +53,7 @@ fn main() -> wasmtime::Result<()> {
         std::process::exit(1);
     }
 
-    let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024; // fix: 正確換算為 bytes
+    let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
     let safe_data_budget = (mem_limit_bytes as f64 * cfg.safe_data_ratio) as usize;
 
     output::print_startup(&cfg, safe_data_budget, &stages);

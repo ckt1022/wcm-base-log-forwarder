@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +44,7 @@ type Self_log struct {
 }
 
 func init() {
-	parserplugin.Exports.Parse = ParseLogfmt
+	parserplugin.Exports.Parse = ParseSys
 	parserplugin.Exports.ReportUsage = ReportUsage
 	parserplugin.Exports.Reset = Reset
 }
@@ -51,8 +52,8 @@ func init() {
 // Reset 僅重置 pool cursor，不呼叫 GC。
 // 下一批 parse() 直接覆蓋 entryPool / tagPool 相同位置。
 func Reset() {
-	tagCursor = 0
-	//runtime.GC()
+	//tagCursor = 0
+	runtime.GC()
 }
 
 // ── ParseJson ────────────────────────────────────────────────────────────────
