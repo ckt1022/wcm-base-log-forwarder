@@ -22,14 +22,20 @@ fn main() -> wasmtime::Result<()> {
         parse: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
             //"/test-plugins/go-plugin/parse_str/parser_json.wasm",
-            //"/test-plugins/go-plugin/parse_str/parser_sys.wasm",
-            "/test-plugins/cpp-plugin/parse/parser_c_json.wasm"
+            "/test-plugins/go-plugin/parse_str/parser_sys.wasm",
+            //"/test-plugins/go-plugin/parse_str/parser_sys_onlyGC.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_json_onlyGC.wasm"
+            //"/test-plugins/c-plugin/parse/parser_c_json.wasm"
             //"/test-plugins/go-plugin/noop-parser/noop_parser.wasm" //測量SYS只有輸入，沒有邏輯
-            //"/test-plugins/go-plugin/parse_str/parser_fmt_GC.wasm"
+            //"/test-plugins/go-plugin/parse_str/parser_fmt.wasm"
         )),
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/test-plugins/cpp-plugin/format/format.wasm"
+            //"/test-plugins/c-plugin/format/format.wasm"
+            "/test-plugins/c-plugin/format/format_json-flat.wasm"
+            //"/test-plugins/c-plugin/format/format_json-nested.wasm"
+            //"/test-plugins/c-plugin/format/format_syslog.wasm"
+            //"/test-plugins/c-plugin/format/format_protobuf.wasm"
         )),
         transport: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
@@ -39,7 +45,7 @@ fn main() -> wasmtime::Result<()> {
 
     // 判斷啟動哪些stage
     let stages = PipelineStages {
-        format: true,
+        format: false,
         transport: false,
     };
 

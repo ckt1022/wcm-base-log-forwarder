@@ -87,14 +87,19 @@ pub fn print_format_batch(
     wasm_mem_peak: usize,
     mem_limit_bytes: usize,
     elapsed: Duration,
+    logic_ns: u64,
 ) {
     let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
     let tput = output_lines as f64 / elapsed.as_secs_f64().max(1e-9);
+    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
+    let logic_ms = logic_ns as f64 / 1_000_000.0;
+    let copy_in_ms = (elapsed_ms - logic_ms).max(0.0);
     eprintln!(
-        "[format #{seq}] In={input_entries} entries  Out={output_lines} lines  \
-         WasmMem={:.0}KB({ratio:.1}%)  Time={:.2}ms  {tput:.0} lines/s",
+        "[format #{seq}] In={input_entries}  Out={output_lines}  \
+         WasmMem={:.0}KB({ratio:.1}%)  \
+         Time={elapsed_ms:.2}ms (logic={logic_ms:.2}ms copy-in={copy_in_ms:.2}ms)  \
+         {tput:.0} lines/s",
         wasm_mem_peak as f64 / 1024.0,
-        elapsed.as_secs_f64() * 1000.0,
     );
 }
 
@@ -164,6 +169,8 @@ pub fn print_pipeline_summary(
             let f_tput = if fs.total_elapsed.as_secs_f64() > 0.0 {
                 fs.total_input_entries as f64 / fs.total_elapsed.as_secs_f64()
             } else { 0.0 };
+            let total_logic_ms = fs.total_component_ns as f64 / 1_000_000.0;
+            let total_copy_in_ms = (fs.total_elapsed.as_secs_f64() * 1000.0 - total_logic_ms).max(0.0);
             eprintln!(
                 "║ Format │ batches={:<6} entries={:<10} lines={:<10}",
                 fs.total_batches, fs.total_input_entries, fs.total_output_lines
@@ -171,6 +178,10 @@ pub fn print_pipeline_summary(
             eprintln!(
                 "║        │ elapsed={:.2}ms  throughput={:.0} entries/s",
                 fs.total_elapsed.as_secs_f64() * 1000.0, f_tput
+            );
+            eprintln!(
+                "║        │ logic={:.0}ms  copy-in={:.0}ms",
+                total_logic_ms, total_copy_in_ms,
             );
             eprintln!(
                 "║        │ WasmMem(peak)={:.0}KB ({:.1}%)",

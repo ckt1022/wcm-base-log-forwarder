@@ -19,22 +19,82 @@ cargo build
 Use the following command to pipe logs into the forwarder:
 
 ```bash
-go run tools/gen/main.go -rate 1000 -duration 10 | ./target/debug/wcm-base-log-forwarder
+go run tools/gen/main.go -rate 5000 -duration 30 | ./target/debug/wcm-base-log-forwarder
 ```
 
 ---
 
 ## ⚙️ Parameters
 
-### Log Generator (`abc.go`)
+### Log Generator (`tools/gen/main.go`)
 
-* `-rate` : Number of logs generated per second
-* `-duration` : Duration of log generation (in seconds)
+#### 基本參數
 
-Example:
+| Flag | 預設 | 說明 |
+|------|------|------|
+| `-rate int` | `5000` | 目標輸出速率（行/秒），為各流量模式的平均基準 |
+| `-duration int` | `30` | 執行秒數，`0` 表示不限時 |
+| `-mode string` | `json-simple` | 輸出格式（見下表） |
+| `-invalid-rate float` | `0.05` | mode=`invalid` 時混入非法行的比例 |
+| `-buffer int` | `1048576` | stdout 緩衝區大小（byte） |
+| `-flush-ms int` | `100` | stdout flush 間隔（毫秒） |
+| `-seed int` | `0` | 隨機種子，`0` = 用當前時間 |
+| `-log-file string` | `gen.log` | 診斷訊息輸出檔，`-` 表示 stderr |
+
+#### 流量波形參數（`-traffic`）
+
+| Flag | 預設 | 說明 |
+|------|------|------|
+| `-traffic string` | `flat` | 流量模式：`flat`、`wave`、`bursty` |
+| `-wave-amp float` | `0.6` | 正弦波振幅（0.0–0.9），速率在 `rate×(1-amp)` 到 `rate×(1+amp)` 之間 |
+| `-wave-period float` | `60.0` | 正弦波週期（秒） |
+| `-spike-mult float` | `3.0` | `bursty` 突發期間疊加在波形上的倍率 |
+| `-spike-freq float` | `2.0` | `bursty` 平均每分鐘突發次數 |
+| `-spike-dur float` | `5.0` | `bursty` 每次突發持續秒數 |
+
+**流量模式說明：**
+
+- `flat`：固定速率，長期精確等於 `-rate`（預設，向後相容）
+- `wave`：正弦波，高峰低谷交替，長期平均**精確等於** `-rate`；適合可控實驗
+- `bursty`：正弦波底層加隨機突發尖峰，模擬真實流量；長期平均近似 `-rate`；適合壓力測試
+
+診斷訊息（寫入 `-log-file`）會顯示當前倍率，突發期間加註 `[SPIKE]`：
+```
+[gen] total=56422 inst=2109/s avg=2169/s mult=1.21x [SPIKE]
+```
+
+#### 日誌格式（`-mode`）
+
+| 模式 | 說明 |
+|------|------|
+| `json-simple` | 固定格式 JSON，少量欄位（基本效能測試） |
+| `json-complex` | JSON 含多欄位與較長訊息（壓力測試） |
+| `json-mixed` | simple + complex 混合（接近真實情況） |
+| `invalid` | 混入無法解析的行（測試 parser 錯誤處理） |
+| `logfmt-simple` | 扁平 key=value 格式 |
+| `logfmt-complex` | logfmt 含較多欄位與較長訊息 |
+| `logfmt-mixed` | logfmt simple + complex 混合 |
+| `syslog-simple` | RFC5424 風格 syslog，基本欄位 |
+| `syslog-complex` | RFC5424 syslog，附帶延伸欄位 |
+| `syslog-mixed` | syslog simple + complex 混合 |
+
+#### 使用範例
 
 ```bash
-go run tools/gen/main.go -rate 1000 -duration 10 | ./target/debug/wcm-base-log-forwarder
+# 固定速率（基準測試）
+go run tools/gen/main.go -rate 5000 -duration 60 | ./target/debug/wcm-base-log-forwarder
+
+# 正弦波流量（60s 週期，±60% 振幅）
+go run tools/gen/main.go -rate 5000 -duration 120 -traffic wave | ./target/debug/wcm-base-log-forwarder
+
+# 突發流量（每 30s 一次週期，加上每分鐘 2 次突發至 3x）
+go run tools/gen/main.go -rate 5000 -duration 120 -traffic bursty -wave-period 30 | ./target/debug/wcm-base-log-forwarder
+
+# 短週期突發，用於快速驗證背壓處理
+go run tools/gen/main.go -rate 5000 -duration 30 -traffic bursty -wave-period 10 -spike-freq 4 -spike-dur 3 | ./target/debug/wcm-base-log-forwarder
+
+# 把診斷訊息印到 stderr，方便即時觀察
+go run tools/gen/main.go -rate 5000 -traffic wave -log-file - | ./target/debug/wcm-base-log-forwarder
 ```
 
 ---
@@ -211,3 +271,33 @@ stdin → [reader thread]
 | `wasm_mem_peak_max` | WASM 線性記憶體峰值 |
 
 Pipeline summary 末尾新增 Trans 區塊，與 Parse / Format 格式一致。
+
+
+## 觀察
+### 2026/05/02
+1. 不使用GO就不會有OOM的問題，C都沒有出現，我的推測是C沒有GC，因此就算重新用實例也是直接覆蓋。
+2. 如果把實例用完後，清除並放回，重複使用，GO就會出現OOM，C則不會，若GO也是用完後丟棄，則也沒有OOM的問題。
+3. 利用C寫的插件速度比GO快太多
+
+- 透過在GO plugin中斷開已經使用過的結構指標，讓GC能正確清理已經不用的記憶體，大幅減少OOM的情況
+僅剩下syslog simple偶爾會出現OOM
+- 若沒有重置結構，則syslog每次重用都會OOM，幾乎無法重用 -> 目前OOM次數很少。
+
+
+## 工作日記
+### 2026/05/02
+1. 把log產生器改成有流量變化，並把用法寫在README.md
+2. 做好了C的Format plugin
+3. 用重置pointer的方式讓GO的GC能順利完成，減少OOM發生
+4. 能夠重用實例，每個實例用到OOM為止被刪除。
+5. 論文的方向為測量實例啟動、ABI複製到component與回傳到host各自的花費時間
+   比較flat(length+data)與結構化的傳送方式的時間差異
+   強調安全性。
+
+## 接下來的工作
+1. 用有GC的語言的插件作為對照組，判斷斷開pointer是否真的有用
+2. 提高transport的吞吐量。
+3. 比較結構化傳送與flat傳送的花費時間差異
+4. 新增route與filter
+5. 如何保證wasm安全、如何保證log處裡後的對應。
+6. enrich加在parse(optional,最後再做)

@@ -45,7 +45,7 @@ struct FormattedBatch {
 
 // ── Parse 平行化常數與 WorkBatch ──────────────────────────────────────────────
 
-const PARSE_WORKERS: usize = 2;
+const PARSE_WORKERS: usize = 1;
 
 /// dispatcher 分發給 parse worker 的工作單元。
 struct WorkBatch {
@@ -145,15 +145,20 @@ impl ParsePool {
         }
     }
 
-    /*
+    
+    //fn release(&mut self, mut inst: ParseInstance) {
+    //    self.ready.push_back(inst);
+    //}
+    
     fn release(&mut self, mut inst: ParseInstance) {
-        match inst.plugin.call_reset(&mut inst.store) {
+        match inst.plugin.call_reset(&mut inst.store){
             Ok(()) => self.ready.push_back(inst),
             Err(e) => eprintln!("[pool] reset() failed, discarding instance: {}", e),
         }
         self.replenish();
     }
-    */
+    
+    
 
     fn discard_and_replenish(&mut self, inst: ParseInstance) {
         drop(inst);
@@ -486,13 +491,13 @@ fn worker_flush_batch(
 
         match do_parse_batch(worker_id, &mut inst, batch, seq, pool.mem_limit_bytes, reason, stats) {
             Ok(Some(pb)) => {
-                //pool.release(inst);
-                pool.discard_and_replenish(inst);
+                pool.release(inst);
+                //pool.discard_and_replenish(inst);
                 return tx.send(pb).is_ok();
             }
             Ok(None) => {
-                //pool.release(inst);
-                pool.discard_and_replenish(inst);
+                pool.release(inst);
+                //pool.discard_and_replenish(inst);
                 return true;
             }
             Err(e) => {
@@ -553,7 +558,7 @@ fn do_parse_batch(
             
             println!(
                 "[w{worker_id}-inst{}][測試log解析結果] time:{} / tag1:{}={}/ tag2:{}={}",
-                inst_id, entries[4].timestamp, entries[6].tags[1].0, entries[6].tags[0].1,entries[19].tags[1].0, entries[7].tags[0].1
+                inst_id, entries[4].timestamp, entries[6].tags[1].0, entries[6].tags[1].1,entries[19].tags[0].0, entries[19].tags[0].1
             );
             /*
             println!(
@@ -618,6 +623,7 @@ fn format_loop(
                 let batch_started = Instant::now();
                 let mut all_lines: Vec<Vec<u8>> = Vec::new();
                 let mut batch_wasm_peak: usize = 0;
+                let mut batch_logic_ns: u64 = 0;
                 let mut batch_ok = true;
 
                 for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
@@ -633,12 +639,33 @@ fn format_loop(
                     let plugin = FormatPlugin::instantiate(&mut store, &component, &linker)?;
 
                     match plugin.call_format(&mut store, chunk) {
-                        Ok(Ok(lines)) => {
+                        Ok(Ok(bytes)) => {
+                            let logic_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                            batch_logic_ns += logic_ns;
                             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
                             if wasm_mem_peak > batch_wasm_peak {
                                 batch_wasm_peak = wasm_mem_peak;
                             }
-                            all_lines.extend(lines);
+                            // parse [4-byte LE length][data] frames
+                            let mut pos = 0;
+                            while pos + 4 <= bytes.len() {
+                                let len = u32::from_le_bytes([
+                                    bytes[pos], bytes[pos+1], bytes[pos+2], bytes[pos+3],
+                                ]) as usize;
+                                pos += 4;
+                                if pos + len <= bytes.len() {
+                                    all_lines.push(bytes[pos..pos + len].to_vec());
+                                    pos += len;
+                                } else {
+                                    eprintln!(
+                                        "[format] malformed frame batch={} chunk={}: \
+                                         declared {} bytes but only {} remain",
+                                        pb.seq, chunk_idx, len, bytes.len() - pos
+                                    );
+                                    batch_ok = false;
+                                    break;
+                                }
+                            }
                         }
                         Ok(Err(_)) => {
                             eprintln!("[format-error] batch={} chunk={}", pb.seq, chunk_idx);
@@ -652,18 +679,34 @@ fn format_loop(
                     store.data().limiter.print_max("format");
                 }
 
-                if batch_ok {
+                if batch_ok && !all_lines.is_empty() {
                     let elapsed = batch_started.elapsed();
                     let output_lines = all_lines.len();
                     let total_bytes: usize = all_lines.iter().map(|l| l.len()).sum();
 
-                    print_format_batch(pb.seq, entry_count, output_lines,
-                                       batch_wasm_peak, mem_limit_bytes, elapsed);
+                    // pseudo-random sample: pick one entry to show for inspection
+                    let idx = (pb.seq as usize)
+                        .wrapping_mul(2654435761)
+                        .wrapping_add(output_lines)
+                        % output_lines;
+                    let sample = &all_lines[idx];
+                    let n = sample.len().min(300);
+                    let preview = String::from_utf8_lossy(&sample[..n]);
+                    let text = preview.trim_end_matches('\n');
+                    let ellipsis = if sample.len() > 300 { "…" } else { "" };
+                    eprintln!(
+                        "[format-sample] batch={} #{}/{}: {}{}",
+                        pb.seq, idx + 1, output_lines, text, ellipsis
+                    );
 
-                    stats.total_batches       += 1;
-                    stats.total_input_entries += entry_count as u64;
-                    stats.total_output_lines  += output_lines as u64;
-                    stats.total_elapsed       += elapsed;
+                    print_format_batch(pb.seq, entry_count, output_lines,
+                                       batch_wasm_peak, mem_limit_bytes, elapsed, batch_logic_ns);
+
+                    stats.total_batches        += 1;
+                    stats.total_input_entries  += entry_count as u64;
+                    stats.total_output_lines   += output_lines as u64;
+                    stats.total_elapsed        += elapsed;
+                    stats.total_component_ns   += batch_logic_ns;
                     if batch_wasm_peak > stats.wasm_mem_peak_max {
                         stats.wasm_mem_peak_max = batch_wasm_peak;
                     }

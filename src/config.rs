@@ -36,7 +36,7 @@ impl Default for BatchConfig {
             max_wait: Duration::from_millis(5000),
             max_batch_lines: 50_000,
             channel_capacity: 150_000,
-            max_format_chunk: 50000,
+            max_format_chunk: 50_000,
             transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
             max_transport_bytes: 128 * 1024,
             transport_workers: 5,
@@ -289,6 +289,8 @@ pub struct FormatStats {
     pub total_elapsed: Duration,
     /// WASM 線性記憶體峰值（各 batch 最大值）
     pub wasm_mem_peak_max: usize,
+    /// 累計 component 內部回報的編碼邏輯時間 ns（各 batch 加總）
+    pub total_component_ns: u64,
 }
 
 #[derive(Default)]

@@ -149,6 +149,7 @@ world parser-plugin {
 
     export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
+    export reset: func();
 }
 
 // ─────────────────────────────────────────────
@@ -218,8 +219,7 @@ world format-plugin {
 
     export format: func(
         struct-data: list<log-entry>
-    ) -> result<list<list<u8>>, plugin-error>;
-
+    ) -> result<list<u8>, plugin-error>;
     export report-usage: func() -> u64;
 }
 

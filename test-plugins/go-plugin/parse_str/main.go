@@ -34,7 +34,15 @@ var (
 	globalKvBuf = make([][2]string, 0, 32)
 )
 
-var lastExecNs int64
+const debugLifecycle = false
+
+var (
+	lastExecNs    int64
+	batchSeq      uint64
+	lastEntryUsed int
+	lastTagUsed   int
+	lastRawBytes  int
+)
 
 type Self_log struct {
 	Ts    string            `json:"ts"`
@@ -52,7 +60,7 @@ func init() {
 // Reset 僅重置 pool cursor，不呼叫 GC。
 // 下一批 parse() 直接覆蓋 entryPool / tagPool 相同位置。
 func Reset() {
-	//tagCursor = 0
+	releaseRetainedBatch("reset")
 	runtime.GC()
 }
 
@@ -62,8 +70,9 @@ func Reset() {
 func ParseJson(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
 	start := time.Now()
 
-	tagCursor = 0
 	rawSlice := rawData.Slice()
+	rawBytes := beginBatch(rawSlice)
+	tagCursor = 0
 	entries := entryPool[:0]
 	var skipCount int
 
@@ -92,8 +101,7 @@ func ParseJson(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, 
 		})
 	}
 
-	_ = skipCount
-	lastExecNs = time.Since(start).Nanoseconds()
+	finishBatch(len(entries), tagCursor, skipCount, rawBytes, start)
 	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](cm.ToList(entries))
 }
 
@@ -107,8 +115,9 @@ func ParseJson(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, 
 func ParseLogfmt(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
 	start := time.Now()
 
-	tagCursor = 0
 	rawSlice := rawData.Slice()
+	rawBytes := beginBatch(rawSlice)
+	tagCursor = 0
 	entries := entryPool[:0]
 	kvBuf := globalKvBuf[:0]
 	var skipCount int
@@ -148,8 +157,7 @@ func ParseLogfmt(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape
 	}
 
 	globalKvBuf = kvBuf
-	_ = skipCount
-	lastExecNs = time.Since(start).Nanoseconds()
+	finishBatch(len(entries), tagCursor, skipCount, rawBytes, start)
 	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](cm.ToList(entries))
 }
 
@@ -161,8 +169,9 @@ func ParseLogfmt(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape
 func ParseSys(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
 	start := time.Now()
 
-	tagCursor = 0
 	rawSlice := rawData.Slice()
+	rawBytes := beginBatch(rawSlice)
+	tagCursor = 0
 	entries := entryPool[:0]
 	kvBuf := globalKvBuf[:0]
 	var skipCount int
@@ -179,13 +188,78 @@ func ParseSys(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, c
 	}
 
 	globalKvBuf = kvBuf
-	_ = skipCount
-	lastExecNs = time.Since(start).Nanoseconds()
+	finishBatch(len(entries), tagCursor, skipCount, rawBytes, start)
 	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](cm.ToList(entries))
 }
 
 func ReportUsage() uint64 {
 	return uint64(lastExecNs)
+}
+
+func beginBatch(rawSlice []string) int {
+	releaseRetainedBatch("parse-begin")
+	batchSeq++
+
+	rawBytes := 0
+	for _, raw := range rawSlice {
+		rawBytes += len(raw)
+	}
+
+	if debugLifecycle {
+		println("parse begin", "batch", batchSeq, "lines", len(rawSlice), "raw-bytes", rawBytes)
+	}
+
+	return rawBytes
+}
+
+func finishBatch(entries, tags, skipped, rawBytes int, start time.Time) {
+	lastEntryUsed = entries
+	lastTagUsed = tags
+	lastRawBytes = rawBytes
+	lastExecNs = time.Since(start).Nanoseconds()
+
+	if debugLifecycle {
+		println(
+			"parse end",
+			"batch", batchSeq,
+			"entries", entries,
+			"tags", tags,
+			"skipped", skipped,
+			"raw-bytes", rawBytes,
+			"exec-ns", lastExecNs,
+		)
+	}
+}
+
+func releaseRetainedBatch(where string) {
+	if debugLifecycle && (lastEntryUsed != 0 || lastTagUsed != 0 || len(globalKvBuf) != 0) {
+		println(
+			"release",
+			where,
+			"batch", batchSeq,
+			"entries", lastEntryUsed,
+			"tags", lastTagUsed,
+			"raw-bytes", lastRawBytes,
+			"kv-len", len(globalKvBuf),
+		)
+	}
+
+	// 清除引用
+	for i := 0; i < lastEntryUsed && i < len(entryPool); i++ {
+		entryPool[i] = parserplugin.ParsedEntry{}
+	}
+	for i := 0; i < lastTagUsed && i < len(tagPool); i++ {
+		tagPool[i] = [2]string{}
+	}
+	for i := range globalKvBuf {
+		globalKvBuf[i] = [2]string{}
+	}
+
+	globalKvBuf = globalKvBuf[:0]
+	tagCursor = 0
+	lastEntryUsed = 0
+	lastTagUsed = 0
+	lastRawBytes = 0
 }
 
 // ── 核心工具函數 ──────────────────────────────────────────────────────────────
