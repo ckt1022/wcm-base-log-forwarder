@@ -476,6 +476,7 @@ void __wasm_export_exports_parser_plugin_parse_post_return(uint8_t * arg0) {
 }
 
 
+
 // Canonical ABI intrinsics
 
 __attribute__((__weak__, __export_name__("cabi_realloc")))
@@ -4571,6 +4572,11 @@ __attribute__((__export_name__("report-usage")))
 int64_t __wasm_export_exports_parser_plugin_report_usage(void) {
   uint64_t ret = exports_parser_plugin_report_usage();
   return (int64_t) (ret);
+}
+
+__attribute__((__export_name__("reset")))
+void __wasm_export_exports_parser_plugin_reset(void) {
+  exports_parser_plugin_reset();
 }
 
 // Ensure that the *_component_type.o object is linked in

@@ -58,7 +58,10 @@ impl BatchConfig {
         //          → MyLimiter::new(mem_limit_bytes) 限制每個 WASM store 的線性記憶體上限
         // BUG: main.rs:44 用了 cfg.mem_limit_mb 而非 * 1024*1024，safe_data_budget 計算錯誤
         if self.mem_limit_mb < 64 {
-            return Err(format!("mem_limit_mb={} 過小（建議 >= 64 MB）", self.mem_limit_mb));
+            return Err(format!(
+                "mem_limit_mb={} 過小（建議 >= 64 MB）",
+                self.mem_limit_mb
+            ));
         }
 
         // safe_data_ratio
@@ -67,7 +70,10 @@ impl BatchConfig {
         // 注意: main.rs 也計算了 safe_data_budget 但因 mem_limit_bytes bug 導致實際為 179 bytes，
         //       該值只用於 print_startup，不影響 parse_loop 的判斷。
         if !(0.0 < self.safe_data_ratio && self.safe_data_ratio < 1.0) {
-            return Err(format!("safe_data_ratio={} 必須在 (0.0, 1.0) 之間", self.safe_data_ratio));
+            return Err(format!(
+                "safe_data_ratio={} 必須在 (0.0, 1.0) 之間",
+                self.safe_data_ratio
+            ));
         }
 
         // max_wait
@@ -151,46 +157,80 @@ impl BatchConfig {
     pub fn print_config_table(&self) {
         let default = BatchConfig::default();
         let rows: &[(&str, String, &str, bool)] = &[
-            ("mem_limit_mb",       format!("{} MB", self.mem_limit_mb),
-             "每個 WASM store 線性記憶體上限 (runtime.rs MyLimiter)",
-             self.mem_limit_mb == default.mem_limit_mb),
-            ("safe_data_ratio",    format!("{:.0}%", self.safe_data_ratio * 100.0),
-             "parse batch size 觸發提前 flush 的閾值 (runtime.rs parse_loop)",
-             self.safe_data_ratio == default.safe_data_ratio),
-            ("max_wait",           format!("{} ms", self.max_wait.as_millis()),
-             "parse 時間觸發 flush 的等待上限 (runtime.rs parse_loop recv_timeout)",
-             self.max_wait == default.max_wait),
-            ("max_batch_lines",    format!("{}", self.max_batch_lines),
-             "parse 行數觸發 flush 的上限 (runtime.rs parse_loop)",
-             self.max_batch_lines == default.max_batch_lines),
-            ("channel_capacity",   format!("{}", self.channel_capacity),
-             "stdin→parse LineItem channel 容量 [注意: parsed/formatted channel 硬編碼 20000]",
-             self.channel_capacity == default.channel_capacity),
-            ("max_format_chunk",   format!("{}", self.max_format_chunk),
-             "format plugin 每次呼叫的最大 entry 數 (runtime.rs format_loop chunks)",
-             self.max_format_chunk == default.max_format_chunk),
-            ("transport_endpoint", self.transport_endpoint.clone(),
-             "transport plugin init() 目標 URL (runtime.rs make_transport_config_val)",
-             self.transport_endpoint == default.transport_endpoint),
-            ("max_transport_bytes",format!("{} KB", self.max_transport_bytes / 1024),
-             "每次 transport send() 的最大 byte 數 = 一個 HTTP POST 大小",
-             self.max_transport_bytes == default.max_transport_bytes),
-            ("transport_workers",  format!("{}", self.transport_workers),
-             "並行 transport worker 數量，每個持有獨立 WASM store",
-             self.transport_workers == default.transport_workers),
+            (
+                "mem_limit_mb",
+                format!("{} MB", self.mem_limit_mb),
+                "每個 WASM store 線性記憶體上限 (runtime.rs MyLimiter)",
+                self.mem_limit_mb == default.mem_limit_mb,
+            ),
+            (
+                "safe_data_ratio",
+                format!("{:.0}%", self.safe_data_ratio * 100.0),
+                "parse batch size 觸發提前 flush 的閾值 (runtime.rs parse_loop)",
+                self.safe_data_ratio == default.safe_data_ratio,
+            ),
+            (
+                "max_wait",
+                format!("{} ms", self.max_wait.as_millis()),
+                "parse 時間觸發 flush 的等待上限 (runtime.rs parse_loop recv_timeout)",
+                self.max_wait == default.max_wait,
+            ),
+            (
+                "max_batch_lines",
+                format!("{}", self.max_batch_lines),
+                "parse 行數觸發 flush 的上限 (runtime.rs parse_loop)",
+                self.max_batch_lines == default.max_batch_lines,
+            ),
+            (
+                "channel_capacity",
+                format!("{}", self.channel_capacity),
+                "stdin→parse LineItem channel 容量 [注意: parsed/formatted channel 硬編碼 20000]",
+                self.channel_capacity == default.channel_capacity,
+            ),
+            (
+                "max_format_chunk",
+                format!("{}", self.max_format_chunk),
+                "format plugin 每次呼叫的最大 entry 數 (runtime.rs format_loop chunks)",
+                self.max_format_chunk == default.max_format_chunk,
+            ),
+            (
+                "transport_endpoint",
+                self.transport_endpoint.clone(),
+                "transport plugin init() 目標 URL (runtime.rs make_transport_config_val)",
+                self.transport_endpoint == default.transport_endpoint,
+            ),
+            (
+                "max_transport_bytes",
+                format!("{} KB", self.max_transport_bytes / 1024),
+                "每次 transport send() 的最大 byte 數 = 一個 HTTP POST 大小",
+                self.max_transport_bytes == default.max_transport_bytes,
+            ),
+            (
+                "transport_workers",
+                format!("{}", self.transport_workers),
+                "並行 transport worker 數量，每個持有獨立 WASM store",
+                self.transport_workers == default.transport_workers,
+            ),
         ];
 
         eprintln!("┌{:─<28}┬{:─<14}┬{:─<7}┬{:─<58}┐", "", "", "", "");
-        eprintln!("│ {:26} │ {:12} │ {:5} │ {:56} │", "參數", "值", "預設", "用途");
+        eprintln!(
+            "│ {:26} │ {:12} │ {:5} │ {:56} │",
+            "參數", "值", "預設", "用途"
+        );
         eprintln!("├{:─<28}┼{:─<14}┼{:─<7}┼{:─<58}┤", "", "", "", "");
         for (name, val, desc, is_default) in rows {
-            eprintln!("│ {:26} │ {:12} │ {:5} │ {:56} │",
-                name, val, if *is_default { "✓" } else { "●" }, desc);
+            eprintln!(
+                "│ {:26} │ {:12} │ {:5} │ {:56} │",
+                name,
+                val,
+                if *is_default { "✓" } else { "●" },
+                desc
+            );
         }
         eprintln!("└{:─<28}┴{:─<14}┴{:─<7}┴{:─<58}┘", "", "", "", "");
     }
 }
-
 
 /// 追蹤 channel 目前積壓的條數與 byte 數。
 /// Clone 後共享同一組 Atomic，可分別交給 sender thread 和 receiver thread。
@@ -237,11 +277,21 @@ pub struct Batch {
 
 impl Batch {
     pub fn new() -> Self {
-        Self { lines: Vec::new(), bytes: 0, created_at: Instant::now() }
+        Self {
+            lines: Vec::new(),
+            bytes: 0,
+            created_at: Instant::now(),
+        }
     }
-    pub fn is_empty(&self) -> bool { self.lines.is_empty() }
-    pub fn len(&self) -> usize { self.lines.len() }
-    pub fn elapsed(&self) -> Duration { self.created_at.elapsed() }
+    pub fn is_empty(&self) -> bool {
+        self.lines.is_empty()
+    }
+    pub fn len(&self) -> usize {
+        self.lines.len()
+    }
+    pub fn elapsed(&self) -> Duration {
+        self.created_at.elapsed()
+    }
     pub fn push(&mut self, line: String) {
         self.bytes += line.len();
         self.lines.push(line);
@@ -262,6 +312,15 @@ pub struct FlushReason {
 
 // ── 統計結構 ──────────────────────────────────────────────────────────────
 
+#[derive(Clone, Copy, Default)]
+pub struct ParseDiffTiming {
+    pub noop_elapsed_ns: u64,
+    pub noop_component_ns: u64,
+    pub copy_in_ns: u64,
+    pub guest_ns: u64,
+    pub copy_out_ns: u64,
+}
+
 #[derive(Default)]
 pub struct ParseStats {
     pub total_batches: u64,
@@ -279,6 +338,16 @@ pub struct ParseStats {
     pub total_grow_delta_bytes: u64,
     /// 累計 component 內部回報的執行時間 ns（各 batch 加總）
     pub total_component_ns: u64,
+    /// 差分量測成功的 batch 數。
+    pub total_diff_batches: u64,
+    /// no-op parser 的整段 call_parse() 時間，用於估算 host→WCM copy-in。
+    pub total_noop_elapsed_ns: u64,
+    /// no-op parser 回報的 guest 端空邏輯時間。
+    pub total_noop_component_ns: u64,
+    /// 差分估算的 host→WCM copy-in 時間。
+    pub total_copy_in_ns: u64,
+    /// 差分估算的 WCM→host copy-out 時間。
+    pub total_copy_out_ns: u64,
 }
 
 #[derive(Default)]
@@ -305,4 +374,15 @@ pub struct TransportStats {
     pub total_elapsed: Duration,
     /// WASM 線性記憶體峰值
     pub wasm_mem_peak_max: usize,
+}
+
+#[derive(Default)]
+pub struct FilterStats {
+    pub total_batches: u64,
+    pub total_input_entries: u64,
+    pub total_kept_entries: u64,
+    pub total_dropped_entries: u64,
+    pub total_elapsed: Duration,
+    pub wasm_mem_peak_max: usize,
+    pub total_component_ns: u64,
 }

@@ -7,36 +7,69 @@ use config::BatchConfig;
 
 struct PluginPath {
     parse: String,
+    parse_noop: Option<String>,
+    filter: String,
     format: String,
     transport: String,
 }
 
 /// 控制 pipeline 中哪些處理階段要啟用。
 pub struct PipelineStages {
+    pub filter: bool,
     pub format: bool,
     pub transport: bool,
 }
 
 fn main() -> wasmtime::Result<()> {
     let path = PluginPath {
+        // parse完成:GO/C#/C
         parse: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
-            //"/test-plugins/go-plugin/parse_str/parser_json.wasm",
-            "/test-plugins/go-plugin/parse_str/parser_sys.wasm",
+            // 不用 //
             //"/test-plugins/go-plugin/parse_str/parser_sys_onlyGC.wasm"
             //"/test-plugins/go-plugin/parse_str/parser_json_onlyGC.wasm"
-            //"/test-plugins/c-plugin/parse/parser_c_json.wasm"
-            //"/test-plugins/go-plugin/noop-parser/noop_parser.wasm" //測量SYS只有輸入，沒有邏輯
+
+            // GO
+            //"/test-plugins/go-plugin/parse_str/parser_json.wasm",
+            //"/test-plugins/go-plugin/parse_str/parser_sys.wasm",
             //"/test-plugins/go-plugin/parse_str/parser_fmt.wasm"
+
+            // C#
+            "/test-plugins/csharp-plugin/parse/parser_csharp.wasm",
+
+            // C
+            //"/test-plugins/c-plugin/parse/parser_c_json.wasm"
         )),
+        parse_noop: None,
+        /*parse_noop: Some(String::from(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            // For C-vs-C diff, use:
+            //"/test-plugins/c-plugin/noop-parser/parser_c_noop.wasm",
+            
+            // For C#-vs-C# diff, use:
+            //"/test-plugins/csharp-plugin/parse/parser_csharp_noop.wasm",
+            
+            // GO no op
+            "/test-plugins/go-plugin/parse_str/parser_noop.wasm",
+        ))),
+        */
+        // filter: C# reduction plugin
+        filter: String::from(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/test-plugins/csharp-plugin/filter/filter_csharp.wasm"
+        )),
+
+        // format完成C
         format: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
             //"/test-plugins/c-plugin/format/format.wasm"
-            "/test-plugins/c-plugin/format/format_json-flat.wasm"
+            "/test-plugins/c-plugin/format/format_json-flat.wasm",
             //"/test-plugins/c-plugin/format/format_json-nested.wasm"
             //"/test-plugins/c-plugin/format/format_syslog.wasm"
             //"/test-plugins/c-plugin/format/format_protobuf.wasm"
         )),
+
+        // transport完成rust
         transport: String::from(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/test-plugins/rust-plugin/transport/target/wasm32-unknown-unknown/release/transport_component.wasm"
@@ -45,11 +78,12 @@ fn main() -> wasmtime::Result<()> {
 
     // 判斷啟動哪些stage
     let stages = PipelineStages {
-        format: false,
+        filter: true,
+        format: true,
         transport: false,
     };
 
-    // 
+    //
     let cfg = BatchConfig::default();
 
     // 驗證設定並印出每個參數的實際用途與是否為預設值
@@ -71,8 +105,18 @@ fn main() -> wasmtime::Result<()> {
     // stage wasm runtime engine amd component and linker
     // engine,component可以重複使用，用來建立store
     // 不同instance用相同engine，不同store
-    let (engine_parse, component_parse, linker_parse) =
-        app::build_runtime(path.parse)?;
+    let (engine_parse, component_parse, linker_parse) = app::build_runtime(path.parse)?;
+
+    let parse_noop_runtime = match path.parse_noop {
+        Some(path) => Some(app::build_runtime(path)?),
+        None => None,
+    };
+
+    let filter_runtime = if stages.filter {
+        Some(app::build_runtime(path.filter)?)
+    } else {
+        None
+    };
 
     let format_runtime = if stages.format {
         Some(app::build_runtime(path.format)?)
@@ -90,6 +134,8 @@ fn main() -> wasmtime::Result<()> {
     runtime::run_pipeline(
         rx,
         Some((engine_parse, component_parse, linker_parse)),
+        parse_noop_runtime,
+        filter_runtime,
         format_runtime,
         transport_runtime,
         cfg,

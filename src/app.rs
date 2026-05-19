@@ -3,12 +3,11 @@ use std::sync::mpsc::SyncSender;
 use std::thread;
 
 use wasmtime::{
-    component::{Component, Linker},
     Config, Engine, OptLevel, ResourceLimiter, Strategy,
+    component::{Component, Linker},
 };
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::WasiHttpCtx;
-
 
 // parser-plugin world：產生 ParserPlugin 及 pipeline-process 所有型別
 wasmtime::component::bindgen!({
@@ -21,6 +20,18 @@ wasmtime::component::bindgen!({
 pub mod format_bindings {
     wasmtime::component::bindgen!({
         world: "format-plugin",
+        path: "wit",
+        with: {
+            "local:log-process/pipeline-process":
+                super::local::log_process::pipeline_process,
+        }
+    });
+}
+
+// reduction-plugin world：重用 pipeline-process 的 LogEntry / FilterResult。
+pub mod reduction_bindings {
+    wasmtime::component::bindgen!({
+        world: "reduction-plugin",
         path: "wit",
         with: {
             "local:log-process/pipeline-process":
@@ -65,10 +76,13 @@ impl MyLimiter {
             grow_total_delta_bytes: 0,
         }
     }
-    pub fn print_max(&self,type_of_max:&str){
+    pub fn print_max(&self, type_of_max: &str) {
         let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
-        if type_of_max == "parse"{
-            println!("{} 該次實例最大memoey用量:{},佔比: {}",type_of_max,self.max_allocation,ratio);
+        if type_of_max == "parse" {
+            println!(
+                "{} 該次實例最大memoey用量:{},佔比: {}",
+                type_of_max, self.max_allocation, ratio
+            );
         }
     }
 
@@ -153,9 +167,7 @@ pub fn spawn_stdin_reader(tx: SyncSender<String>) {
 }
 
 /// Build an engine/component/linker for parse or format plugins (WASI only, no HTTP).
-pub fn build_runtime(
-    wasm_path: String,
-) -> wasmtime::Result<(Engine, Component, Linker<MyState>)> {
+pub fn build_runtime(wasm_path: String) -> wasmtime::Result<(Engine, Component, Linker<MyState>)> {
     let mut config = Config::new();
     config.wasm_component_model(true);
     config.strategy(Strategy::Cranelift);

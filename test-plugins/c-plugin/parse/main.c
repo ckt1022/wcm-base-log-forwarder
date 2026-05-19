@@ -2,8 +2,22 @@
 #include "cJSON.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#define __USE_POSIX199309
+#include <time.h>
 
 static uint64_t g_processed_records = 0;
+static uint64_t g_last_exec_ns = 0;
+
+static uint64_t now_ns(void) {
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+        return 0;
+    }
+
+    return ((uint64_t)ts.tv_sec * 1000000000ULL) + (uint64_t)ts.tv_nsec;
+}
 
 /**
  * 輔助函數：將 cJSON 物件中的欄位轉換為 Tags 列表
@@ -78,6 +92,7 @@ static uint8_t map_level(const char *level_str) {
 bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data, 
                                  parser_plugin_list_parsed_entry_t *ret, 
                                  parser_plugin_parse_error_t *err) {
+    uint64_t start_ns = now_ns();
     
     size_t num_elements = raw_data->len;
     ret->ptr = (parser_plugin_parsed_entry_t*)calloc(num_elements, sizeof(parser_plugin_parsed_entry_t));
@@ -89,6 +104,8 @@ bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data,
         if (root == NULL) {
             err->tag = LOCAL_LOG_PROCESS_PIPELINE_PROCESS_PARSE_ERROR_INVALID_FORMAT;
             parser_plugin_string_dup(&err->val.invalid_format, "JSON Parse Error");
+            uint64_t end_ns = now_ns();
+            g_last_exec_ns = end_ns >= start_ns ? end_ns - start_ns : 0;
             return false;
         }
 
@@ -115,9 +132,17 @@ bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data,
         g_processed_records++;
     }
 
+    uint64_t end_ns = now_ns();
+    g_last_exec_ns = end_ns >= start_ns ? end_ns - start_ns : 0;
+
     return true;
 }
 
 uint64_t exports_parser_plugin_report_usage(void) {
-    return g_processed_records;
+    return g_last_exec_ns;
+}
+
+void exports_parser_plugin_reset(void) {
+    g_processed_records = 0;
+    g_last_exec_ns = 0;
 }

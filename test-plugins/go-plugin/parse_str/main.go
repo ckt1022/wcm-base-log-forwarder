@@ -52,7 +52,9 @@ type Self_log struct {
 }
 
 func init() {
-	parserplugin.Exports.Parse = ParseSys
+	//parserplugin.Exports.Parse = ParseJson
+	// 手寫 JSON parser 測試時，改成：
+	parserplugin.Exports.Parse = ParseJsonManual
 	parserplugin.Exports.ReportUsage = ReportUsage
 	parserplugin.Exports.Reset = Reset
 }
@@ -68,20 +70,23 @@ func Reset() {
 // JSON 路徑因 json.Unmarshal 內部無法避免 alloc，維持原實作。
 
 func ParseJson(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
-	start := time.Now()
+	lastExecNs = 0
+	start_ := time.Now()
+	rawSlice := rawData.Slice() //不是這段花時間
 
-	rawSlice := rawData.Slice()
 	rawBytes := beginBatch(rawSlice)
 	tagCursor = 0
 	entries := entryPool[:0]
 	var skipCount int
 
 	for _, rawStr := range rawSlice {
+		start := time.Now()
 		var log Self_log
 		if err := json.Unmarshal([]byte(rawStr), &log); err != nil {
 			skipCount++
 			continue
 		}
+		lastExecNs += time.Since(start).Nanoseconds()
 
 		level := parseLogLevel(log.Level)
 
@@ -97,6 +102,46 @@ func ParseJson(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, 
 			Timestamp: log.Ts,
 			Level:     level,
 			Message:   log.Msg,
+			Tags:      cm.ToList(tagPool[tagStart:tagCursor]),
+		})
+	}
+
+	finishBatch(len(entries), tagCursor, skipCount, rawBytes, start_)
+	return cm.OK[cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError]](cm.ToList(entries))
+}
+
+// ── ParseJsonManual ─────────────────────────────────────────────────────────
+// 手寫 parser 版本，針對 generator 目前格式：
+// {"ts":"...","level":"...","msg":"...","att":{"k":"v",...}}
+//
+// lastExecNs 只量測每行 JSON 掃描與欄位取出的時間，用來對照 ParseJson 中
+// json.Unmarshal 的量測範圍。ParsedEntry 建立與 cm.ToList 仍維持在計時外。
+
+func ParseJsonManual(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, cm.List[parserplugin.ParsedEntry], parserplugin.ParseError] {
+	lastExecNs = 0
+	start := time.Now()
+	rawSlice := rawData.Slice()
+
+	rawBytes := beginBatch(rawSlice)
+	tagCursor = 0
+	entries := entryPool[:0]
+	var skipCount int
+
+	for _, rawStr := range rawSlice {
+		tagStart := tagCursor
+
+		ts, levelStr, msg, err := parseJSONLineManual(rawStr)
+
+		if err != nil {
+			tagCursor = tagStart
+			skipCount++
+			continue
+		}
+
+		entries = append(entries, parserplugin.ParsedEntry{
+			Timestamp: ts,
+			Level:     parseLogLevel(levelStr),
+			Message:   msg,
 			Tags:      cm.ToList(tagPool[tagStart:tagCursor]),
 		})
 	}
@@ -293,6 +338,283 @@ func kvGet(kvs [][2]string, key string) string {
 		}
 	}
 	return ""
+}
+
+func parseJSONLineManual(s string) (ts, level, msg string, err error) {
+	i := 0
+	skipJSONSpace(s, &i)
+	if i >= len(s) || s[i] != '{' {
+		return "", "", "", strconv.ErrSyntax
+	}
+	i++
+
+	for {
+		skipJSONSpace(s, &i)
+		if i >= len(s) {
+			return "", "", "", strconv.ErrSyntax
+		}
+		if s[i] == '}' {
+			i++
+			return ts, level, msg, nil
+		}
+
+		key, keyErr := parseJSONStringManual(s, &i)
+		if keyErr != nil {
+			return "", "", "", keyErr
+		}
+		skipJSONSpace(s, &i)
+		if i >= len(s) || s[i] != ':' {
+			return "", "", "", strconv.ErrSyntax
+		}
+		i++
+		skipJSONSpace(s, &i)
+
+		switch key {
+		case "ts":
+			ts, err = parseJSONStringManual(s, &i)
+		case "level":
+			level, err = parseJSONStringManual(s, &i)
+		case "msg":
+			msg, err = parseJSONStringManual(s, &i)
+		case "att":
+			err = parseJSONAttManual(s, &i)
+		default:
+			err = skipJSONValueManual(s, &i)
+		}
+		if err != nil {
+			return "", "", "", err
+		}
+
+		skipJSONSpace(s, &i)
+		if i >= len(s) {
+			return "", "", "", strconv.ErrSyntax
+		}
+		switch s[i] {
+		case ',':
+			i++
+		case '}':
+			i++
+			return ts, level, msg, nil
+		default:
+			return "", "", "", strconv.ErrSyntax
+		}
+	}
+}
+
+func parseJSONAttManual(s string, i *int) error {
+	skipJSONSpace(s, i)
+	if *i >= len(s) || s[*i] != '{' {
+		return strconv.ErrSyntax
+	}
+	(*i)++
+
+	for {
+		skipJSONSpace(s, i)
+		if *i >= len(s) {
+			return strconv.ErrSyntax
+		}
+		if s[*i] == '}' {
+			(*i)++
+			return nil
+		}
+
+		key, err := parseJSONStringManual(s, i)
+		if err != nil {
+			return err
+		}
+		skipJSONSpace(s, i)
+		if *i >= len(s) || s[*i] != ':' {
+			return strconv.ErrSyntax
+		}
+		(*i)++
+		skipJSONSpace(s, i)
+
+		val, err := parseJSONStringManual(s, i)
+		if err != nil {
+			return err
+		}
+		if tagCursor < len(tagPool) {
+			tagPool[tagCursor] = [2]string{key, val}
+			tagCursor++
+		}
+
+		skipJSONSpace(s, i)
+		if *i >= len(s) {
+			return strconv.ErrSyntax
+		}
+		switch s[*i] {
+		case ',':
+			(*i)++
+		case '}':
+			(*i)++
+			return nil
+		default:
+			return strconv.ErrSyntax
+		}
+	}
+}
+
+func parseJSONStringManual(s string, i *int) (string, error) {
+	if *i >= len(s) || s[*i] != '"' {
+		return "", strconv.ErrSyntax
+	}
+	(*i)++
+	start := *i
+
+	for *i < len(s) {
+		switch s[*i] {
+		case '"':
+			val := s[start:*i]
+			(*i)++
+			return val, nil
+		case '\\':
+			return parseJSONStringEscapedManual(s, i, start)
+		default:
+			(*i)++
+		}
+	}
+
+	return "", strconv.ErrSyntax
+}
+
+func parseJSONStringEscapedManual(s string, i *int, start int) (string, error) {
+	var b strings.Builder
+	b.WriteString(s[start:*i])
+
+	for *i < len(s) {
+		c := s[*i]
+		switch c {
+		case '"':
+			(*i)++
+			return b.String(), nil
+		case '\\':
+			(*i)++
+			if *i >= len(s) {
+				return "", strconv.ErrSyntax
+			}
+			switch s[*i] {
+			case '"', '\\', '/':
+				b.WriteByte(s[*i])
+				(*i)++
+			case 'b':
+				b.WriteByte('\b')
+				(*i)++
+			case 'f':
+				b.WriteByte('\f')
+				(*i)++
+			case 'n':
+				b.WriteByte('\n')
+				(*i)++
+			case 'r':
+				b.WriteByte('\r')
+				(*i)++
+			case 't':
+				b.WriteByte('\t')
+				(*i)++
+			case 'u':
+				if *i+4 >= len(s) {
+					return "", strconv.ErrSyntax
+				}
+				r, ok := parseJSONHex4(s[*i+1 : *i+5])
+				if !ok {
+					return "", strconv.ErrSyntax
+				}
+				b.WriteRune(r)
+				*i += 5
+			default:
+				return "", strconv.ErrSyntax
+			}
+		default:
+			b.WriteByte(c)
+			(*i)++
+		}
+	}
+
+	return "", strconv.ErrSyntax
+}
+
+func skipJSONValueManual(s string, i *int) error {
+	skipJSONSpace(s, i)
+	if *i >= len(s) {
+		return strconv.ErrSyntax
+	}
+
+	switch s[*i] {
+	case '"':
+		_, err := parseJSONStringManual(s, i)
+		return err
+	case '{':
+		return skipJSONCompositeManual(s, i, '{', '}')
+	case '[':
+		return skipJSONCompositeManual(s, i, '[', ']')
+	default:
+		for *i < len(s) {
+			switch s[*i] {
+			case ',', '}', ']':
+				return nil
+			case ' ', '\t', '\n', '\r':
+				return nil
+			default:
+				(*i)++
+			}
+		}
+		return nil
+	}
+}
+
+func skipJSONCompositeManual(s string, i *int, open, close byte) error {
+	if *i >= len(s) || s[*i] != open {
+		return strconv.ErrSyntax
+	}
+	depth := 0
+	for *i < len(s) {
+		switch s[*i] {
+		case '"':
+			if _, err := parseJSONStringManual(s, i); err != nil {
+				return err
+			}
+			continue
+		case open:
+			depth++
+		case close:
+			depth--
+			if depth == 0 {
+				(*i)++
+				return nil
+			}
+		}
+		(*i)++
+	}
+	return strconv.ErrSyntax
+}
+
+func skipJSONSpace(s string, i *int) {
+	for *i < len(s) {
+		switch s[*i] {
+		case ' ', '\t', '\n', '\r':
+			(*i)++
+		default:
+			return
+		}
+	}
+}
+
+func parseJSONHex4(s string) (rune, bool) {
+	var v rune
+	for i := 0; i < 4; i++ {
+		c := s[i]
+		switch {
+		case c >= '0' && c <= '9':
+			v = v*16 + rune(c-'0')
+		case c >= 'a' && c <= 'f':
+			v = v*16 + rune(c-'a'+10)
+		case c >= 'A' && c <= 'F':
+			v = v*16 + rune(c-'A'+10)
+		default:
+			return 0, false
+		}
+	}
+	return v, true
 }
 
 // splitInto8 將 s 以 sep 切分至多 8 段，結果存入呼叫方的 stack array。

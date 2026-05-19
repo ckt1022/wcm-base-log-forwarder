@@ -1,0 +1,46 @@
+package local:log-process@0.3.0;
+
+interface pipeline-process {
+
+    record log-entry {
+        id: u64,
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+    }
+
+    enum log-level {
+        debug,
+        info,
+        warn,
+        error,
+        crit,
+        alert,
+        emerg,
+    }
+
+    variant plugin-error {
+        invalid-input(string),
+        processing-failed(string),
+        config-error(string),
+        unknown-id(u64),
+        internal-error,
+    }
+
+    record filter-result {
+        id: u64,
+        keep: bool,
+    }
+}
+
+world reduction-plugin {
+    use pipeline-process.{log-entry, filter-result, plugin-error};
+    include wasi:cli/imports@0.2.0;
+
+    export filter: func(
+        struct-data: list<log-entry>
+    ) -> result<list<filter-result>, plugin-error>;
+
+    export report-usage: func() -> u64;
+}

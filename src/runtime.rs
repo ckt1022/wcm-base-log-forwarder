@@ -1,33 +1,35 @@
 use std::collections::VecDeque;
+use std::fs::File;
+use std::io::Write;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Instant;
-use std::fs::File;
-use std::io::Write;
+use std::time::{Duration, Instant};
 
 use wasmtime::{
-    component::{Component, Linker},
     Engine, Store,
+    component::{Component, Linker},
 };
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
 use wasmtime_wasi_http::WasiHttpCtx;
 
 use crate::app::{
+    MyLimiter, MyState, ParserPlugin,
     format_bindings::FormatPlugin,
     local::log_process::pipeline_process::{LogEntry, ParsedEntry},
+    reduction_bindings::ReductionPlugin,
     transport_bindings::{
-        local::log_process::transport_types::{AuthMethod, TransportConfig},
         TransportPlugin,
+        local::log_process::transport_types::{AuthMethod, TransportConfig},
     },
-    MyLimiter, MyState, ParserPlugin,
 };
 use crate::config::{
-    Batch, BatchConfig, FlushReason, FormatStats, ParseStats, TransportStats,
+    Batch, BatchConfig, FilterStats, FlushReason, FormatStats, ParseDiffTiming, ParseStats,
+    TransportStats,
 };
 use crate::output::{
-    print_flush_header, print_format_batch, print_parse_aggregate, print_parse_batch,
-    print_pipeline_summary, print_transport_batch,
+    print_filter_batch, print_flush_header, print_format_batch, print_parse_aggregate,
+    print_parse_batch, print_pipeline_summary, print_transport_batch,
 };
 
 // ── 階段間傳遞的批次結構 ────────────────────────────────────────────────────
@@ -100,9 +102,15 @@ impl ParsePool {
         };
         pool.replenish();
         if pool.ready.is_empty() {
-            return Err(wasmtime::Error::msg("parse pool: failed to pre-warm any instance"));
+            return Err(wasmtime::Error::msg(
+                "parse pool: failed to pre-warm any instance",
+            ));
         }
-        eprintln!("[pool] pre-warmed {}/{} parse instances", pool.ready.len(), target_size);
+        eprintln!(
+            "[pool] pre-warmed {}/{} parse instances",
+            pool.ready.len(),
+            target_size
+        );
         Ok(pool)
     }
 
@@ -128,7 +136,9 @@ impl ParsePool {
                 Err(e) => {
                     eprintln!(
                         "[pool] replenish failed ({}/{}): {}",
-                        self.ready.len(), self.target_size, e
+                        self.ready.len(),
+                        self.target_size,
+                        e
                     );
                     break;
                 }
@@ -145,20 +155,22 @@ impl ParsePool {
         }
     }
 
-    
     //fn release(&mut self, mut inst: ParseInstance) {
     //    self.ready.push_back(inst);
     //}
-    
+
     fn release(&mut self, mut inst: ParseInstance) {
-        match inst.plugin.call_reset(&mut inst.store){
+        match inst.plugin.call_reset(&mut inst.store) {
             Ok(()) => self.ready.push_back(inst),
             Err(e) => eprintln!("[pool] reset() failed, discarding instance: {}", e),
         }
         self.replenish();
     }
-    
-    
+
+    fn release_without_reset(&mut self, inst: ParseInstance) {
+        self.ready.push_back(inst);
+        self.replenish();
+    }
 
     fn discard_and_replenish(&mut self, inst: ParseInstance) {
         drop(inst);
@@ -168,17 +180,22 @@ impl ParsePool {
 
 // ── 對外入口 ──────────────────────────────────────────────────────────────────
 
-/// Pipeline 入口：stdin → [parse thread] → [format thread] → [transport thread]
+/// Pipeline 入口：stdin → [parse thread] → [filter thread?] → [format thread] → [transport thread]
 pub fn run_pipeline(
     rx_raw: Receiver<String>,
     parse: Option<(Engine, Component, Linker<MyState>)>,
+    parse_noop: Option<(Engine, Component, Linker<MyState>)>,
+    filter: Option<(Engine, Component, Linker<MyState>)>,
     format: Option<(Engine, Component, Linker<MyState>)>,
     transport: Option<(Engine, Component, Linker<MyState>)>,
     cfg: BatchConfig,
 ) -> wasmtime::Result<()> {
     let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
 
+    // parse → filter channel（或直接 parse → format 若 filter 停用）
     let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(20000);
+    // filter → format channel
+    let (tx_filtered, rx_filtered) = std::sync::mpsc::sync_channel::<ParsedBatch>(20000);
     let (tx_formatted, rx_formatted) = std::sync::mpsc::sync_channel::<FormattedBatch>(20000);
 
     let endpoint = cfg.transport_endpoint.clone();
@@ -190,36 +207,70 @@ pub fn run_pipeline(
     let wall_start = Instant::now();
 
     // ── Parse thread（dispatcher + N workers）────────────────────────────────
-    let parse_handle =
-    if let Some((engine, component, linker)) = parse {
+    let parse_handle = if let Some((engine, component, linker)) = parse {
         Some(thread::spawn(move || {
-            parse_loop(rx_raw, tx_parsed, engine, component, linker, cfg_for_parse, mem_limit_bytes)
+            parse_loop(
+                rx_raw,
+                tx_parsed,
+                engine,
+                component,
+                linker,
+                parse_noop,
+                cfg_for_parse,
+                mem_limit_bytes,
+            )
         }))
     } else {
         drop(tx_parsed);
-        thread::spawn(move || { while rx_raw.recv().is_ok() {} });
+        thread::spawn(move || while rx_raw.recv().is_ok() {});
+        None
+    };
+
+    // ── Filter thread (sync) ──────────────────────────────────────────────────
+    let filter_handle = if let Some((engine, component, linker)) = filter {
+        Some(thread::spawn(move || {
+            filter_loop(
+                rx_parsed,
+                tx_filtered,
+                engine,
+                component,
+                linker,
+                mem_limit_bytes,
+            )
+        }))
+    } else {
+        // filter 停用：把 rx_parsed 直接橋接到 tx_filtered
+        thread::spawn(move || {
+            while let Ok(pb) = rx_parsed.recv() {
+                if tx_filtered.send(pb).is_err() {
+                    break;
+                }
+            }
+        });
         None
     };
 
     // ── Format thread (sync) ──────────────────────────────────────────────────
-    let format_handle =
-    if let Some((engine, component, linker)) = format {
+    let format_handle = if let Some((engine, component, linker)) = format {
         Some(thread::spawn(move || {
             format_loop(
-                rx_parsed, tx_formatted,
-                engine, component, linker,
-                mem_limit_bytes, max_format_chunk,
+                rx_filtered,
+                tx_formatted,
+                engine,
+                component,
+                linker,
+                mem_limit_bytes,
+                max_format_chunk,
             )
         }))
     } else {
         drop(tx_formatted);
-        thread::spawn(move || { while rx_parsed.recv().is_ok() {} });
+        thread::spawn(move || while rx_filtered.recv().is_ok() {});
         None
     };
 
     // ── Transport thread (async, N workers) ───────────────────────────────────
-    let transport_handle =
-    if let Some((engine, component, linker)) = transport {
+    let transport_handle = if let Some((engine, component, linker)) = transport {
         Some(thread::spawn(move || {
             let rx_shared = Arc::new(Mutex::new(rx_formatted));
             let mut worker_handles = Vec::new();
@@ -237,8 +288,14 @@ pub fn run_pipeline(
                         .build()
                         .unwrap()
                         .block_on(transport_worker(
-                            rx, eng, comp, lnk,
-                            mem_limit_bytes, ep, max_transport_bytes, i
+                            rx,
+                            eng,
+                            comp,
+                            lnk,
+                            mem_limit_bytes,
+                            ep,
+                            max_transport_bytes,
+                            i,
                         ))
                 }));
             }
@@ -247,29 +304,32 @@ pub fn run_pipeline(
             for h in worker_handles {
                 match h.join() {
                     Ok(Ok(stats)) => {
-                        combined.total_batches        += stats.total_batches;
-                        combined.total_input_lines    += stats.total_input_lines;
-                        combined.total_input_bytes    += stats.total_input_bytes;
+                        combined.total_batches += stats.total_batches;
+                        combined.total_input_lines += stats.total_input_lines;
+                        combined.total_input_bytes += stats.total_input_bytes;
                         combined.total_bytes_reported += stats.total_bytes_reported;
-                        combined.total_elapsed        += stats.total_elapsed;
+                        combined.total_elapsed += stats.total_elapsed;
                         if stats.wasm_mem_peak_max > combined.wasm_mem_peak_max {
                             combined.wasm_mem_peak_max = stats.wasm_mem_peak_max;
                         }
                     }
                     Ok(Err(e)) => return Err(e),
-                    Err(_)     => return Err(wasmtime::Error::msg("transport worker panicked")),
+                    Err(_) => return Err(wasmtime::Error::msg("transport worker panicked")),
                 }
             }
             Ok(combined)
         }))
     } else {
-        thread::spawn(move || { while rx_formatted.recv().is_ok() {} });
+        thread::spawn(move || while rx_formatted.recv().is_ok() {});
         None
     };
 
     // ── Collect results ───────────────────────────────────────────────────────
     let parse_stats = parse_handle
         .map(|h| h.join().expect("parse thread panicked"))
+        .transpose()?;
+    let filter_stats = filter_handle
+        .map(|h| h.join().expect("filter thread panicked"))
         .transpose()?;
     let format_stats = format_handle
         .map(|h| h.join().expect("format thread panicked"))
@@ -281,7 +341,14 @@ pub fn run_pipeline(
     let wall_elapsed = wall_start.elapsed();
 
     if let Some(ps) = &parse_stats {
-        print_pipeline_summary(ps, format_stats.as_ref(), transport_stats.as_ref(), wall_elapsed, mem_limit_bytes);
+        print_pipeline_summary(
+            ps,
+            filter_stats.as_ref(),
+            format_stats.as_ref(),
+            transport_stats.as_ref(),
+            wall_elapsed,
+            mem_limit_bytes,
+        );
     }
 
     Ok(())
@@ -303,6 +370,7 @@ fn parse_loop(
     engine: Engine,
     component: Component,
     linker: Linker<MyState>,
+    parse_noop: Option<(Engine, Component, Linker<MyState>)>,
     cfg: BatchConfig,
     mem_limit_bytes: usize,
 ) -> wasmtime::Result<ParseStats> {
@@ -314,13 +382,16 @@ fn parse_loop(
     // 啟動 PARSE_WORKERS 個 worker thread
     let mut worker_handles = Vec::new();
     for worker_id in 0..PARSE_WORKERS {
-        let rx_w   = Arc::clone(&rx_work);
-        let tx_p   = tx.clone();
-        let eng    = engine.clone();
-        let comp   = component.clone();
-        let lnk    = linker.clone();
+        let rx_w = Arc::clone(&rx_work);
+        let tx_p = tx.clone();
+        let eng = engine.clone();
+        let comp = component.clone();
+        let lnk = linker.clone();
+        let noop = parse_noop
+            .as_ref()
+            .map(|(eng, comp, lnk)| (eng.clone(), comp.clone(), lnk.clone()));
         worker_handles.push(thread::spawn(move || {
-            parse_worker(worker_id, rx_w, tx_p, eng, comp, lnk, mem_limit_bytes)
+            parse_worker(worker_id, rx_w, tx_p, eng, comp, lnk, noop, mem_limit_bytes)
         }));
     }
 
@@ -329,22 +400,31 @@ fn parse_loop(
 
     // 彙總 workers 的統計
     let wall_elapsed = wall_start.elapsed();
-    let mut combined  = ParseStats::default();
+    let mut combined = ParseStats::default();
     let mut total_errors: u32 = 0;
 
     for (i, h) in worker_handles.into_iter().enumerate() {
         match h.join() {
             Ok(Ok((stats, errs))) => {
-                combined.total_batches          += stats.total_batches;
-                combined.total_input_lines      += stats.total_input_lines;
-                combined.total_input_bytes      += stats.total_input_bytes;
-                combined.total_output_entries   += stats.total_output_entries;
-                combined.total_elapsed          += stats.total_elapsed;
-                combined.total_component_ns     += stats.total_component_ns;
-                combined.total_grow_count       += stats.total_grow_count;
+                combined.total_batches += stats.total_batches;
+                combined.total_input_lines += stats.total_input_lines;
+                combined.total_input_bytes += stats.total_input_bytes;
+                combined.total_output_entries += stats.total_output_entries;
+                combined.total_elapsed += stats.total_elapsed;
+                combined.total_component_ns += stats.total_component_ns;
+                combined.total_diff_batches += stats.total_diff_batches;
+                combined.total_noop_elapsed_ns += stats.total_noop_elapsed_ns;
+                combined.total_noop_component_ns += stats.total_noop_component_ns;
+                combined.total_copy_in_ns += stats.total_copy_in_ns;
+                combined.total_copy_out_ns += stats.total_copy_out_ns;
+                combined.total_grow_count += stats.total_grow_count;
                 combined.total_grow_delta_bytes += stats.total_grow_delta_bytes;
-                if stats.go_heap_peak_max  > combined.go_heap_peak_max  { combined.go_heap_peak_max  = stats.go_heap_peak_max; }
-                if stats.wasm_mem_peak_max > combined.wasm_mem_peak_max { combined.wasm_mem_peak_max = stats.wasm_mem_peak_max; }
+                if stats.go_heap_peak_max > combined.go_heap_peak_max {
+                    combined.go_heap_peak_max = stats.go_heap_peak_max;
+                }
+                if stats.wasm_mem_peak_max > combined.wasm_mem_peak_max {
+                    combined.wasm_mem_peak_max = stats.wasm_mem_peak_max;
+                }
                 total_errors += errs;
             }
             Ok(Err(e)) => return Err(e),
@@ -385,8 +465,15 @@ fn parse_dispatcher(
                 let line_trigger = !batch.is_empty() && batch.len() >= cfg.max_batch_lines;
 
                 if size_trigger || line_trigger {
-                    let reason = FlushReason { size: size_trigger, time: false, line_count: line_trigger, eof: false };
-                    if send_work_batch(&mut batch, seq, reason, &tx).is_err() { break; }
+                    let reason = FlushReason {
+                        size: size_trigger,
+                        time: false,
+                        line_count: line_trigger,
+                        eof: false,
+                    };
+                    if send_work_batch(&mut batch, seq, reason, &tx).is_err() {
+                        break;
+                    }
                     seq += 1;
                 }
                 batch.push(item);
@@ -394,15 +481,27 @@ fn parse_dispatcher(
 
             Err(RecvTimeoutError::Timeout) => {
                 if !batch.is_empty() {
-                    let reason = FlushReason { size: false, time: true, line_count: false, eof: false };
-                    if send_work_batch(&mut batch, seq, reason, &tx).is_err() { break; }
+                    let reason = FlushReason {
+                        size: false,
+                        time: true,
+                        line_count: false,
+                        eof: false,
+                    };
+                    if send_work_batch(&mut batch, seq, reason, &tx).is_err() {
+                        break;
+                    }
                     seq += 1;
                 }
             }
 
             Err(RecvTimeoutError::Disconnected) => {
                 if !batch.is_empty() {
-                    let reason = FlushReason { size: false, time: false, line_count: false, eof: true };
+                    let reason = FlushReason {
+                        size: false,
+                        time: false,
+                        line_count: false,
+                        eof: true,
+                    };
                     let _ = send_work_batch(&mut batch, seq, reason, &tx);
                 }
                 break;
@@ -419,10 +518,17 @@ fn send_work_batch(
 ) -> Result<(), ()> {
     let created_at = batch.created_at;
     let lines = std::mem::take(&mut batch.lines);
-    let bytes  = batch.bytes;
-    batch.bytes      = 0;
+    let bytes = batch.bytes;
+    batch.bytes = 0;
     batch.created_at = Instant::now();
-    tx.send(WorkBatch { lines, bytes, seq, reason, created_at }).map_err(|_| ())
+    tx.send(WorkBatch {
+        lines,
+        bytes,
+        seq,
+        reason,
+        created_at,
+    })
+    .map_err(|_| ())
 }
 
 // ── Parse：worker ─────────────────────────────────────────────────────────────
@@ -437,9 +543,28 @@ fn parse_worker(
     engine: Engine,
     component: Component,
     linker: Linker<MyState>,
+    parse_noop: Option<(Engine, Component, Linker<MyState>)>,
     mem_limit_bytes: usize,
 ) -> wasmtime::Result<(ParseStats, u32)> {
-    let mut pool = ParsePool::new(engine, component, linker, mem_limit_bytes, POOL_TARGET_SIZE, 0)?;
+    let mut pool = ParsePool::new(
+        engine,
+        component,
+        linker,
+        mem_limit_bytes,
+        POOL_TARGET_SIZE,
+        0,
+    )?;
+    let mut noop_pool = match parse_noop {
+        Some((engine, component, linker)) => Some(ParsePool::new(
+            engine,
+            component,
+            linker,
+            mem_limit_bytes,
+            POOL_TARGET_SIZE,
+            0,
+        )?),
+        None => None,
+    };
     let mut stats = ParseStats::default();
     let mut error_count: u32 = 0;
 
@@ -449,11 +574,26 @@ fn parse_worker(
             Err(_) => break,
         };
 
-        let seq    = wb.seq;
+        let seq = wb.seq;
         let reason = wb.reason;
-        let mut batch = Batch { lines: wb.lines, bytes: wb.bytes, created_at: wb.created_at };
+        let mut batch = Batch {
+            lines: wb.lines,
+            bytes: wb.bytes,
+            created_at: wb.created_at,
+        };
 
-        if !worker_flush_batch(worker_id, &mut pool, &mut batch, seq, &reason, &mut stats, &tx, &mut error_count, 3) {
+        if !worker_flush_batch(
+            worker_id,
+            &mut pool,
+            noop_pool.as_mut(),
+            &mut batch,
+            seq,
+            &reason,
+            &mut stats,
+            &tx,
+            &mut error_count,
+            3,
+        ) {
             break;
         }
     }
@@ -470,6 +610,7 @@ fn parse_worker(
 fn worker_flush_batch(
     worker_id: usize,
     pool: &mut ParsePool,
+    mut noop_pool: Option<&mut ParsePool>,
     batch: &mut Batch,
     seq: u64,
     reason: &FlushReason,
@@ -482,29 +623,51 @@ fn worker_flush_batch(
         let mut inst = match pool.acquire() {
             Ok(i) => i,
             Err(e) => {
-                eprintln!("[worker{}][pool] cannot acquire (batch={}): {}", worker_id, seq, e);
+                eprintln!(
+                    "[worker{}][pool] cannot acquire (batch={}): {}",
+                    worker_id, seq, e
+                );
                 batch.clear();
                 return true;
             }
         };
         inst.store.data_mut().limiter.reset_batch_stats();
 
-        match do_parse_batch(worker_id, &mut inst, batch, seq, pool.mem_limit_bytes, reason, stats) {
+        match do_parse_batch(
+            worker_id,
+            &mut inst,
+            noop_pool.as_deref_mut(),
+            batch,
+            seq,
+            pool.mem_limit_bytes,
+            reason,
+            stats,
+        ) {
             Ok(Some(pb)) => {
-                pool.release(inst);
-                //pool.discard_and_replenish(inst);
+                //pool.release(inst);
+                pool.discard_and_replenish(inst);
                 return tx.send(pb).is_ok();
             }
             Ok(None) => {
-                pool.release(inst);
-                //pool.discard_and_replenish(inst);
+                //pool.release(inst);
+                pool.discard_and_replenish(inst);
                 return true;
             }
             Err(e) => {
-                eprintln!("[worker{}][OOM {}/{}] batch={}: {}", worker_id, attempt + 1, max_retries + 1, seq, e);
+                eprintln!(
+                    "[worker{}][OOM {}/{}] batch={}: {}",
+                    worker_id,
+                    attempt + 1,
+                    max_retries + 1,
+                    seq,
+                    e
+                );
                 pool.discard_and_replenish(inst);
                 if attempt == max_retries {
-                    eprintln!("[worker{}][OOM] exceeded retries, skip batch {}", worker_id, seq);
+                    eprintln!(
+                        "[worker{}][OOM] exceeded retries, skip batch {}",
+                        worker_id, seq
+                    );
                     *error_count += 1;
                     write_error_file("以下這批是OOM", &batch.lines);
                     batch.clear();
@@ -518,6 +681,7 @@ fn worker_flush_batch(
 fn do_parse_batch(
     worker_id: usize,
     inst: &mut ParseInstance,
+    noop_pool: Option<&mut ParsePool>,
     batch: &mut Batch,
     seq: u64,
     mem_limit_bytes: usize,
@@ -532,6 +696,16 @@ fn do_parse_batch(
         Ok(Ok(parsed)) => {
             let elapsed = started.elapsed();
             let component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
+            let diff = match noop_pool {
+                Some(pool) => match measure_noop_parse(pool, &batch.lines, component_ns, elapsed) {
+                    Ok(diff) => Some(diff),
+                    Err(e) => {
+                        eprintln!("[worker{}][diff-warn] batch={} {}", worker_id, seq, e);
+                        None
+                    }
+                },
+                None => None,
+            };
             let wasm_mem_peak = inst.store.data().limiter.wasm_mem_peak;
             let grow_count = inst.store.data().limiter.grow_count;
             let grow_delta_bytes = inst.store.data().limiter.grow_total_delta_bytes;
@@ -551,31 +725,58 @@ fn do_parse_batch(
 
             print_flush_header(seq, batch, reason);
             print_parse_batch(
-                worker_id, seq, input_lines, input_bytes, entries.len(),
-                component_ns, wasm_mem_peak, mem_limit_bytes, elapsed,
-                grow_count, grow_delta_bytes,
+                worker_id,
+                seq,
+                input_lines,
+                input_bytes,
+                entries.len(),
+                component_ns,
+                wasm_mem_peak,
+                mem_limit_bytes,
+                elapsed,
+                grow_count,
+                grow_delta_bytes,
+                diff,
             );
-            
-            println!(
-                "[w{worker_id}-inst{}][測試log解析結果] time:{} / tag1:{}={}/ tag2:{}={}",
-                inst_id, entries[4].timestamp, entries[6].tags[1].0, entries[6].tags[1].1,entries[19].tags[0].0, entries[19].tags[0].1
-            );
+
+            if let Some(sample) = entries.get(0) {
+                let tag_preview = sample
+                    .tags
+                    .first()
+                    .map(|tag| format!("{}={}", tag.0, tag.1))
+                    .unwrap_or_else(|| "-".to_string());
+                println!(
+                    "[w{worker_id}-inst{}][測試log解析結果] time:{} / tag:{}",
+                    inst_id, sample.timestamp, tag_preview
+                );
+            }
             /*
             println!(
                 "[w{worker_id}-inst{}][測試log解析結果] time:{} msg:{}",
                 inst_id, entries[4].timestamp,entries[2].message
             );
             */
-            stats.total_batches          += 1;
-            stats.total_input_lines      += input_lines as u64;
-            stats.total_input_bytes      += input_bytes as u64;
-            stats.total_output_entries   += entries.len() as u64;
-            stats.total_elapsed          += elapsed;
-            stats.total_component_ns     += component_ns;
-            stats.total_grow_count       += grow_count;
+            stats.total_batches += 1;
+            stats.total_input_lines += input_lines as u64;
+            stats.total_input_bytes += input_bytes as u64;
+            stats.total_output_entries += entries.len() as u64;
+            stats.total_elapsed += elapsed;
+            stats.total_component_ns += component_ns;
+            if let Some(d) = diff {
+                stats.total_diff_batches += 1;
+                stats.total_noop_elapsed_ns += d.noop_elapsed_ns;
+                stats.total_noop_component_ns += d.noop_component_ns;
+                stats.total_copy_in_ns += d.copy_in_ns;
+                stats.total_copy_out_ns += d.copy_out_ns;
+            }
+            stats.total_grow_count += grow_count;
             stats.total_grow_delta_bytes += grow_delta_bytes;
-            if component_ns > stats.go_heap_peak_max  { stats.go_heap_peak_max  = component_ns; }
-            if wasm_mem_peak > stats.wasm_mem_peak_max { stats.wasm_mem_peak_max = wasm_mem_peak; }
+            if component_ns > stats.go_heap_peak_max {
+                stats.go_heap_peak_max = component_ns;
+            }
+            if wasm_mem_peak > stats.wasm_mem_peak_max {
+                stats.wasm_mem_peak_max = wasm_mem_peak;
+            }
 
             Some(ParsedBatch { entries, seq })
         }
@@ -591,6 +792,57 @@ fn do_parse_batch(
     Ok(result)
 }
 
+fn measure_noop_parse(
+    pool: &mut ParsePool,
+    lines: &[String],
+    guest_ns: u64,
+    real_elapsed: Duration,
+) -> wasmtime::Result<ParseDiffTiming> {
+    let mut inst = pool.acquire()?;
+    inst.store.data_mut().limiter.reset_batch_stats();
+
+    let started = Instant::now();
+    let call_result = inst.plugin.call_parse(&mut inst.store, lines);
+    let noop_elapsed = started.elapsed();
+
+    match call_result {
+        Ok(Ok(_)) => {
+            let noop_component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
+            pool.release_without_reset(inst);
+
+            let noop_elapsed_ns = duration_ns(noop_elapsed);
+            let real_elapsed_ns = duration_ns(real_elapsed);
+            let copy_in_ns = noop_elapsed_ns.saturating_sub(noop_component_ns);
+            let copy_out_ns = real_elapsed_ns
+                .saturating_sub(guest_ns)
+                .saturating_sub(copy_in_ns);
+
+            Ok(ParseDiffTiming {
+                noop_elapsed_ns,
+                noop_component_ns,
+                copy_in_ns,
+                guest_ns,
+                copy_out_ns,
+            })
+        }
+        Ok(Err(e)) => {
+            pool.release_without_reset(inst);
+            Err(wasmtime::Error::msg(format!(
+                "noop parse returned error: {:?}",
+                e
+            )))
+        }
+        Err(e) => {
+            pool.discard_and_replenish(inst);
+            Err(e)
+        }
+    }
+}
+
+fn duration_ns(duration: Duration) -> u64 {
+    duration.as_nanos().min(u64::MAX as u128) as u64
+}
+
 fn write_error_file(header: &str, lines: &[String]) {
     match File::create("error.txt") {
         Ok(mut file) => {
@@ -601,6 +853,110 @@ fn write_error_file(header: &str, lines: &[String]) {
         }
         Err(e) => eprintln!("無法寫入 error.txt: {}", e),
     }
+}
+
+// ── Filter Loop (sync) ───────────────────────────────────────────────────────
+//
+// 一個長壽 store，迴圈接收 ParsedBatch，呼叫 filter()，
+// 依 filter-result 中的 keep 欄位決定保留哪些 LogEntry，送出精簡後的 ParsedBatch。
+
+fn filter_loop(
+    rx: Receiver<ParsedBatch>,
+    tx: SyncSender<ParsedBatch>,
+    engine: Engine,
+    component: Component,
+    linker: Linker<MyState>,
+    mem_limit_bytes: usize,
+) -> wasmtime::Result<FilterStats> {
+    let state = MyState {
+        ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+        table: ResourceTable::new(),
+        limiter: MyLimiter::new(mem_limit_bytes),
+        http: WasiHttpCtx::new(),
+    };
+    let mut store = Store::new(&engine, state);
+    store.limiter(|s| &mut s.limiter);
+    let plugin = ReductionPlugin::instantiate(&mut store, &component, &linker)?;
+
+    let mut stats = FilterStats::default();
+
+    loop {
+        match rx.recv() {
+            Ok(pb) => {
+                let seq = pb.seq;
+                let input_count = pb.entries.len();
+                let started = Instant::now();
+
+                match plugin.call_filter(&mut store, &pb.entries) {
+                    Ok(Ok(filter_results)) => {
+                        let elapsed = started.elapsed();
+                        let component_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                        let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+
+                        // id set 讓查找 O(1)
+                        let keep_ids: std::collections::HashSet<u64> = filter_results
+                            .iter()
+                            .filter(|r| r.keep)
+                            .map(|r| r.id)
+                            .collect();
+
+                        let filtered: Vec<LogEntry> = pb
+                            .entries
+                            .into_iter()
+                            .filter(|e| keep_ids.contains(&e.id))
+                            .collect();
+
+                        let kept = filtered.len();
+                        let dropped = input_count - kept;
+
+                        print_filter_batch(
+                            seq,
+                            input_count,
+                            kept,
+                            dropped,
+                            wasm_mem_peak,
+                            mem_limit_bytes,
+                            elapsed,
+                            component_ns,
+                        );
+
+                        stats.total_batches += 1;
+                        stats.total_input_entries += input_count as u64;
+                        stats.total_kept_entries += kept as u64;
+                        stats.total_dropped_entries += dropped as u64;
+                        stats.total_elapsed += elapsed;
+                        stats.total_component_ns += component_ns;
+                        if wasm_mem_peak > stats.wasm_mem_peak_max {
+                            stats.wasm_mem_peak_max = wasm_mem_peak;
+                        }
+
+                        if !filtered.is_empty() {
+                            let out = ParsedBatch { entries: filtered, seq };
+                            if tx.send(out).is_err() {
+                                break;
+                            }
+                        }
+                    }
+                    Ok(Err(e)) => {
+                        eprintln!("[filter-error] batch={}: {:?}", seq, e);
+                        // 插件回傳錯誤時透傳原始批次，不丟資料
+                        if tx.send(pb).is_err() {
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[filter-trap] batch={}: {}", seq, e);
+                        if tx.send(pb).is_err() {
+                            break;
+                        }
+                    }
+                }
+            }
+            Err(_) => break,
+        }
+    }
+
+    Ok(stats)
 }
 
 // ── Format Loop (sync) ────────────────────────────────────────────────────────
@@ -650,7 +1006,10 @@ fn format_loop(
                             let mut pos = 0;
                             while pos + 4 <= bytes.len() {
                                 let len = u32::from_le_bytes([
-                                    bytes[pos], bytes[pos+1], bytes[pos+2], bytes[pos+3],
+                                    bytes[pos],
+                                    bytes[pos + 1],
+                                    bytes[pos + 2],
+                                    bytes[pos + 3],
                                 ]) as usize;
                                 pos += 4;
                                 if pos + len <= bytes.len() {
@@ -660,7 +1019,10 @@ fn format_loop(
                                     eprintln!(
                                         "[format] malformed frame batch={} chunk={}: \
                                          declared {} bytes but only {} remain",
-                                        pb.seq, chunk_idx, len, bytes.len() - pos
+                                        pb.seq,
+                                        chunk_idx,
+                                        len,
+                                        bytes.len() - pos
                                     );
                                     batch_ok = false;
                                     break;
@@ -696,23 +1058,40 @@ fn format_loop(
                     let ellipsis = if sample.len() > 300 { "…" } else { "" };
                     eprintln!(
                         "[format-sample] batch={} #{}/{}: {}{}",
-                        pb.seq, idx + 1, output_lines, text, ellipsis
+                        pb.seq,
+                        idx + 1,
+                        output_lines,
+                        text,
+                        ellipsis
                     );
 
-                    print_format_batch(pb.seq, entry_count, output_lines,
-                                       batch_wasm_peak, mem_limit_bytes, elapsed, batch_logic_ns);
+                    print_format_batch(
+                        pb.seq,
+                        entry_count,
+                        output_lines,
+                        batch_wasm_peak,
+                        mem_limit_bytes,
+                        elapsed,
+                        batch_logic_ns,
+                    );
 
-                    stats.total_batches        += 1;
-                    stats.total_input_entries  += entry_count as u64;
-                    stats.total_output_lines   += output_lines as u64;
-                    stats.total_elapsed        += elapsed;
-                    stats.total_component_ns   += batch_logic_ns;
+                    stats.total_batches += 1;
+                    stats.total_input_entries += entry_count as u64;
+                    stats.total_output_lines += output_lines as u64;
+                    stats.total_elapsed += elapsed;
+                    stats.total_component_ns += batch_logic_ns;
                     if batch_wasm_peak > stats.wasm_mem_peak_max {
                         stats.wasm_mem_peak_max = batch_wasm_peak;
                     }
 
-                    let fb = FormattedBatch { lines: all_lines, seq: pb.seq, total_bytes };
-                    if tx.send(fb).is_err() { break; }
+                    let fb = FormattedBatch {
+                        lines: all_lines,
+                        seq: pb.seq,
+                        total_bytes,
+                    };
+                    if tx.send(fb).is_err() {
+                        break;
+                    }
                 }
             }
             Err(_) => break,
@@ -753,7 +1132,7 @@ async fn transport_worker(
         retry: None,
         tls: None,
         extra_headers: vec![],
-        max_batch_bytes: 4096,
+        max_batch_bytes: 4096, // 0 = unlimited: host controls batch size via max_transport_bytes
     };
     match plugin.call_init(&mut store, &config).await? {
         Ok(()) => {}
@@ -767,7 +1146,20 @@ async fn transport_worker(
     let mut stats = TransportStats::default();
 
     loop {
-        let recv_result = rx.lock().unwrap().recv();
+        // Hold the mutex only for the duration of a short try_recv; release it so other
+        // workers can compete. Fall back to a 1 ms yield when the channel is empty so we
+        // don't spin at 100 % CPU while waiting for the next FormattedBatch.
+        let recv_result = loop {
+            match rx.lock().unwrap().try_recv() {
+                Ok(b) => break Ok(b),
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    break Err(std::sync::mpsc::RecvError)
+                }
+            }
+        };
         match recv_result {
             Ok(batch) => {
                 let seq = batch.seq;
@@ -783,7 +1175,9 @@ async fn transport_worker(
                     let mut acc_bytes = 0usize;
                     while chunk_end < batch.lines.len() {
                         let line_len = batch.lines[chunk_end].len();
-                        if acc_bytes > 0 && acc_bytes + line_len > max_chunk_bytes { break; }
+                        if acc_bytes > 0 && acc_bytes + line_len > max_chunk_bytes {
+                            break;
+                        }
                         acc_bytes += line_len;
                         chunk_end += 1;
                     }
@@ -793,7 +1187,9 @@ async fn transport_worker(
                     match plugin.call_send(&mut store, chunk).await? {
                         Ok(()) => {
                             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
-                            if wasm_mem_peak > batch_wasm_peak { batch_wasm_peak = wasm_mem_peak; }
+                            if wasm_mem_peak > batch_wasm_peak {
+                                batch_wasm_peak = wasm_mem_peak;
+                            }
                             batch_lines_sent += chunk.len();
                             batch_bytes_sent += chunk_bytes;
                         }
@@ -808,12 +1204,18 @@ async fn transport_worker(
 
                 if batch_ok && batch_lines_sent > 0 {
                     let elapsed = batch_started.elapsed();
-                    print_transport_batch(seq, batch_lines_sent, batch_bytes_sent,
-                                         batch_wasm_peak, mem_limit_bytes, elapsed);
-                    stats.total_batches     += 1;
+                    print_transport_batch(
+                        seq,
+                        batch_lines_sent,
+                        batch_bytes_sent,
+                        batch_wasm_peak,
+                        mem_limit_bytes,
+                        elapsed,
+                    );
+                    stats.total_batches += 1;
                     stats.total_input_lines += batch_lines_sent as u64;
                     stats.total_input_bytes += batch_bytes_sent as u64;
-                    stats.total_elapsed     += elapsed;
+                    stats.total_elapsed += elapsed;
                     if batch_wasm_peak > stats.wasm_mem_peak_max {
                         stats.wasm_mem_peak_max = batch_wasm_peak;
                     }

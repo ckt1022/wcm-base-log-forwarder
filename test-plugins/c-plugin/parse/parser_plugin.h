@@ -1127,6 +1127,7 @@ extern void wasi_random_insecure_seed_insecure_seed(parser_plugin_tuple2_u64_u64
 // Exported Functions from `parser-plugin`
 bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data, parser_plugin_list_parsed_entry_t *ret, parser_plugin_parse_error_t *err);
 uint64_t exports_parser_plugin_report_usage(void);
+void exports_parser_plugin_reset(void);
 
 // Helper Functions
 
