@@ -1,9 +1,260 @@
-use std::mem::size_of;
+use std::path::Path;
 use std::sync::{
-    Arc,
+    Arc, RwLock,
     atomic::{AtomicUsize, Ordering},
 };
+use std::thread;
 use std::time::{Duration, Instant};
+
+use serde::Deserialize;
+
+// ── App-level config (YAML) ───────────────────────────────────────────────────
+
+/// Top-level configuration loaded from forwarder.yaml.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AppConfig {
+    pub plugins: PluginsConfig,
+    pub stages: PipelineStages,
+    pub input: InputConfig,
+    pub batch: BatchConfigRaw,
+    #[serde(default = "default_reload_secs")]
+    pub config_reload_secs: u64,
+}
+
+fn default_reload_secs() -> u64 { 10 }
+
+/// Paths to each WASM plugin. Relative paths are resolved against the config file's directory.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct PluginsConfig {
+    pub parse: String,
+    pub parse_noop: Option<String>,
+    pub filter: String,
+    pub format: String,
+    pub transport: String,
+}
+
+/// Which pipeline stages are active.
+#[derive(Debug, Clone, Deserialize)]
+pub struct PipelineStages {
+    #[serde(default)]
+    pub filter: bool,
+    #[serde(default)]
+    pub format: bool,
+    #[serde(default)]
+    pub transport: bool,
+}
+
+/// Input source configuration.
+#[derive(Debug, Clone, Deserialize)]
+pub struct InputConfig {
+    pub mode: InputMode,
+    pub tcp: Option<TcpInputConfig>,
+    pub tail: Option<TailInputConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum InputMode {
+    Tcp,
+    Tail,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TcpInputConfig {
+    pub host: String,
+    pub port: u16,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TailInputConfig {
+    pub path: String,
+}
+
+/// YAML-friendly batch config (Duration expressed as milliseconds).
+#[derive(Debug, Clone, Deserialize)]
+pub struct BatchConfigRaw {
+    pub mem_limit_mb: usize,
+    pub safe_data_ratio: f64,
+    pub max_wait_ms: u64,
+    pub max_batch_lines: usize,
+    pub channel_capacity: usize,
+    pub max_format_chunk: usize,
+    pub transport_endpoint: String,
+    pub max_transport_bytes: usize,
+    pub transport_workers: usize,
+}
+
+impl From<BatchConfigRaw> for BatchConfig {
+    fn from(r: BatchConfigRaw) -> Self {
+        BatchConfig {
+            mem_limit_mb: r.mem_limit_mb,
+            safe_data_ratio: r.safe_data_ratio,
+            max_wait: Duration::from_millis(r.max_wait_ms),
+            max_batch_lines: r.max_batch_lines,
+            channel_capacity: r.channel_capacity,
+            max_format_chunk: r.max_format_chunk,
+            transport_endpoint: r.transport_endpoint,
+            max_transport_bytes: r.max_transport_bytes,
+            transport_workers: r.transport_workers,
+        }
+    }
+}
+
+/// Load and parse forwarder.yaml (or any path).
+pub fn load_app_config(path: &str) -> Result<AppConfig, String> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("cannot read config '{}': {}", path, e))?;
+    serde_yaml::from_str(&content)
+        .map_err(|e| format!("cannot parse config '{}': {}", path, e))
+}
+
+/// Shared references to each plugin's live runtime slot.
+/// Passed to `spawn_config_watcher` so it can rebuild plugins in-place on path change.
+pub struct PluginSlots {
+    pub parse: crate::app::SharedPlugin,
+    pub parse_noop: Option<crate::app::SharedPlugin>,
+    pub filter: Option<crate::app::SharedPlugin>,
+    pub format: Option<crate::app::SharedPlugin>,
+    pub transport: Option<crate::app::SharedPlugin>,
+}
+
+/// Spawn a background thread that reloads the config file every `config_reload_secs` seconds.
+///
+/// - Batch parameters take effect on the next batch.
+/// - Plugin path changes OR mtime changes (same-path wasm replacement) trigger
+///   an in-place rebuild; the pipeline detects the incremented version and swaps
+///   automatically between batches.
+pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots: PluginSlots) {
+    // Use filter to avoid turning an empty parent ("") into "/" when joining.
+    let config_dir = Path::new(&path)
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| ".".to_string());
+
+    thread::spawn(move || {
+        // Use Path::join so an empty config_dir doesn't produce a spurious leading '/'.
+        let resolve = |p: &str| -> String {
+            let pp = Path::new(p);
+            if pp.is_absolute() {
+                p.to_string()
+            } else {
+                Path::new(&config_dir).join(pp).to_string_lossy().to_string()
+            }
+        };
+
+        let file_mtime = |p: &str| -> Option<std::time::SystemTime> {
+            std::fs::metadata(p).ok()?.modified().ok()
+        };
+
+        // Record initial resolved paths and mtimes.
+        // Hot-swap triggers when either the path string or the file mtime changes.
+        let (mut cur_parse, mut cur_parse_noop, mut cur_filter, mut cur_format, mut cur_transport) = {
+            let cfg = shared.read().unwrap();
+            (
+                resolve(&cfg.plugins.parse),
+                cfg.plugins.parse_noop.as_deref().map(|p| resolve(p)),
+                resolve(&cfg.plugins.filter),
+                resolve(&cfg.plugins.format),
+                resolve(&cfg.plugins.transport),
+            )
+        };
+        let mut mt_parse      = file_mtime(&cur_parse);
+        let mut mt_parse_noop = cur_parse_noop.as_deref().and_then(|p| file_mtime(p));
+        let mut mt_filter     = file_mtime(&cur_filter);
+        let mut mt_format     = file_mtime(&cur_format);
+        let mut mt_transport  = file_mtime(&cur_transport);
+
+        loop {
+            let reload_secs = shared.read().unwrap().config_reload_secs;
+            thread::sleep(Duration::from_secs(reload_secs));
+
+            match load_app_config(&path) {
+                Ok(new_cfg) => {
+                    let new_plugins = new_cfg.plugins.clone();
+                    *shared.write().unwrap() = new_cfg;
+
+                    let mut any_plugin_changed = false;
+
+                    // ── parse ──────────────────────────────────────────────────
+                    {
+                        let new = resolve(&new_plugins.parse);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_parse || new_mt != mt_parse {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(&slots.parse, &new, false, "parse") {
+                                cur_parse = new;
+                                mt_parse = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── parse_noop ─────────────────────────────────────────────
+                    if let (Some(slot), Some(new_raw)) =
+                        (&slots.parse_noop, &new_plugins.parse_noop)
+                    {
+                        let new = resolve(new_raw);
+                        let new_mt = file_mtime(&new);
+                        let old = cur_parse_noop.as_deref().unwrap_or("");
+                        if new != old || new_mt != mt_parse_noop {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, false, "parse_noop") {
+                                cur_parse_noop = Some(new);
+                                mt_parse_noop = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── filter ─────────────────────────────────────────────────
+                    if let Some(ref slot) = slots.filter {
+                        let new = resolve(&new_plugins.filter);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_filter || new_mt != mt_filter {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, false, "filter") {
+                                cur_filter = new;
+                                mt_filter = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── format ─────────────────────────────────────────────────
+                    if let Some(ref slot) = slots.format {
+                        let new = resolve(&new_plugins.format);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_format || new_mt != mt_format {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, false, "format") {
+                                cur_format = new;
+                                mt_format = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── transport ──────────────────────────────────────────────
+                    if let Some(ref slot) = slots.transport {
+                        let new = resolve(&new_plugins.transport);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_transport || new_mt != mt_transport {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, true, "transport") {
+                                cur_transport = new;
+                                mt_transport = new_mt;
+                            }
+                        }
+                    }
+
+                    if any_plugin_changed {
+                        eprintln!("[config] plugin swap(s) complete — pipeline will apply on next batch");
+                    } else {
+                        eprintln!("[config] batch params reloaded (no plugin changes)");
+                    }
+                }
+                Err(e) => eprintln!("[config] reload failed: {}", e),
+            }
+        }
+    });
+}
 
 #[derive(Debug, Clone)]
 pub struct BatchConfig {

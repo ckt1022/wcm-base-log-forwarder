@@ -1,6 +1,7 @@
 use std::io::{self, BufRead};
-use std::sync::mpsc::SyncSender;
+use std::sync::{Arc, RwLock, mpsc::SyncSender};
 use std::thread;
+use std::time::Duration;
 
 use wasmtime::{
     Config, Engine, OptLevel, ResourceLimiter, Strategy,
@@ -79,10 +80,10 @@ impl MyLimiter {
     pub fn print_max(&self, type_of_max: &str) {
         let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
         if type_of_max == "parse" {
-            println!(
-                "{} 該次實例最大memoey用量:{},佔比: {}",
-                type_of_max, self.max_allocation, ratio
-            );
+            //println!(
+            //    "{} 該次實例最大memoey用量:{},佔比: {}",
+            //    type_of_max, self.max_allocation, ratio
+            //);
         }
     }
 
@@ -150,6 +151,138 @@ impl wasmtime_wasi_http::WasiHttpView for MyState {
     fn table(&mut self) -> &mut ResourceTable {
         &mut self.table
     }
+}
+
+// ── Shared plugin runtime slot ────────────────────────────────────────────────
+//
+// The config watcher increments `version` each time it hot-swaps the underlying WASM component.
+// Pipeline threads snapshot the version before each batch; when it changes they rebuild their
+// local Store/plugin from the new Engine+Component+Linker.
+
+pub struct PluginRuntime {
+    pub engine: Engine,
+    pub component: Component,
+    pub linker: Linker<MyState>,
+    pub version: u64,
+}
+
+pub type SharedPlugin = Arc<RwLock<PluginRuntime>>;
+
+/// Compile a parse / filter / format plugin and wrap it in a shared slot.
+pub fn new_shared_runtime(wasm_path: &str) -> wasmtime::Result<SharedPlugin> {
+    let (engine, component, linker) = build_runtime(wasm_path.to_string())?;
+    Ok(Arc::new(RwLock::new(PluginRuntime { engine, component, linker, version: 0 })))
+}
+
+/// Compile a transport plugin (async + WASI HTTP) and wrap it in a shared slot.
+pub fn new_shared_transport_runtime(wasm_path: &str) -> wasmtime::Result<SharedPlugin> {
+    let (engine, component, linker) = build_transport_runtime(wasm_path.to_string())?;
+    Ok(Arc::new(RwLock::new(PluginRuntime { engine, component, linker, version: 0 })))
+}
+
+/// Recompile a plugin from `new_path` and swap it into an existing shared slot.
+/// Returns true if the swap succeeded, false if compilation failed (old plugin is retained).
+pub fn rebuild_shared_slot(slot: &SharedPlugin, new_path: &str, is_transport: bool, label: &str) -> bool {
+    let result = if is_transport {
+        build_transport_runtime(new_path.to_string())
+    } else {
+        build_runtime(new_path.to_string())
+    };
+    match result {
+        Ok((engine, component, linker)) => {
+            let mut s = slot.write().unwrap();
+            s.engine = engine;
+            s.component = component;
+            s.linker = linker;
+            s.version += 1;
+            eprintln!("[config] {} plugin hot-swapped → v{} ({})", label, s.version, new_path);
+            true
+        }
+        Err(e) => {
+            eprintln!("[config] {} plugin rebuild FAILED — keeping old plugin: {}", label, e);
+            false
+        }
+    }
+}
+
+/// Listen on a TCP port; each connected client's lines are forwarded into the channel.
+pub fn spawn_tcp_reader(host: String, port: u16, tx: SyncSender<String>) {
+    thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("[tcp-input] tokio runtime build failed");
+        rt.block_on(async move {
+            let addr = format!("{}:{}", host, port);
+            let listener = tokio::net::TcpListener::bind(&addr)
+                .await
+                .unwrap_or_else(|e| panic!("[tcp-input] cannot bind {}: {}", addr, e));
+            eprintln!("[tcp-input] listening on {}", addr);
+            loop {
+                match listener.accept().await {
+                    Ok((socket, peer)) => {
+                        eprintln!("[tcp-input] accepted {}", peer);
+                        let tx = tx.clone();
+                        tokio::spawn(async move {
+                            use tokio::io::{AsyncBufReadExt, BufReader};
+                            let mut lines = BufReader::new(socket).lines();
+                            while let Ok(Some(line)) = lines.next_line().await {
+                                if tx.send(line).is_err() {
+                                    break;
+                                }
+                            }
+                            eprintln!("[tcp-input] {} disconnected", peer);
+                        });
+                    }
+                    Err(e) => eprintln!("[tcp-input] accept error: {}", e),
+                }
+            }
+        });
+    });
+}
+
+/// Tail a file (like `tail -f`): seek to end on startup, then stream new lines as they arrive.
+pub fn spawn_tail_reader(path: String, tx: SyncSender<String>) {
+    use std::fs::File;
+    use std::io::{BufReader, Seek, SeekFrom};
+
+    thread::spawn(move || {
+        let mut file = loop {
+            match File::open(&path) {
+                Ok(f) => break f,
+                Err(e) => {
+                    eprintln!("[tail-input] waiting for '{}': {}", path, e);
+                    thread::sleep(Duration::from_secs(1));
+                }
+            }
+        };
+        let _ = file.seek(SeekFrom::End(0));
+        eprintln!("[tail-input] tailing '{}'", path);
+
+        let mut reader = BufReader::new(file);
+        let mut line = String::new();
+        loop {
+            line.clear();
+            match reader.read_line(&mut line) {
+                Ok(0) => thread::sleep(Duration::from_millis(50)),
+                Ok(_) => {
+                    if line.ends_with('\n') {
+                        line.pop();
+                        if line.ends_with('\r') {
+                            line.pop();
+                        }
+                    }
+                    if !line.is_empty() && tx.send(line.clone()).is_err() {
+                        break;
+                    }
+                }
+                Err(e) => {
+                    eprintln!("[tail-input] read error: {}", e);
+                    thread::sleep(Duration::from_millis(100));
+                }
+            }
+        }
+    });
 }
 
 // 負責把log一條條變成LineItem後塞入channel

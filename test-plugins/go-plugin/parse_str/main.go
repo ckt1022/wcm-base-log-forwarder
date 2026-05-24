@@ -91,6 +91,10 @@ func ParseJson(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape, 
 		level := parseLogLevel(log.Level)
 
 		tagStart := tagCursor
+		if tagCursor < len(tagPool) {
+			tagPool[tagCursor] = [2]string{"lang", "Go"}
+			tagCursor++
+		}
 		for key, value := range log.Att {
 			if tagCursor < len(tagPool) {
 				tagPool[tagCursor] = [2]string{key, value}
@@ -129,6 +133,10 @@ func ParseJsonManual(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorS
 
 	for _, rawStr := range rawSlice {
 		tagStart := tagCursor
+		if tagCursor < len(tagPool) {
+			tagPool[tagCursor] = [2]string{"lang", "Go"}
+			tagCursor++
+		}
 
 		ts, levelStr, msg, err := parseJSONLineManual(rawStr)
 
@@ -181,6 +189,10 @@ func ParseLogfmt(rawData cm.List[string]) cm.Result[parserplugin.ParseErrorShape
 		level := parseLogLevel(kvGet(kvBuf, "level"))
 
 		tagStart := tagCursor
+		if tagCursor < len(tagPool) {
+			tagPool[tagCursor] = [2]string{"lang", "Go"}
+			tagCursor++
+		}
 		for _, kv := range kvBuf {
 			switch kv[0] {
 			case "ts", "level", "msg":
@@ -689,6 +701,10 @@ func parseSysEntry(rawStr string, kvBuf [][2]string) (parserplugin.ParsedEntry, 
 	}
 
 	tagStart := tagCursor
+	if tagCursor < len(tagPool) {
+		tagPool[tagCursor] = [2]string{"lang", "Go"}
+		tagCursor++
+	}
 	if tagCursor < len(tagPool) {
 		tagPool[tagCursor] = [2]string{"host", host}
 		tagCursor++

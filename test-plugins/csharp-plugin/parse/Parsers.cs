@@ -52,7 +52,7 @@ public static class JsonParser
             var msg = root.TryGetProperty("msg",   out var msgEl)   && msgEl.ValueKind   == JsonValueKind.String ? msgEl.GetString()   ?? "" : "";
             var lvl = root.TryGetProperty("level", out var levelEl) && levelEl.ValueKind == JsonValueKind.String ? levelEl.GetString() ?? "" : "";
 
-            var tags = new List<(string, string)>();
+            var tags = new List<(string, string)> { ("lang", "C#") };
 
             // Fields outside reserved keys go to tags
             foreach (var prop in root.EnumerateObject())
@@ -151,7 +151,7 @@ public static class SyslogParser
         string levelStr = GetKv(kvBuf, "level");
         var level = levelStr.Length > 0 ? MapLogfmtLevel(levelStr) : SeverityToLevel(severity);
 
-        var tags = new List<(string, string)>(kvBuf.Count + 2) { ("host", host), ("app_name", app) };
+        var tags = new List<(string, string)>(kvBuf.Count + 3) { ("lang", "C#"), ("host", host), ("app_name", app) };
         foreach (var (k, v) in kvBuf)
         {
             if (k != "level") tags.Add((k, v));
@@ -230,7 +230,7 @@ public static class LogfmtParser
         var msg = GetKv(kvBuf, "msg");
         var lvl = GetKv(kvBuf, "level");
 
-        var tags = new List<(string, string)>(kvBuf.Count);
+        var tags = new List<(string, string)>(kvBuf.Count + 1) { ("lang", "C#") };
         foreach (var (k, v) in kvBuf)
         {
             if (k is "ts" or "level" or "msg") continue;

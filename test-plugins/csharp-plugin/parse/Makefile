@@ -1,6 +1,7 @@
 DOTNET      ?= dotnet
 WASM_TOOLS  ?= wasm-tools
 MSBUILD_PROPS ?= /p:IlcWasmGlobalBase=2097152
+WASI_SDK_PATH ?= $(HOME)/wasi-sdk
 
 # NativeAOT 輸出的 wasi-wasm component（包含 core module 在內部）
 NATIVE_COMPONENT := bin/Release/net9.0/wasi-wasm/native/ParserPlugin.wasm
@@ -17,6 +18,8 @@ NOOP_COMPONENT := parser_csharp_noop.wasm
 ADAPTER ?= $(shell find ~/.cargo/registry -name "wasi_snapshot_preview1.reactor.wasm" 2>/dev/null | head -1)
 
 .PHONY: all bindgen restore publish component noop clean
+
+all: component
 
 # ── 步驟 0: 重新產生 WIT 綁定（WIT 變更後執行）──────────────────────────────
 bindgen:
@@ -86,8 +89,6 @@ noop: restore
 	@echo ""
 	@echo "✓  No-op component ready: $(NOOP_COMPONENT)"
 	@$(WASM_TOOLS) component wit $(NOOP_COMPONENT) | grep -E "export"
-
-all: component
 
 clean:
 	$(DOTNET) clean

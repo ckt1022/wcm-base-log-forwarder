@@ -23,7 +23,7 @@ OBJS := main.o cJSON.o parser_plugin.o parser_plugin_component_type.o
 all: check-tools $(FINAL_WASM)
 
 # ── Step 1a: 編譯主要邏輯與 cJSON ───────────────────────────────
-main.o: main_gc.c parser_plugin.h cJSON.h
+main.o: main.c parser_plugin.h cJSON.h
 	$(CLANG) $(CFLAGS) -c $< -o $@
 
 cJSON.o: cJSON.c cJSON.h

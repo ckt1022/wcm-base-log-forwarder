@@ -2,19 +2,16 @@ use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Write;
 use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use wasmtime::{
-    Engine, Store,
-    component::{Component, Linker},
-};
+use wasmtime::Store;
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
 use wasmtime_wasi_http::WasiHttpCtx;
 
 use crate::app::{
-    MyLimiter, MyState, ParserPlugin,
+    MyLimiter, MyState, ParserPlugin, SharedPlugin,
     format_bindings::FormatPlugin,
     local::log_process::pipeline_process::{LogEntry, ParsedEntry},
     reduction_bindings::ReductionPlugin,
@@ -24,8 +21,8 @@ use crate::app::{
     },
 };
 use crate::config::{
-    Batch, BatchConfig, FilterStats, FlushReason, FormatStats, ParseDiffTiming, ParseStats,
-    TransportStats,
+    AppConfig, Batch, BatchConfig, FilterStats, FlushReason, FormatStats, ParseDiffTiming,
+    ParseStats, TransportStats,
 };
 use crate::output::{
     print_filter_batch, print_flush_header, print_format_batch, print_parse_aggregate,
@@ -74,31 +71,27 @@ struct ParseInstance {
 
 struct ParsePool {
     ready: VecDeque<ParseInstance>,
-    engine: Engine,
-    component: Component,
-    linker: Linker<MyState>,
+    shared: SharedPlugin,
     mem_limit_bytes: usize,
     target_size: usize,
     current_count: u8,
+    current_version: u64,
 }
 
 impl ParsePool {
     fn new(
-        engine: Engine,
-        component: Component,
-        linker: Linker<MyState>,
+        shared: SharedPlugin,
         mem_limit_bytes: usize,
         target_size: usize,
-        current_count: u8,
     ) -> wasmtime::Result<Self> {
+        let version = shared.read().unwrap().version;
         let mut pool = Self {
             ready: VecDeque::with_capacity(target_size),
-            engine,
-            component,
-            linker,
+            shared,
             mem_limit_bytes,
             target_size,
-            current_count,
+            current_count: 0,
+            current_version: version,
         };
         pool.replenish();
         if pool.ready.is_empty() {
@@ -107,26 +100,45 @@ impl ParsePool {
             ));
         }
         eprintln!(
-            "[pool] pre-warmed {}/{} parse instances",
+            "[pool] pre-warmed {}/{} parse instances (plugin v{})",
             pool.ready.len(),
-            target_size
+            target_size,
+            version,
         );
         Ok(pool)
     }
 
     fn create_one(&mut self) -> wasmtime::Result<ParseInstance> {
+        let slot = self.shared.read().unwrap();
         let state = MyState {
             ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
             table: ResourceTable::new(),
             limiter: MyLimiter::new(self.mem_limit_bytes),
             http: WasiHttpCtx::new(),
         };
-        let mut store = Store::new(&self.engine, state);
+        let mut store = Store::new(&slot.engine, state);
         store.limiter(|s| &mut s.limiter);
-        let plugin = ParserPlugin::instantiate(&mut store, &self.component, &self.linker)?;
+        let plugin = ParserPlugin::instantiate(&mut store, &slot.component, &slot.linker)?;
+        drop(slot);
         self.current_count += 1;
         let id = self.current_count;
         Ok(ParseInstance { id, store, plugin })
+    }
+
+    /// Detect version bump from config watcher; discard all instances and rebuild.
+    fn check_reload(&mut self) {
+        let new_version = self.shared.read().unwrap().version;
+        if new_version != self.current_version {
+            eprintln!(
+                "[parse-pool] plugin v{} → v{}: discarding {} instances, rebuilding pool",
+                self.current_version, new_version, self.ready.len()
+            );
+            self.ready.clear();
+            self.current_count = 0;
+            self.current_version = new_version;
+            self.replenish();
+            eprintln!("[parse-pool] pool ready ({} instances)", self.ready.len());
+        }
     }
 
     fn replenish(&mut self) {
@@ -159,11 +171,8 @@ impl ParsePool {
     //    self.ready.push_back(inst);
     //}
 
-    fn release(&mut self, mut inst: ParseInstance) {
-        match inst.plugin.call_reset(&mut inst.store) {
-            Ok(()) => self.ready.push_back(inst),
-            Err(e) => eprintln!("[pool] reset() failed, discarding instance: {}", e),
-        }
+    fn release(&mut self, inst: ParseInstance) {
+        self.ready.push_back(inst);
         self.replenish();
     }
 
@@ -180,17 +189,30 @@ impl ParsePool {
 
 // ── 對外入口 ──────────────────────────────────────────────────────────────────
 
-/// Pipeline 入口：stdin → [parse thread] → [filter thread?] → [format thread] → [transport thread]
+/// Pipeline 入口：input → [parse thread] → [filter thread?] → [format thread] → [transport thread]
+/// `cfg` is shared with the config-watcher thread; parse_dispatcher reads batch params from it
+/// on each iteration, enabling hot-reload of max_wait, max_batch_lines, safe_data_ratio.
 pub fn run_pipeline(
     rx_raw: Receiver<String>,
-    parse: Option<(Engine, Component, Linker<MyState>)>,
-    parse_noop: Option<(Engine, Component, Linker<MyState>)>,
-    filter: Option<(Engine, Component, Linker<MyState>)>,
-    format: Option<(Engine, Component, Linker<MyState>)>,
-    transport: Option<(Engine, Component, Linker<MyState>)>,
-    cfg: BatchConfig,
+    parse: Option<SharedPlugin>,
+    parse_noop: Option<SharedPlugin>,
+    filter: Option<SharedPlugin>,
+    format: Option<SharedPlugin>,
+    transport: Option<SharedPlugin>,
+    cfg: Arc<RwLock<AppConfig>>,
 ) -> wasmtime::Result<()> {
-    let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024;
+    // Extract fixed startup values from the initial config snapshot.
+    let (mem_limit_bytes, endpoint, max_format_chunk, max_transport_bytes, transport_workers) = {
+        let c = cfg.read().unwrap();
+        let b = BatchConfig::from(c.batch.clone());
+        (
+            b.mem_limit_mb * 1024 * 1024,
+            b.transport_endpoint.clone(),
+            b.max_format_chunk,
+            b.max_transport_bytes,
+            b.transport_workers,
+        )
+    };
 
     // parse → filter channel（或直接 parse → format 若 filter 停用）
     let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(20000);
@@ -198,23 +220,17 @@ pub fn run_pipeline(
     let (tx_filtered, rx_filtered) = std::sync::mpsc::sync_channel::<ParsedBatch>(20000);
     let (tx_formatted, rx_formatted) = std::sync::mpsc::sync_channel::<FormattedBatch>(20000);
 
-    let endpoint = cfg.transport_endpoint.clone();
-    let max_format_chunk = cfg.max_format_chunk;
-    let max_transport_bytes = cfg.max_transport_bytes;
-    let transport_workers = cfg.transport_workers;
-    let cfg_for_parse = cfg.clone();
+    let cfg_for_parse = Arc::clone(&cfg);
 
     let wall_start = Instant::now();
 
     // ── Parse thread（dispatcher + N workers）────────────────────────────────
-    let parse_handle = if let Some((engine, component, linker)) = parse {
+    let parse_handle = if let Some(shared) = parse {
         Some(thread::spawn(move || {
             parse_loop(
                 rx_raw,
                 tx_parsed,
-                engine,
-                component,
-                linker,
+                shared,
                 parse_noop,
                 cfg_for_parse,
                 mem_limit_bytes,
@@ -227,16 +243,9 @@ pub fn run_pipeline(
     };
 
     // ── Filter thread (sync) ──────────────────────────────────────────────────
-    let filter_handle = if let Some((engine, component, linker)) = filter {
+    let filter_handle = if let Some(shared) = filter {
         Some(thread::spawn(move || {
-            filter_loop(
-                rx_parsed,
-                tx_filtered,
-                engine,
-                component,
-                linker,
-                mem_limit_bytes,
-            )
+            filter_loop(rx_parsed, tx_filtered, shared, mem_limit_bytes)
         }))
     } else {
         // filter 停用：把 rx_parsed 直接橋接到 tx_filtered
@@ -251,17 +260,9 @@ pub fn run_pipeline(
     };
 
     // ── Format thread (sync) ──────────────────────────────────────────────────
-    let format_handle = if let Some((engine, component, linker)) = format {
+    let format_handle = if let Some(shared) = format {
         Some(thread::spawn(move || {
-            format_loop(
-                rx_filtered,
-                tx_formatted,
-                engine,
-                component,
-                linker,
-                mem_limit_bytes,
-                max_format_chunk,
-            )
+            format_loop(rx_filtered, tx_formatted, shared, mem_limit_bytes, max_format_chunk)
         }))
     } else {
         drop(tx_formatted);
@@ -270,16 +271,14 @@ pub fn run_pipeline(
     };
 
     // ── Transport thread (async, N workers) ───────────────────────────────────
-    let transport_handle = if let Some((engine, component, linker)) = transport {
+    let transport_handle = if let Some(shared) = transport {
         Some(thread::spawn(move || {
             let rx_shared = Arc::new(Mutex::new(rx_formatted));
             let mut worker_handles = Vec::new();
 
             for i in 0..transport_workers {
                 let rx = Arc::clone(&rx_shared);
-                let eng = engine.clone();
-                let comp = component.clone();
-                let lnk = linker.clone();
+                let sh = Arc::clone(&shared);
                 let ep = endpoint.clone();
 
                 worker_handles.push(thread::spawn(move || {
@@ -289,9 +288,7 @@ pub fn run_pipeline(
                         .unwrap()
                         .block_on(transport_worker(
                             rx,
-                            eng,
-                            comp,
-                            lnk,
+                            sh,
                             mem_limit_bytes,
                             ep,
                             max_transport_bytes,
@@ -367,11 +364,9 @@ pub fn run_pipeline(
 fn parse_loop(
     rx: Receiver<String>,
     tx: SyncSender<ParsedBatch>,
-    engine: Engine,
-    component: Component,
-    linker: Linker<MyState>,
-    parse_noop: Option<(Engine, Component, Linker<MyState>)>,
-    cfg: BatchConfig,
+    shared: SharedPlugin,
+    parse_noop: Option<SharedPlugin>,
+    cfg: Arc<RwLock<AppConfig>>,
     mem_limit_bytes: usize,
 ) -> wasmtime::Result<ParseStats> {
     let wall_start = Instant::now();
@@ -384,19 +379,15 @@ fn parse_loop(
     for worker_id in 0..PARSE_WORKERS {
         let rx_w = Arc::clone(&rx_work);
         let tx_p = tx.clone();
-        let eng = engine.clone();
-        let comp = component.clone();
-        let lnk = linker.clone();
-        let noop = parse_noop
-            .as_ref()
-            .map(|(eng, comp, lnk)| (eng.clone(), comp.clone(), lnk.clone()));
+        let sh = Arc::clone(&shared);
+        let noop = parse_noop.as_ref().map(Arc::clone);
         worker_handles.push(thread::spawn(move || {
-            parse_worker(worker_id, rx_w, tx_p, eng, comp, lnk, noop, mem_limit_bytes)
+            parse_worker(worker_id, rx_w, tx_p, sh, noop, mem_limit_bytes)
         }));
     }
 
     // dispatcher 跑在目前 thread，結束後 tx_work 自動 drop
-    parse_dispatcher(rx, tx_work, &cfg, mem_limit_bytes);
+    parse_dispatcher(rx, tx_work, cfg);
 
     // 彙總 workers 的統計
     let wall_elapsed = wall_start.elapsed();
@@ -444,25 +435,34 @@ fn parse_loop(
 fn parse_dispatcher(
     rx: Receiver<String>,
     tx: SyncSender<WorkBatch>,
-    cfg: &BatchConfig,
-    mem_limit_bytes: usize,
+    cfg: Arc<RwLock<AppConfig>>,
 ) {
     let mut batch = Batch::new();
     let mut seq: u64 = 0;
-    let safe_data_budget = (mem_limit_bytes as f64 * cfg.safe_data_ratio) as usize;
 
     loop {
+        // Read hot-reloadable params once per recv cycle (lock is extremely brief).
+        let (max_wait, safe_data_budget, max_batch_lines) = {
+            let c = cfg.read().unwrap();
+            let mem = c.batch.mem_limit_mb * 1024 * 1024;
+            (
+                Duration::from_millis(c.batch.max_wait_ms),
+                (mem as f64 * c.batch.safe_data_ratio) as usize,
+                c.batch.max_batch_lines,
+            )
+        };
+
         let timeout = if batch.is_empty() {
-            cfg.max_wait
+            max_wait
         } else {
-            cfg.max_wait.saturating_sub(batch.elapsed())
+            max_wait.saturating_sub(batch.elapsed())
         };
 
         match rx.recv_timeout(timeout) {
             Ok(item) => {
                 let line_len = item.len();
                 let size_trigger = !batch.is_empty() && batch.bytes + line_len > safe_data_budget;
-                let line_trigger = !batch.is_empty() && batch.len() >= cfg.max_batch_lines;
+                let line_trigger = !batch.is_empty() && batch.len() >= max_batch_lines;
 
                 if size_trigger || line_trigger {
                     let reason = FlushReason {
@@ -540,31 +540,14 @@ fn parse_worker(
     worker_id: usize,
     rx: Arc<Mutex<Receiver<WorkBatch>>>,
     tx: SyncSender<ParsedBatch>,
-    engine: Engine,
-    component: Component,
-    linker: Linker<MyState>,
-    parse_noop: Option<(Engine, Component, Linker<MyState>)>,
+    shared: SharedPlugin,
+    parse_noop: Option<SharedPlugin>,
     mem_limit_bytes: usize,
 ) -> wasmtime::Result<(ParseStats, u32)> {
-    let mut pool = ParsePool::new(
-        engine,
-        component,
-        linker,
-        mem_limit_bytes,
-        POOL_TARGET_SIZE,
-        0,
-    )?;
-    let mut noop_pool = match parse_noop {
-        Some((engine, component, linker)) => Some(ParsePool::new(
-            engine,
-            component,
-            linker,
-            mem_limit_bytes,
-            POOL_TARGET_SIZE,
-            0,
-        )?),
-        None => None,
-    };
+    let mut pool = ParsePool::new(shared, mem_limit_bytes, POOL_TARGET_SIZE)?;
+    let mut noop_pool = parse_noop
+        .map(|sp| ParsePool::new(sp, mem_limit_bytes, POOL_TARGET_SIZE))
+        .transpose()?;
     let mut stats = ParseStats::default();
     let mut error_count: u32 = 0;
 
@@ -581,6 +564,9 @@ fn parse_worker(
             bytes: wb.bytes,
             created_at: wb.created_at,
         };
+
+        pool.check_reload();
+        if let Some(np) = &mut noop_pool { np.check_reload(); }
 
         if !worker_flush_batch(
             worker_id,
@@ -723,6 +709,11 @@ fn do_parse_batch(
                 })
                 .collect();
 
+            if let Some(first) = entries.first() {
+                if let Some(tag) = first.tags.first() {
+                    eprintln!("[parse][batch={}] first-tag: {}={}", seq, tag.0, tag.1);
+                }
+            }
             print_flush_header(seq, batch, reason);
             print_parse_batch(
                 worker_id,
@@ -738,7 +729,7 @@ fn do_parse_batch(
                 grow_delta_bytes,
                 diff,
             );
-
+            /*
             if let Some(sample) = entries.get(0) {
                 let tag_preview = sample
                     .tags
@@ -750,7 +741,7 @@ fn do_parse_batch(
                     inst_id, sample.timestamp, tag_preview
                 );
             }
-            /*
+            
             println!(
                 "[w{worker_id}-inst{}][測試log解析結果] time:{} msg:{}",
                 inst_id, entries[4].timestamp,entries[2].message
@@ -863,24 +854,41 @@ fn write_error_file(header: &str, lines: &[String]) {
 fn filter_loop(
     rx: Receiver<ParsedBatch>,
     tx: SyncSender<ParsedBatch>,
-    engine: Engine,
-    component: Component,
-    linker: Linker<MyState>,
+    shared: SharedPlugin,
     mem_limit_bytes: usize,
 ) -> wasmtime::Result<FilterStats> {
-    let state = MyState {
-        ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
-        table: ResourceTable::new(),
-        limiter: MyLimiter::new(mem_limit_bytes),
-        http: WasiHttpCtx::new(),
+    // Helper: build a fresh store+plugin from the current shared slot.
+    let make_filter = |shared: &SharedPlugin| -> wasmtime::Result<(Store<MyState>, ReductionPlugin, u64)> {
+        let slot = shared.read().unwrap();
+        let state = MyState {
+            ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+            table: ResourceTable::new(),
+            limiter: MyLimiter::new(mem_limit_bytes),
+            http: WasiHttpCtx::new(),
+        };
+        let mut store = Store::new(&slot.engine, state);
+        store.limiter(|s| &mut s.limiter);
+        let plugin = ReductionPlugin::instantiate(&mut store, &slot.component, &slot.linker)?;
+        let version = slot.version;
+        Ok((store, plugin, version))
     };
-    let mut store = Store::new(&engine, state);
-    store.limiter(|s| &mut s.limiter);
-    let plugin = ReductionPlugin::instantiate(&mut store, &component, &linker)?;
 
+    let (mut store, mut plugin, mut current_version) = make_filter(&shared)?;
     let mut stats = FilterStats::default();
 
     loop {
+        // Hot-reload: check before each batch
+        let new_version = shared.read().unwrap().version;
+        if new_version != current_version {
+            match make_filter(&shared) {
+                Ok((s, p, v)) => {
+                    store = s; plugin = p; current_version = v;
+                    eprintln!("[filter] plugin hot-swapped → v{}", current_version);
+                }
+                Err(e) => eprintln!("[filter] plugin reload failed (keeping old): {}", e),
+            }
+        }
+
         match rx.recv() {
             Ok(pb) => {
                 let seq = pb.seq;
@@ -964,17 +972,26 @@ fn filter_loop(
 fn format_loop(
     rx: Receiver<ParsedBatch>,
     tx: SyncSender<FormattedBatch>,
-    engine: Engine,
-    component: Component,
-    linker: Linker<MyState>,
+    shared: SharedPlugin,
     mem_limit_bytes: usize,
     max_chunk: usize,
 ) -> wasmtime::Result<FormatStats> {
+    let mut current_version = shared.read().unwrap().version;
     let mut stats = FormatStats::default();
 
     loop {
         match rx.recv() {
             Ok(pb) => {
+                // Snapshot engine/component/linker once per batch; detect hot-reload.
+                let (engine, component, linker) = {
+                    let slot = shared.read().unwrap();
+                    if slot.version != current_version {
+                        eprintln!("[format] plugin hot-swapped → v{}", slot.version);
+                        current_version = slot.version;
+                    }
+                    (slot.engine.clone(), slot.component.clone(), slot.linker.clone())
+                };
+
                 let entry_count = pb.entries.len();
                 let batch_started = Instant::now();
                 let mut all_lines: Vec<Vec<u8>> = Vec::new();
@@ -1046,6 +1063,7 @@ fn format_loop(
                     let output_lines = all_lines.len();
                     let total_bytes: usize = all_lines.iter().map(|l| l.len()).sum();
 
+                    /*
                     // pseudo-random sample: pick one entry to show for inspection
                     let idx = (pb.seq as usize)
                         .wrapping_mul(2654435761)
@@ -1064,7 +1082,7 @@ fn format_loop(
                         text,
                         ellipsis
                     );
-
+                    */
                     print_format_batch(
                         pb.seq,
                         entry_count,
@@ -1103,16 +1121,14 @@ fn format_loop(
 
 // ── Transport Worker (async) ──────────────────────────────────────────────────
 
-async fn transport_worker(
-    rx: Arc<Mutex<Receiver<FormattedBatch>>>,
-    engine: Engine,
-    component: Component,
-    linker: Linker<MyState>,
+async fn build_transport_store(
+    shared: &SharedPlugin,
     mem_limit_bytes: usize,
-    endpoint: String,
-    max_chunk_bytes: usize,
-    _id: usize,
-) -> wasmtime::Result<TransportStats> {
+) -> wasmtime::Result<(Store<MyState>, TransportPlugin)> {
+    let (engine, component, linker) = {
+        let slot = shared.read().unwrap();
+        (slot.engine.clone(), slot.component.clone(), slot.linker.clone())
+    };
     let state = MyState {
         ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
         table: ResourceTable::new(),
@@ -1121,20 +1137,32 @@ async fn transport_worker(
     };
     let mut store = Store::new(&engine, state);
     store.limiter(|s| &mut s.limiter);
-
     let plugin = TransportPlugin::instantiate_async(&mut store, &component, &linker).await?;
+    Ok((store, plugin))
+}
 
-    let config = TransportConfig {
-        endpoint: endpoint.clone(),
+async fn transport_worker(
+    rx: Arc<Mutex<Receiver<FormattedBatch>>>,
+    shared: SharedPlugin,
+    mem_limit_bytes: usize,
+    endpoint: String,
+    max_chunk_bytes: usize,
+    _id: usize,
+) -> wasmtime::Result<TransportStats> {
+    let (mut store, mut plugin) = build_transport_store(&shared, mem_limit_bytes).await?;
+    let mut current_version = shared.read().unwrap().version;
+
+    let make_config = |ep: &str| TransportConfig {
+        endpoint: ep.to_string(),
         auth: AuthMethod::None,
         connect_timeout_ms: 5_000,
         request_timeout_ms: 30_000,
         retry: None,
         tls: None,
         extra_headers: vec![],
-        max_batch_bytes: 4096, // 0 = unlimited: host controls batch size via max_transport_bytes
+        max_batch_bytes: 4096,
     };
-    match plugin.call_init(&mut store, &config).await? {
+    match plugin.call_init(&mut store, &make_config(&endpoint)).await? {
         Ok(()) => {}
         Err(e) => {
             eprintln!("[transport] init() failed: {:?}", e);
@@ -1146,13 +1174,27 @@ async fn transport_worker(
     let mut stats = TransportStats::default();
 
     loop {
-        // Hold the mutex only for the duration of a short try_recv; release it so other
-        // workers can compete. Fall back to a 1 ms yield when the channel is empty so we
-        // don't spin at 100 % CPU while waiting for the next FormattedBatch.
+        // Check for hot-reload while waiting for the next batch.
         let recv_result = loop {
             match rx.lock().unwrap().try_recv() {
                 Ok(b) => break Ok(b),
                 Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    // Hot-reload check on each idle tick.
+                    let new_version = shared.read().unwrap().version;
+                    if new_version != current_version {
+                        eprintln!("[transport] plugin hot-swapped → v{}, reinitializing", new_version);
+                        match build_transport_store(&shared, mem_limit_bytes).await {
+                            Ok((s, p)) => {
+                                store = s; plugin = p; current_version = new_version;
+                                if let Ok(Err(e)) = plugin.call_init(&mut store, &make_config(&endpoint)).await {
+                                    eprintln!("[transport] reinit failed: {:?}", e);
+                                } else {
+                                    eprintln!("[transport] reinit OK  endpoint={}", endpoint);
+                                }
+                            }
+                            Err(e) => eprintln!("[transport] plugin reload failed (keeping old): {}", e),
+                        }
+                    }
                     std::thread::sleep(Duration::from_millis(1));
                 }
                 Err(std::sync::mpsc::TryRecvError::Disconnected) => {

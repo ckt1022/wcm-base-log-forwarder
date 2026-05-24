@@ -1,0 +1,45 @@
+# WCM Log Forwarder Configuration
+# All plugin paths are relative to this file's directory (or absolute).
+
+plugins:
+  #parse: "test-plugins/csharp-plugin/parse/parser_csharp.wasm"
+  #parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
+  parse: "test-plugins/go-plugin/parse_str/parser_json.wasm"
+  parse_noop: ~
+
+  filter: "test-plugins/csharp-plugin/filter/filter_csharp.wasm"
+  # filter: "test-plugins/csharp-plugin/filter/filter_csharp.wasm"
+
+  format: "test-plugins/c-plugin/format/format_json-flat.wasm"
+
+  transport: "test-plugins/rust-plugin/transport/target/wasm32-unknown-unknown/release/transport_component.wasm"
+
+# Which pipeline stages to enable
+stages:
+  filter: true
+  format: true
+  transport: true
+
+# Input source — choose one mode
+input:
+  mode: tail       # "tcp" | "tail"
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+  tail:
+    path: "/tmp/test-logs.log"
+
+# Batch processing parameters (hot-reloadable at runtime)
+batch:
+  mem_limit_mb: 256
+  safe_data_ratio: 0.5
+  max_wait_ms: 5000
+  max_batch_lines: 50000
+  channel_capacity: 150000
+  max_format_chunk: 50000
+  transport_endpoint: "http://127.0.0.1:8080/ingest"
+  max_transport_bytes: 131072
+  transport_workers: 5
+
+# How often (seconds) to re-read this file and apply changes
+config_reload_secs: 10

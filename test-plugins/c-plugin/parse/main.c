@@ -24,39 +24,38 @@ static uint64_t now_ns(void) {
  * 包含：1. 根目錄下的非保留欄位 2. "att" 物件內的所有欄位
  */
 static void collect_all_tags(cJSON *root, parser_plugin_list_tuple2_string_string_t *ret_tags) {
-    int total_tags = 0;
+    int other_tags = 0;
     cJSON *att_obj = cJSON_GetObjectItemCaseSensitive(root, "att");
 
-    // 第一階段：計算總標籤數
+    // 第一階段：計算除 lang 以外的標籤數
     cJSON *item = NULL;
     cJSON_ArrayForEach(item, root) {
-        // 跳過保留鍵與 att 物件本身
-        if (strcmp(item->string, "ts") == 0 || 
-            strcmp(item->string, "level") == 0 || 
+        if (strcmp(item->string, "ts") == 0 ||
+            strcmp(item->string, "level") == 0 ||
             strcmp(item->string, "msg") == 0 ||
             strcmp(item->string, "att") == 0) {
             continue;
         }
-        total_tags++;
+        other_tags++;
     }
 
     if (cJSON_IsObject(att_obj)) {
-        total_tags += cJSON_GetArraySize(att_obj);
+        other_tags += cJSON_GetArraySize(att_obj);
     }
 
+    int total_tags = 1 + other_tags;  // +1 for lang=C
     ret_tags->len = total_tags;
-    if (total_tags == 0) {
-        ret_tags->ptr = NULL;
-        return;
-    }
-
     ret_tags->ptr = (parser_plugin_tuple2_string_string_t*)malloc(total_tags * sizeof(parser_plugin_tuple2_string_string_t));
 
-    int i = 0;
+    // 第一個 tag：lang=C（標識此批次由 C 插件解析）
+    parser_plugin_string_dup(&ret_tags->ptr[0].f0, "lang");
+    parser_plugin_string_dup(&ret_tags->ptr[0].f1, "C");
+
+    int i = 1;
     // 第二階段：填充根目錄下的欄位
     cJSON_ArrayForEach(item, root) {
-        if (strcmp(item->string, "ts") == 0 || 
-            strcmp(item->string, "level") == 0 || 
+        if (strcmp(item->string, "ts") == 0 ||
+            strcmp(item->string, "level") == 0 ||
             strcmp(item->string, "msg") == 0 ||
             strcmp(item->string, "att") == 0) {
             continue;

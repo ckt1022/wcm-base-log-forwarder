@@ -12,6 +12,7 @@ interface pipeline-process {
         level: log-level,
         message: string,
         tags: list<tuple<string,string>>,
+        //targeturl: string //用來route的標籤
     }
 
     /// 帶有 host 分配 id 的完整條目
@@ -147,24 +148,11 @@ world parser-plugin {
     use pipeline-process.{parsed-entry, parse-error};
     include wasi:cli/imports@0.2.0;
 
+    // 解析的函數
     export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
-    export reset: func();
 }
 
-// ─────────────────────────────────────────────
-// enricher-plugin
-// 回傳 enrich-result，host 依 id 將 additional-tags 合併進原始 log-entry
-// ─────────────────────────────────────────────
-world enricher-plugin {
-    use pipeline-process.{log-entry, enrich-result, plugin-error};
-
-    export enrich: func(
-        struct-data: list<log-entry>
-    ) -> result<list<enrich-result>, plugin-error>;
-
-    export report-usage: func() -> u64;
-}
 
 // ─────────────────────────────────────────────
 // reduction-plugin
@@ -180,21 +168,6 @@ world reduction-plugin {
 
     export report-usage: func() -> u64;
 }
-
-// ─────────────────────────────────────────────
-// route-plugin
-// 回傳 route-result，host 依 id 取得 URL 後執行實際轉送
-// ─────────────────────────────────────────────
-world route-plugin {
-    use pipeline-process.{log-entry, route-result, plugin-error};
-
-    export route: func(
-        struct-data: list<log-entry>
-    ) -> result<list<route-result>, plugin-error>;
-
-    export report-usage: func() -> u64;
-}
-
 
 // ─────────────────────────────────────────────
 // format-plugin

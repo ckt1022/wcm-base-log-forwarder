@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use crate::PipelineStages;
 use crate::config::{
+    PipelineStages,
     Batch, BatchConfig, FilterStats, FlushReason, FormatStats, ParseDiffTiming, ParseStats,
     TransportStats,
 };
@@ -25,21 +25,41 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
     if stages.transport {
         eprintln!("Endpoint     : {}", cfg.transport_endpoint);
     }
-
     eprintln!("========================");
 }
 
+// ── Per-batch aligned output ──────────────────────────────────────────────────
+//
+// All four stage lines share the same fixed-width columns so numbers stay
+// aligned both within a stage across batches and across stages within a batch.
+//
+// Column layout (chars):
+//   label   [<9 stage_name> #<4 seq>]          = 17
+//   In      In=<6 lines>/<7.0 KB>KB            = 21  (no-KB stages: 10 spaces for the /KB part)
+//   Mem     Mem=<7.0 KB>KB(<5.1 %>%)           = 23
+//   Time    Time=<7.1 ms>ms                    = 14
+//   tput    <7.0>/s                            = 9
+//   sep     " | "                              =  3
+//   extras  stage-specific fields
+//
+// Field widths:
+//   lines/entries  {:>6}    up to 999 999
+//   KB             {:>7.0}  up to ~999 999 KB (~1 GB)
+//   time ms        {:>7.1}  up to ~9 999.9 ms
+//   pct            {:>5.1}  up to 100.0 %
+//   tput           {:>7.0}  up to ~9 999 999 /s
+
 pub fn print_flush_header(seq: u64, batch: &Batch, reason: &FlushReason) {
+    let why = if reason.eof             { "eof  " }
+              else if reason.size       { "size " }
+              else if reason.line_count { "lines" }
+              else                      { "time " };
     eprintln!(
-        "\n--- Flush #{} (size={} time={} lines={} eof={}) | {} lines {} bytes age={}ms ---",
-        seq,
-        reason.size,
-        reason.time,
-        reason.line_count,
-        reason.eof,
+        "\n--- Flush #{:>4} [{}] | {:>6} lines / {:>7.0}KB / age={:>5}ms ---",
+        seq, why,
         batch.len(),
-        batch.bytes,
-        batch.elapsed().as_millis()
+        batch.bytes as f64 / 1024.0,
+        batch.elapsed().as_millis(),
     );
 }
 
@@ -57,23 +77,25 @@ pub fn print_parse_batch(
     grow_delta_bytes: u64,
     diff: Option<ParseDiffTiming>,
 ) {
-    let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
-    let tput = output_entries as f64 / elapsed.as_secs_f64().max(1e-9);
+    let ratio      = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
+    let tput       = output_entries as f64 / elapsed.as_secs_f64().max(1e-9);
     let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
-    let component_ms = component_ns as f64 / 1_000_000.0;
-    let abi_ms = (elapsed_ms - component_ms).max(0.0);
+    let comp_ms    = component_ns as f64 / 1_000_000.0;
+    let abi_ms     = (elapsed_ms - comp_ms).max(0.0);
+
     eprintln!(
-        "[parse-w{worker_id} #{seq}] In={input_lines}/{input_bytes}B  Out={output_entries}  \
-         Time={elapsed_ms:.2}ms (component={component_ms:.2}ms abi+store={abi_ms:.2}ms)  \
-         Grow={grow_count}x/{:.0}KB  WasmMem={:.0}KB({ratio:.1}%)  {tput:.0} entries/s",
-        grow_delta_bytes as f64 / 1024.0,
-        wasm_mem_peak as f64 / 1024.0,
+        "[{:<9} #{:>4}]  In={:>6}/{:>7.0}KB  Mem={:>7.0}KB({:>5.1}%)  Time={:>7.1}ms  {:>7.0}/s  |  Out={:>6}  comp={:>7.1}ms  abi={:>7.1}ms  Grow={:>4}x/{:>7.0}KB",
+        format!("parse-w{}", worker_id), seq,
+        input_lines, input_bytes as f64 / 1024.0,
+        wasm_mem_peak as f64 / 1024.0, ratio,
+        elapsed_ms, tput,
+        output_entries, comp_ms, abi_ms,
+        grow_count, grow_delta_bytes as f64 / 1024.0,
     );
 
     if let Some(d) = diff {
         eprintln!(
-            "                  diff: copy-in={:.2}ms guest={:.2}ms copy-out={:.2}ms \
-             (noop={:.2}ms noop-guest={:.2}ms)",
+            "                    diff:  copy-in={:>7.2}ms  guest={:>7.2}ms  copy-out={:>7.2}ms  (noop={:>7.2}ms  noop-guest={:>7.2}ms)",
             d.copy_in_ns as f64 / 1_000_000.0,
             d.guest_ns as f64 / 1_000_000.0,
             d.copy_out_ns as f64 / 1_000_000.0,
@@ -82,6 +104,80 @@ pub fn print_parse_batch(
         );
     }
 }
+
+pub fn print_filter_batch(
+    seq: u64,
+    input_entries: usize,
+    kept: usize,
+    dropped: usize,
+    wasm_mem_peak: usize,
+    mem_limit_bytes: usize,
+    elapsed: Duration,
+    logic_ns: u64,
+) {
+    let ratio      = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
+    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
+    let logic_ms   = logic_ns as f64 / 1_000_000.0;
+    let drop_pct   = dropped as f64 / input_entries.max(1) as f64 * 100.0;
+    let tput       = input_entries as f64 / elapsed.as_secs_f64().max(1e-9);
+
+    // {:10} with "" fills the /{:>7.0}KB slot (1 + 7 + 2 = 10 chars) with spaces
+    eprintln!(
+        "[{:<9} #{:>4}]  In={:>6}{:10}  Mem={:>7.0}KB({:>5.1}%)  Time={:>7.1}ms  {:>7.0}/s  |  kept={:>6}  drop={:>6}({:>5.1}%)  logic={:>7.2}ms",
+        "filter", seq,
+        input_entries, "",
+        wasm_mem_peak as f64 / 1024.0, ratio,
+        elapsed_ms, tput,
+        kept, dropped, drop_pct, logic_ms,
+    );
+}
+
+pub fn print_format_batch(
+    seq: u64,
+    input_entries: usize,
+    output_lines: usize,
+    wasm_mem_peak: usize,
+    mem_limit_bytes: usize,
+    elapsed: Duration,
+    logic_ns: u64,
+) {
+    let ratio      = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
+    let tput       = output_lines as f64 / elapsed.as_secs_f64().max(1e-9);
+    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
+    let logic_ms   = logic_ns as f64 / 1_000_000.0;
+    let copyin_ms  = (elapsed_ms - logic_ms).max(0.0);
+
+    eprintln!(
+        "[{:<9} #{:>4}]  In={:>6}{:10}  Mem={:>7.0}KB({:>5.1}%)  Time={:>7.1}ms  {:>7.0}/s  |  Out={:>6}  logic={:>7.2}ms  copyin={:>7.2}ms",
+        "format", seq,
+        input_entries, "",
+        wasm_mem_peak as f64 / 1024.0, ratio,
+        elapsed_ms, tput,
+        output_lines, logic_ms, copyin_ms,
+    );
+}
+
+pub fn print_transport_batch(
+    seq: u64,
+    input_lines: usize,
+    input_bytes: usize,
+    wasm_mem_peak: usize,
+    mem_limit_bytes: usize,
+    elapsed: Duration,
+) {
+    let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
+    let tput  = input_lines as f64 / elapsed.as_secs_f64().max(1e-9);
+
+    eprintln!(
+        "[{:<9} #{:>4}]  In={:>6}/{:>7.0}KB  Mem={:>7.0}KB({:>5.1}%)  Time={:>7.1}ms  {:>7.0}/s",
+        "transport", seq,
+        input_lines, input_bytes as f64 / 1024.0,
+        wasm_mem_peak as f64 / 1024.0, ratio,
+        elapsed.as_secs_f64() * 1000.0, tput,
+    );
+}
+
+// ── Aggregate / summary output ────────────────────────────────────────────────
 
 pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, wall: Duration, errors: u32) {
     let wall_tput = stats.total_output_entries as f64 / wall.as_secs_f64().max(1e-9);
@@ -110,68 +206,6 @@ pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, wall: Duration,
             stats.total_copy_out_ns as f64 / batches / 1_000_000.0,
         );
     }
-}
-
-pub fn print_format_batch(
-    seq: u64,
-    input_entries: usize,
-    output_lines: usize,
-    wasm_mem_peak: usize,
-    mem_limit_bytes: usize,
-    elapsed: Duration,
-    logic_ns: u64,
-) {
-    let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
-    let tput = output_lines as f64 / elapsed.as_secs_f64().max(1e-9);
-    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
-    let logic_ms = logic_ns as f64 / 1_000_000.0;
-    let copy_in_ms = (elapsed_ms - logic_ms).max(0.0);
-    eprintln!(
-        "[format #{seq}] In={input_entries}  Out={output_lines}  \
-         WasmMem={:.0}KB({ratio:.1}%)  \
-         Time={elapsed_ms:.2}ms (logic={logic_ms:.2}ms copy-in={copy_in_ms:.2}ms)  \
-         {tput:.0} lines/s",
-        wasm_mem_peak as f64 / 1024.0,
-    );
-}
-
-pub fn print_transport_batch(
-    seq: u64,
-    input_lines: usize,
-    input_bytes: usize,
-    wasm_mem_peak: usize,
-    mem_limit_bytes: usize,
-    elapsed: Duration,
-) {
-    let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
-    let tput = input_lines as f64 / elapsed.as_secs_f64().max(1e-9);
-    eprintln!(
-        "[transport #{seq}] In={input_lines} lines/{input_bytes}B  \
-         WasmMem={:.0}KB({ratio:.1}%)  Time={:.2}ms  {tput:.0} lines/s",
-        wasm_mem_peak as f64 / 1024.0,
-        elapsed.as_secs_f64() * 1000.0,
-    );
-}
-
-pub fn print_filter_batch(
-    seq: u64,
-    input_entries: usize,
-    kept: usize,
-    dropped: usize,
-    wasm_mem_peak: usize,
-    mem_limit_bytes: usize,
-    elapsed: Duration,
-    logic_ns: u64,
-) {
-    let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
-    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
-    let logic_ms = logic_ns as f64 / 1_000_000.0;
-    eprintln!(
-        "[filter #{seq}] In={input_entries} kept={kept} dropped={dropped} ({:.1}%)  \
-         WasmMem={:.0}KB({ratio:.1}%)  Time={elapsed_ms:.2}ms (logic={logic_ms:.2}ms)",
-        dropped as f64 / input_entries.max(1) as f64 * 100.0,
-        wasm_mem_peak as f64 / 1024.0,
-    );
 }
 
 pub fn print_pipeline_summary(
