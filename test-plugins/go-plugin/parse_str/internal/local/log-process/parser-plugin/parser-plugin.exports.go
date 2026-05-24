@@ -17,4 +17,9 @@ var Exports struct {
 	//
 	//	report-usage: func() -> u64
 	ReportUsage func() (result uint64)
+
+	// Reset represents the caller-defined, exported function "reset".
+	//
+	//	reset: func()
+	Reset func()
 }

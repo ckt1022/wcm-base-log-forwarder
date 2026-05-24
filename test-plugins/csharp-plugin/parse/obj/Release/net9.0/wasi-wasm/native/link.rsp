@@ -1,0 +1,31 @@
+﻿"/home/ckt1022/.nuget/packages/runtime.wasi-wasm.microsoft.dotnet.ilcompiler.llvm/9.0.0-rc.1.24468.1/framework/libSystem.Native.a"
+"/home/ckt1022/.nuget/packages/runtime.wasi-wasm.microsoft.dotnet.ilcompiler.llvm/9.0.0-rc.1.24468.1/framework/libSystem.Native.TimeZoneData.a"
+"/home/ckt1022/.nuget/packages/runtime.wasi-wasm.microsoft.dotnet.ilcompiler.llvm/9.0.0-rc.1.24468.1/sdk/libbootstrapperdll.o"
+"/home/ckt1022/.nuget/packages/runtime.wasi-wasm.microsoft.dotnet.ilcompiler.llvm/9.0.0-rc.1.24468.1/sdk/libPortableRuntime.a"
+"/home/ckt1022/.nuget/packages/runtime.wasi-wasm.microsoft.dotnet.ilcompiler.llvm/9.0.0-rc.1.24468.1/sdk/libstandalonegc-disabled.a"
+"/home/ckt1022/.nuget/packages/runtime.wasi-wasm.microsoft.dotnet.ilcompiler.llvm/9.0.0-rc.1.24468.1/sdk/libEmulatedExceptionHandling.a"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.external.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.0.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.1.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.2.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.3.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.4.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.5.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.6.o"
+"obj/Release/net9.0/wasi-wasm/native/ParserPlugin.7.o"
+-Wl,--component-type,"/home/ckt1022/.nuget/packages/runtime.wasi-wasm.microsoft.dotnet.ilcompiler.llvm/9.0.0-rc.1.24468.1/framework/WasiHttpWorld_component_type.wit"
+-o "bin/Release/net9.0/wasi-wasm/native/ParserPlugin.wasm"
+-g3
+-target wasm32-unknown-wasip2
+--sysroot="/home/ckt1022/wasi-sdk/share/wasi-sysroot"
+-Wl,--export=parse
+-Wl,--export=cabi_post_parse
+-Wl,--export=report-usage
+-Wl,--export=reset
+-Wl,--unresolved-symbols=ignore-all
+-lstdc++ -lwasi-emulated-process-clocks -lwasi-emulated-signal -lwasi-emulated-getpid
+-Wl,--max-memory=2147483648
+-Wl,--global-base=2097152
+-Wl,-z,stack-size=1048576
+-mexec-model=reactor

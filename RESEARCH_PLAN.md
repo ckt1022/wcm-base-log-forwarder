@@ -32,11 +32,6 @@
 - [ ] 實作 `reduction-plugin`（依 log level 過濾，例如只保留 ERROR 以上）
 - [ ] 用 Go 寫出對應的 WASM 插件範例
 
-### 週 5–6：Router + Masking
-
-- [ ] 實作 `route-plugin`（依 tag 決定走哪個 transport）
-- [ ] 實作 `masking-plugin`（regex 遮蔽 IP、email、token）
-- [ ] 讓整條 pipeline 串接完成
 
 ### 週 7–8：多語言插件驗證（論文重要貢獻點）
 

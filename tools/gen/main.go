@@ -16,12 +16,19 @@
 //	syslog-simple  - RFC5424 風格 syslog，基本欄位
 //	syslog-complex - RFC5424 風格 syslog，附帶延伸 key=value 欄位
 //	syslog-mixed   - syslog simple + complex 混合
+//
+// Traffic shapes (-traffic):
+//
+//	flat   - 固定速率（預設）
+//	wave   - 正弦波形，高峰低谷交替，長期平均等於 -rate（適合可控實驗）
+//	bursty - 正弦波底層＋隨機突發尖峰，模擬真實流量（適合壓力測試）
 package main
 
 import (
 	"bufio"
 	"flag"
 	"fmt"
+	"math"
 	"math/rand"
 	"os"
 	"strconv"
@@ -37,6 +44,17 @@ var (
 	bufferSize  = flag.Int("buffer", 1<<20, "stdout buffer size in bytes (default 1MB)")
 	flushEvery  = flag.Int("flush-ms", 100, "flush stdout interval in milliseconds")
 	seed        = flag.Int64("seed", 0, "random seed, 0=use current time")
+
+	// Traffic shape flags
+	trafficShape = flag.String("traffic", "flat", "traffic shape: flat|wave|bursty")
+	waveAmp      = flag.Float64("wave-amp", 0.6, "sine wave amplitude 0.0-0.9 (wave/bursty); rate varies between rate*(1-amp) and rate*(1+amp)")
+	wavePeriod   = flag.Float64("wave-period", 60.0, "sine wave period in seconds")
+	spikeMult    = flag.Float64("spike-mult", 3.0, "spike peak multiplier applied on top of wave (bursty)")
+	spikeFreqPM  = flag.Float64("spike-freq", 2.0, "average spikes per minute (bursty)")
+	spikeDurSec  = flag.Float64("spike-dur", 5.0, "spike duration in seconds (bursty)")
+
+	// Output flags
+	logFile = flag.String("log-file", "gen.log", "write generator diagnostics to this file; use '-' for stderr")
 )
 
 // -----------------------------------------------------------------
@@ -328,6 +346,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Open diagnostic log output.
+	var logOut *os.File
+	if *logFile == "-" {
+		logOut = os.Stderr
+	} else {
+		var err error
+		logOut, err = os.OpenFile(*logFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot open log file %s: %v\n", *logFile, err)
+			os.Exit(1)
+		}
+		defer logOut.Close()
+	}
+
 	validModes := map[string]bool{
 		"json-simple":    true,
 		"json-complex":   true,
@@ -344,6 +376,14 @@ func main() {
 		fmt.Fprintln(os.Stderr, "mode must be one of: json-simple, json-complex, json-mixed, invalid, logfmt-simple, logfmt-complex, logfmt-mixed, syslog-simple, syslog-complex, syslog-mixed")
 		os.Exit(1)
 	}
+	if *trafficShape != "flat" && *trafficShape != "wave" && *trafficShape != "bursty" {
+		fmt.Fprintln(os.Stderr, "traffic must be one of: flat, wave, bursty")
+		os.Exit(1)
+	}
+	if *waveAmp < 0 || *waveAmp >= 1.0 {
+		fmt.Fprintln(os.Stderr, "wave-amp must be in [0.0, 1.0)")
+		os.Exit(1)
+	}
 
 	w := bufio.NewWriterSize(os.Stdout, *bufferSize)
 	defer w.Flush()
@@ -355,9 +395,25 @@ func main() {
 	var total, reportBase uint64
 	lineBuf := make([]byte, 0, 512)
 
-	fmt.Fprintf(os.Stderr,
-		"[gen] start: rate=%d/s duration=%ds mode=%s invalid-rate=%.2f\n",
-		*rate, *duration, *mode, *invalidRate,
+	// Traffic shaping state
+	var cumTarget float64
+	lastTick := start
+	currentMult := 1.0
+
+	// Bursty spike state
+	inSpike := false
+	var spikeEnd time.Time
+	var nextSpike time.Time
+	if *trafficShape == "bursty" {
+		intervalSec := 60.0 / *spikeFreqPM
+		// First spike after 0.5–1.5× interval to avoid hitting at t=0
+		delay := intervalSec * (0.5 + rand.Float64())
+		nextSpike = start.Add(time.Duration(delay * float64(time.Second)))
+	}
+
+	fmt.Fprintf(logOut,
+		"[gen] start: rate=%d/s duration=%ds mode=%s traffic=%s invalid-rate=%.2f\n",
+		*rate, *duration, *mode, *trafficShape, *invalidRate,
 	)
 
 	for {
@@ -367,7 +423,52 @@ func main() {
 			break
 		}
 
-		shouldHaveSent := uint64(now.Sub(start).Nanoseconds()) * uint64(*rate) / 1_000_000_000
+		// Compute instantaneous rate multiplier and advance the cumulative target.
+		{
+			dt := now.Sub(lastTick).Seconds()
+			lastTick = now
+			elapsed := now.Sub(start).Seconds()
+
+			switch *trafficShape {
+			case "wave":
+				// Pure sine wave: integrates to exactly rate*T over full periods.
+				currentMult = 1.0 + *waveAmp*math.Sin(2*math.Pi*elapsed / *wavePeriod)
+			case "bursty":
+				baseMult := 1.0 + *waveAmp*math.Sin(2*math.Pi*elapsed / *wavePeriod)
+				// Transition: spike → normal
+				if inSpike && now.After(spikeEnd) {
+					inSpike = false
+					intervalSec := 60.0 / *spikeFreqPM
+					jitter := (rand.Float64()*2 - 1) * intervalSec * 0.4
+					next := intervalSec + jitter
+					if next < 3.0 {
+						next = 3.0
+					}
+					nextSpike = now.Add(time.Duration(next * float64(time.Second)))
+				}
+				// Transition: normal → spike
+				if !inSpike && !nextSpike.IsZero() && !now.Before(nextSpike) {
+					inSpike = true
+					spikeEnd = now.Add(time.Duration(*spikeDurSec * float64(time.Second)))
+				}
+				if inSpike {
+					currentMult = baseMult * *spikeMult
+				} else {
+					currentMult = baseMult
+				}
+			default: // flat
+				currentMult = 1.0
+			}
+
+			// Clamp to avoid negative rates at extreme amplitudes.
+			if currentMult < 0.05 {
+				currentMult = 0.05
+			}
+
+			cumTarget += float64(*rate) * currentMult * dt
+		}
+
+		shouldHaveSent := uint64(cumTarget)
 
 		var produced int
 		for total < shouldHaveSent && produced < 50000 {
@@ -444,11 +545,11 @@ func main() {
 			}
 
 			if _, err := w.Write(lineBuf); err != nil {
-				fmt.Fprintf(os.Stderr, "write error: %v\n", err)
+				fmt.Fprintf(logOut, "write error: %v\n", err)
 				os.Exit(1)
 			}
 			if err := w.WriteByte('\n'); err != nil {
-				fmt.Fprintf(os.Stderr, "write error: %v\n", err)
+				fmt.Fprintf(logOut, "write error: %v\n", err)
 				os.Exit(1)
 			}
 
@@ -458,7 +559,7 @@ func main() {
 
 		if now.Sub(lastFlush) >= time.Duration(*flushEvery)*time.Millisecond {
 			if err := w.Flush(); err != nil {
-				fmt.Fprintf(os.Stderr, "flush error: %v\n", err)
+				fmt.Fprintf(logOut, "flush error: %v\n", err)
 				os.Exit(1)
 			}
 			lastFlush = now
@@ -467,11 +568,17 @@ func main() {
 		if now.Sub(lastReport) >= time.Second {
 			windowCount := total - reportBase
 			windowSecs := now.Sub(lastReport).Seconds()
-			fmt.Fprintf(os.Stderr,
-				"[gen] total=%d inst=%.0f/s avg=%.0f/s\n",
+			spike := ""
+			if inSpike {
+				spike = " [SPIKE]"
+			}
+			fmt.Fprintf(logOut,
+				"[gen] total=%d inst=%.0f/s avg=%.0f/s mult=%.2fx%s\n",
 				total,
 				float64(windowCount)/windowSecs,
 				float64(total)/now.Sub(start).Seconds(),
+				currentMult,
+				spike,
 			)
 			lastReport = now
 			reportBase = total
@@ -483,12 +590,12 @@ func main() {
 	}
 
 	if err := w.Flush(); err != nil {
-		fmt.Fprintf(os.Stderr, "flush error: %v\n", err)
+		fmt.Fprintf(logOut, "flush error: %v\n", err)
 		os.Exit(1)
 	}
 
 	elapsed := time.Since(start).Seconds()
-	fmt.Fprintf(os.Stderr,
+	fmt.Fprintf(logOut,
 		"[gen] done: total=%d elapsed=%.3fs avg=%.0f/s\n",
 		total, elapsed, float64(total)/elapsed,
 	)

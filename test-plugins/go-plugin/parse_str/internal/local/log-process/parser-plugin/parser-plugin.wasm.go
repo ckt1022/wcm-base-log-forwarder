@@ -24,3 +24,9 @@ func wasmexport_ReportUsage() (result0 uint64) {
 	result0 = (uint64)(result)
 	return
 }
+
+//go:wasmexport reset
+//export reset
+func wasmexport_Reset() {
+	Exports.Reset()
+}

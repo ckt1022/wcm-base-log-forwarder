@@ -3,90 +3,106 @@ mod config;
 mod output;
 mod runtime;
 
-use config::BatchConfig;
+use std::path::Path;
+use std::sync::{Arc, RwLock};
 
-struct PluginPath {
-    parse: String,
-    format: String,
-    transport: String,
-}
-
-/// 控制 pipeline 中哪些處理階段要啟用。
-pub struct PipelineStages {
-    pub format: bool,
-    pub transport: bool,
-}
+use config::{AppConfig, BatchConfig, InputMode, PluginSlots, load_app_config, spawn_config_watcher};
 
 fn main() -> wasmtime::Result<()> {
-    let path = PluginPath {
-        parse: String::from(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            //"/test-plugins/go-plugin/parser/parser.wasm",
-            //"/test-plugins/go-plugin/parse_str/parser_str_json.wasm",
-            //"/test-plugins/go-plugin/parse_str/parser_str_sys.wasm"
-            "/test-plugins/go-plugin/parse_str/parser_str_fmt.wasm"
-            //"/test-plugins/go-plugin/parse_str/parser_str_fmt_pre.wasm"
-        )),
-        format: String::from(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test-plugins/cpp-plugin/format/format.wasm"
-        )),
-        transport: String::from(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/test-plugins/rust-plugin/transport/target/wasm32-unknown-unknown/release/transport_component.wasm"
-        )),
+    let config_path = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "forwarder.yaml".to_string());
+
+    let app_cfg = match load_app_config(&config_path) {
+        Ok(c) => c,
+        Err(e) => { eprintln!("[config] {}", e); std::process::exit(1); }
     };
 
-    // 判斷啟動哪些stage
-    let stages = PipelineStages {
-        format: false,
-        transport: false,
-    };
-
-    // 
-    let cfg = BatchConfig::default();
-
-    // 驗證設定並印出每個參數的實際用途與是否為預設值
-    //cfg.print_config_table();
-    if let Err(e) = cfg.validate_and_describe() {
+    let batch_cfg = BatchConfig::from(app_cfg.batch.clone());
+    if let Err(e) = batch_cfg.validate_and_describe() {
         eprintln!("[config-error] {}", e);
         std::process::exit(1);
     }
 
-    let mem_limit_bytes = cfg.mem_limit_mb * 1024 * 1024; // fix: 正確換算為 bytes
-    let safe_data_budget = (mem_limit_bytes as f64 * cfg.safe_data_ratio) as usize;
+    let mem_limit_bytes = batch_cfg.mem_limit_mb * 1024 * 1024;
+    let safe_data_budget = (mem_limit_bytes as f64 * batch_cfg.safe_data_ratio) as usize;
+    output::print_startup(&batch_cfg, safe_data_budget, &app_cfg.stages);
 
-    output::print_startup(&cfg, safe_data_budget, &stages);
+    let config_dir = Path::new(&config_path)
+        .parent()
+        .unwrap_or(Path::new("."));
 
-    // 接收輸入與送進channel between    input -> channel -> parse
-    let (tx, rx) = std::sync::mpsc::sync_channel::<String>(cfg.channel_capacity);
-    app::spawn_stdin_reader(tx);
+    let resolve = |p: &str| -> String {
+        let pp = Path::new(p);
+        if pp.is_absolute() { p.to_string() }
+        else { config_dir.join(pp).to_string_lossy().to_string() }
+    };
 
-    // stage wasm runtime engine amd component and linker
-    // engine,component可以重複使用，用來建立store
-    // 不同instance用相同engine，不同store
-    let (engine_parse, component_parse, linker_parse) =
-        app::build_runtime(path.parse)?;
+    // Build SharedPlugin slots from config paths
+    let parse_slot = app::new_shared_runtime(&resolve(&app_cfg.plugins.parse))?;
 
-    let format_runtime = if stages.format {
-        Some(app::build_runtime(path.format)?)
+    let parse_noop_slot = app_cfg.plugins.parse_noop.as_deref()
+        .map(|p| app::new_shared_runtime(&resolve(p)))
+        .transpose()?;
+
+    let filter_slot = if app_cfg.stages.filter {
+        Some(app::new_shared_runtime(&resolve(&app_cfg.plugins.filter))?)
     } else {
         None
     };
 
-    let transport_runtime = if stages.transport {
-        Some(app::build_transport_runtime(path.transport)?)
+    let format_slot = if app_cfg.stages.format {
+        Some(app::new_shared_runtime(&resolve(&app_cfg.plugins.format))?)
     } else {
         None
     };
 
-    // runpipeline
+    let transport_slot = if app_cfg.stages.transport {
+        Some(app::new_shared_transport_runtime(&resolve(&app_cfg.plugins.transport))?)
+    } else {
+        None
+    };
+
+    // Wrap AppConfig in Arc for hot-reload; start config watcher
+    let shared_cfg: Arc<RwLock<AppConfig>> = Arc::new(RwLock::new(app_cfg.clone()));
+
+    let slots = PluginSlots {
+        parse: Arc::clone(&parse_slot),
+        parse_noop: parse_noop_slot.as_ref().map(Arc::clone),
+        filter: filter_slot.as_ref().map(Arc::clone),
+        format: format_slot.as_ref().map(Arc::clone),
+        transport: transport_slot.as_ref().map(Arc::clone),
+    };
+    spawn_config_watcher(config_path.clone(), Arc::clone(&shared_cfg), slots);
+
+    // Input channel
+    let (tx, rx) = std::sync::mpsc::sync_channel::<String>(batch_cfg.channel_capacity);
+
+    match &app_cfg.input.mode {
+        InputMode::Tcp => {
+            let tcp = app_cfg.input.tcp.as_ref().unwrap_or_else(|| {
+                eprintln!("[config] input.tcp section required when mode=tcp");
+                std::process::exit(1);
+            });
+            app::spawn_tcp_reader(tcp.host.clone(), tcp.port, tx);
+        }
+        InputMode::Tail => {
+            let tail = app_cfg.input.tail.as_ref().unwrap_or_else(|| {
+                eprintln!("[config] input.tail section required when mode=tail");
+                std::process::exit(1);
+            });
+            app::spawn_tail_reader(tail.path.clone(), tx);
+        }
+    }
+
     runtime::run_pipeline(
         rx,
-        Some((engine_parse, component_parse, linker_parse)),
-        format_runtime,
-        transport_runtime,
-        cfg,
+        Some(parse_slot),
+        parse_noop_slot,
+        filter_slot,
+        format_slot,
+        transport_slot,
+        shared_cfg,
     )?;
 
     Ok(())

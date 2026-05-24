@@ -43,7 +43,7 @@ tools/
 
 ```bash
 # 基本測試（確認系統能跑）
-go run tools/gen/main.go -rate 1000 -duration 10 | ./target/debug/wcm-base-log-forwarder
+go run tools/gen/main.go -rate 60000 -duration 30 -mode syslog-simple | ./target/debug/wcm-base-log-forwarder
 
 # 複雜格式壓力測試
 go run tools/gen/main.go -rate 10000 -duration 60 -mode complex | ./target/release/wcm-base-log-forwarder

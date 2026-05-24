@@ -154,7 +154,7 @@ wit-bindgen-go generate \
   --world parser-plugin \
   --out internal/ \
   --package-root example.com/internal \
-  local:log-process.wasm
+  local:log-process@0.2.0.wasm
 ```
 
 產生的目錄結構：

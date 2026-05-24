@@ -1,9 +1,260 @@
-use std::mem::size_of;
+use std::path::Path;
 use std::sync::{
-    Arc,
+    Arc, RwLock,
     atomic::{AtomicUsize, Ordering},
 };
+use std::thread;
 use std::time::{Duration, Instant};
+
+use serde::Deserialize;
+
+// ── App-level config (YAML) ───────────────────────────────────────────────────
+
+/// Top-level configuration loaded from forwarder.yaml.
+#[derive(Debug, Clone, Deserialize)]
+pub struct AppConfig {
+    pub plugins: PluginsConfig,
+    pub stages: PipelineStages,
+    pub input: InputConfig,
+    pub batch: BatchConfigRaw,
+    #[serde(default = "default_reload_secs")]
+    pub config_reload_secs: u64,
+}
+
+fn default_reload_secs() -> u64 { 10 }
+
+/// Paths to each WASM plugin. Relative paths are resolved against the config file's directory.
+#[derive(Debug, Clone, Deserialize, PartialEq)]
+pub struct PluginsConfig {
+    pub parse: String,
+    pub parse_noop: Option<String>,
+    pub filter: String,
+    pub format: String,
+    pub transport: String,
+}
+
+/// Which pipeline stages are active.
+#[derive(Debug, Clone, Deserialize)]
+pub struct PipelineStages {
+    #[serde(default)]
+    pub filter: bool,
+    #[serde(default)]
+    pub format: bool,
+    #[serde(default)]
+    pub transport: bool,
+}
+
+/// Input source configuration.
+#[derive(Debug, Clone, Deserialize)]
+pub struct InputConfig {
+    pub mode: InputMode,
+    pub tcp: Option<TcpInputConfig>,
+    pub tail: Option<TailInputConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum InputMode {
+    Tcp,
+    Tail,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TcpInputConfig {
+    pub host: String,
+    pub port: u16,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TailInputConfig {
+    pub path: String,
+}
+
+/// YAML-friendly batch config (Duration expressed as milliseconds).
+#[derive(Debug, Clone, Deserialize)]
+pub struct BatchConfigRaw {
+    pub mem_limit_mb: usize,
+    pub safe_data_ratio: f64,
+    pub max_wait_ms: u64,
+    pub max_batch_lines: usize,
+    pub channel_capacity: usize,
+    pub max_format_chunk: usize,
+    pub transport_endpoint: String,
+    pub max_transport_bytes: usize,
+    pub transport_workers: usize,
+}
+
+impl From<BatchConfigRaw> for BatchConfig {
+    fn from(r: BatchConfigRaw) -> Self {
+        BatchConfig {
+            mem_limit_mb: r.mem_limit_mb,
+            safe_data_ratio: r.safe_data_ratio,
+            max_wait: Duration::from_millis(r.max_wait_ms),
+            max_batch_lines: r.max_batch_lines,
+            channel_capacity: r.channel_capacity,
+            max_format_chunk: r.max_format_chunk,
+            transport_endpoint: r.transport_endpoint,
+            max_transport_bytes: r.max_transport_bytes,
+            transport_workers: r.transport_workers,
+        }
+    }
+}
+
+/// Load and parse forwarder.yaml (or any path).
+pub fn load_app_config(path: &str) -> Result<AppConfig, String> {
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("cannot read config '{}': {}", path, e))?;
+    serde_yaml::from_str(&content)
+        .map_err(|e| format!("cannot parse config '{}': {}", path, e))
+}
+
+/// Shared references to each plugin's live runtime slot.
+/// Passed to `spawn_config_watcher` so it can rebuild plugins in-place on path change.
+pub struct PluginSlots {
+    pub parse: crate::app::SharedPlugin,
+    pub parse_noop: Option<crate::app::SharedPlugin>,
+    pub filter: Option<crate::app::SharedPlugin>,
+    pub format: Option<crate::app::SharedPlugin>,
+    pub transport: Option<crate::app::SharedPlugin>,
+}
+
+/// Spawn a background thread that reloads the config file every `config_reload_secs` seconds.
+///
+/// - Batch parameters take effect on the next batch.
+/// - Plugin path changes OR mtime changes (same-path wasm replacement) trigger
+///   an in-place rebuild; the pipeline detects the incremented version and swaps
+///   automatically between batches.
+pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots: PluginSlots) {
+    // Use filter to avoid turning an empty parent ("") into "/" when joining.
+    let config_dir = Path::new(&path)
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or_else(|| ".".to_string());
+
+    thread::spawn(move || {
+        // Use Path::join so an empty config_dir doesn't produce a spurious leading '/'.
+        let resolve = |p: &str| -> String {
+            let pp = Path::new(p);
+            if pp.is_absolute() {
+                p.to_string()
+            } else {
+                Path::new(&config_dir).join(pp).to_string_lossy().to_string()
+            }
+        };
+
+        let file_mtime = |p: &str| -> Option<std::time::SystemTime> {
+            std::fs::metadata(p).ok()?.modified().ok()
+        };
+
+        // Record initial resolved paths and mtimes.
+        // Hot-swap triggers when either the path string or the file mtime changes.
+        let (mut cur_parse, mut cur_parse_noop, mut cur_filter, mut cur_format, mut cur_transport) = {
+            let cfg = shared.read().unwrap();
+            (
+                resolve(&cfg.plugins.parse),
+                cfg.plugins.parse_noop.as_deref().map(|p| resolve(p)),
+                resolve(&cfg.plugins.filter),
+                resolve(&cfg.plugins.format),
+                resolve(&cfg.plugins.transport),
+            )
+        };
+        let mut mt_parse      = file_mtime(&cur_parse);
+        let mut mt_parse_noop = cur_parse_noop.as_deref().and_then(|p| file_mtime(p));
+        let mut mt_filter     = file_mtime(&cur_filter);
+        let mut mt_format     = file_mtime(&cur_format);
+        let mut mt_transport  = file_mtime(&cur_transport);
+
+        loop {
+            let reload_secs = shared.read().unwrap().config_reload_secs;
+            thread::sleep(Duration::from_secs(reload_secs));
+
+            match load_app_config(&path) {
+                Ok(new_cfg) => {
+                    let new_plugins = new_cfg.plugins.clone();
+                    *shared.write().unwrap() = new_cfg;
+
+                    let mut any_plugin_changed = false;
+
+                    // ── parse ──────────────────────────────────────────────────
+                    {
+                        let new = resolve(&new_plugins.parse);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_parse || new_mt != mt_parse {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(&slots.parse, &new, false, "parse") {
+                                cur_parse = new;
+                                mt_parse = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── parse_noop ─────────────────────────────────────────────
+                    if let (Some(slot), Some(new_raw)) =
+                        (&slots.parse_noop, &new_plugins.parse_noop)
+                    {
+                        let new = resolve(new_raw);
+                        let new_mt = file_mtime(&new);
+                        let old = cur_parse_noop.as_deref().unwrap_or("");
+                        if new != old || new_mt != mt_parse_noop {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, false, "parse_noop") {
+                                cur_parse_noop = Some(new);
+                                mt_parse_noop = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── filter ─────────────────────────────────────────────────
+                    if let Some(ref slot) = slots.filter {
+                        let new = resolve(&new_plugins.filter);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_filter || new_mt != mt_filter {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, false, "filter") {
+                                cur_filter = new;
+                                mt_filter = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── format ─────────────────────────────────────────────────
+                    if let Some(ref slot) = slots.format {
+                        let new = resolve(&new_plugins.format);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_format || new_mt != mt_format {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, false, "format") {
+                                cur_format = new;
+                                mt_format = new_mt;
+                            }
+                        }
+                    }
+
+                    // ── transport ──────────────────────────────────────────────
+                    if let Some(ref slot) = slots.transport {
+                        let new = resolve(&new_plugins.transport);
+                        let new_mt = file_mtime(&new);
+                        if new != cur_transport || new_mt != mt_transport {
+                            any_plugin_changed = true;
+                            if crate::app::rebuild_shared_slot(slot, &new, true, "transport") {
+                                cur_transport = new;
+                                mt_transport = new_mt;
+                            }
+                        }
+                    }
+
+                    if any_plugin_changed {
+                        eprintln!("[config] plugin swap(s) complete — pipeline will apply on next batch");
+                    } else {
+                        eprintln!("[config] batch params reloaded (no plugin changes)");
+                    }
+                }
+                Err(e) => eprintln!("[config] reload failed: {}", e),
+            }
+        }
+    });
+}
 
 #[derive(Debug, Clone)]
 pub struct BatchConfig {
@@ -33,10 +284,10 @@ impl Default for BatchConfig {
         Self {
             mem_limit_mb: 256,
             safe_data_ratio: 0.5,
-            max_wait: Duration::from_millis(500),
+            max_wait: Duration::from_millis(5000),
             max_batch_lines: 50_000,
             channel_capacity: 150_000,
-            max_format_chunk: 50000,
+            max_format_chunk: 50_000,
             transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
             max_transport_bytes: 128 * 1024,
             transport_workers: 5,
@@ -58,7 +309,10 @@ impl BatchConfig {
         //          → MyLimiter::new(mem_limit_bytes) 限制每個 WASM store 的線性記憶體上限
         // BUG: main.rs:44 用了 cfg.mem_limit_mb 而非 * 1024*1024，safe_data_budget 計算錯誤
         if self.mem_limit_mb < 64 {
-            return Err(format!("mem_limit_mb={} 過小（建議 >= 64 MB）", self.mem_limit_mb));
+            return Err(format!(
+                "mem_limit_mb={} 過小（建議 >= 64 MB）",
+                self.mem_limit_mb
+            ));
         }
 
         // safe_data_ratio
@@ -67,7 +321,10 @@ impl BatchConfig {
         // 注意: main.rs 也計算了 safe_data_budget 但因 mem_limit_bytes bug 導致實際為 179 bytes，
         //       該值只用於 print_startup，不影響 parse_loop 的判斷。
         if !(0.0 < self.safe_data_ratio && self.safe_data_ratio < 1.0) {
-            return Err(format!("safe_data_ratio={} 必須在 (0.0, 1.0) 之間", self.safe_data_ratio));
+            return Err(format!(
+                "safe_data_ratio={} 必須在 (0.0, 1.0) 之間",
+                self.safe_data_ratio
+            ));
         }
 
         // max_wait
@@ -151,46 +408,80 @@ impl BatchConfig {
     pub fn print_config_table(&self) {
         let default = BatchConfig::default();
         let rows: &[(&str, String, &str, bool)] = &[
-            ("mem_limit_mb",       format!("{} MB", self.mem_limit_mb),
-             "每個 WASM store 線性記憶體上限 (runtime.rs MyLimiter)",
-             self.mem_limit_mb == default.mem_limit_mb),
-            ("safe_data_ratio",    format!("{:.0}%", self.safe_data_ratio * 100.0),
-             "parse batch size 觸發提前 flush 的閾值 (runtime.rs parse_loop)",
-             self.safe_data_ratio == default.safe_data_ratio),
-            ("max_wait",           format!("{} ms", self.max_wait.as_millis()),
-             "parse 時間觸發 flush 的等待上限 (runtime.rs parse_loop recv_timeout)",
-             self.max_wait == default.max_wait),
-            ("max_batch_lines",    format!("{}", self.max_batch_lines),
-             "parse 行數觸發 flush 的上限 (runtime.rs parse_loop)",
-             self.max_batch_lines == default.max_batch_lines),
-            ("channel_capacity",   format!("{}", self.channel_capacity),
-             "stdin→parse LineItem channel 容量 [注意: parsed/formatted channel 硬編碼 20000]",
-             self.channel_capacity == default.channel_capacity),
-            ("max_format_chunk",   format!("{}", self.max_format_chunk),
-             "format plugin 每次呼叫的最大 entry 數 (runtime.rs format_loop chunks)",
-             self.max_format_chunk == default.max_format_chunk),
-            ("transport_endpoint", self.transport_endpoint.clone(),
-             "transport plugin init() 目標 URL (runtime.rs make_transport_config_val)",
-             self.transport_endpoint == default.transport_endpoint),
-            ("max_transport_bytes",format!("{} KB", self.max_transport_bytes / 1024),
-             "每次 transport send() 的最大 byte 數 = 一個 HTTP POST 大小",
-             self.max_transport_bytes == default.max_transport_bytes),
-            ("transport_workers",  format!("{}", self.transport_workers),
-             "並行 transport worker 數量，每個持有獨立 WASM store",
-             self.transport_workers == default.transport_workers),
+            (
+                "mem_limit_mb",
+                format!("{} MB", self.mem_limit_mb),
+                "每個 WASM store 線性記憶體上限 (runtime.rs MyLimiter)",
+                self.mem_limit_mb == default.mem_limit_mb,
+            ),
+            (
+                "safe_data_ratio",
+                format!("{:.0}%", self.safe_data_ratio * 100.0),
+                "parse batch size 觸發提前 flush 的閾值 (runtime.rs parse_loop)",
+                self.safe_data_ratio == default.safe_data_ratio,
+            ),
+            (
+                "max_wait",
+                format!("{} ms", self.max_wait.as_millis()),
+                "parse 時間觸發 flush 的等待上限 (runtime.rs parse_loop recv_timeout)",
+                self.max_wait == default.max_wait,
+            ),
+            (
+                "max_batch_lines",
+                format!("{}", self.max_batch_lines),
+                "parse 行數觸發 flush 的上限 (runtime.rs parse_loop)",
+                self.max_batch_lines == default.max_batch_lines,
+            ),
+            (
+                "channel_capacity",
+                format!("{}", self.channel_capacity),
+                "stdin→parse LineItem channel 容量 [注意: parsed/formatted channel 硬編碼 20000]",
+                self.channel_capacity == default.channel_capacity,
+            ),
+            (
+                "max_format_chunk",
+                format!("{}", self.max_format_chunk),
+                "format plugin 每次呼叫的最大 entry 數 (runtime.rs format_loop chunks)",
+                self.max_format_chunk == default.max_format_chunk,
+            ),
+            (
+                "transport_endpoint",
+                self.transport_endpoint.clone(),
+                "transport plugin init() 目標 URL (runtime.rs make_transport_config_val)",
+                self.transport_endpoint == default.transport_endpoint,
+            ),
+            (
+                "max_transport_bytes",
+                format!("{} KB", self.max_transport_bytes / 1024),
+                "每次 transport send() 的最大 byte 數 = 一個 HTTP POST 大小",
+                self.max_transport_bytes == default.max_transport_bytes,
+            ),
+            (
+                "transport_workers",
+                format!("{}", self.transport_workers),
+                "並行 transport worker 數量，每個持有獨立 WASM store",
+                self.transport_workers == default.transport_workers,
+            ),
         ];
 
         eprintln!("┌{:─<28}┬{:─<14}┬{:─<7}┬{:─<58}┐", "", "", "", "");
-        eprintln!("│ {:26} │ {:12} │ {:5} │ {:56} │", "參數", "值", "預設", "用途");
+        eprintln!(
+            "│ {:26} │ {:12} │ {:5} │ {:56} │",
+            "參數", "值", "預設", "用途"
+        );
         eprintln!("├{:─<28}┼{:─<14}┼{:─<7}┼{:─<58}┤", "", "", "", "");
         for (name, val, desc, is_default) in rows {
-            eprintln!("│ {:26} │ {:12} │ {:5} │ {:56} │",
-                name, val, if *is_default { "✓" } else { "●" }, desc);
+            eprintln!(
+                "│ {:26} │ {:12} │ {:5} │ {:56} │",
+                name,
+                val,
+                if *is_default { "✓" } else { "●" },
+                desc
+            );
         }
         eprintln!("└{:─<28}┴{:─<14}┴{:─<7}┴{:─<58}┘", "", "", "", "");
     }
 }
-
 
 /// 追蹤 channel 目前積壓的條數與 byte 數。
 /// Clone 後共享同一組 Atomic，可分別交給 sender thread 和 receiver thread。
@@ -237,11 +528,21 @@ pub struct Batch {
 
 impl Batch {
     pub fn new() -> Self {
-        Self { lines: Vec::new(), bytes: 0, created_at: Instant::now() }
+        Self {
+            lines: Vec::new(),
+            bytes: 0,
+            created_at: Instant::now(),
+        }
     }
-    pub fn is_empty(&self) -> bool { self.lines.is_empty() }
-    pub fn len(&self) -> usize { self.lines.len() }
-    pub fn elapsed(&self) -> Duration { self.created_at.elapsed() }
+    pub fn is_empty(&self) -> bool {
+        self.lines.is_empty()
+    }
+    pub fn len(&self) -> usize {
+        self.lines.len()
+    }
+    pub fn elapsed(&self) -> Duration {
+        self.created_at.elapsed()
+    }
     pub fn push(&mut self, line: String) {
         self.bytes += line.len();
         self.lines.push(line);
@@ -262,6 +563,15 @@ pub struct FlushReason {
 
 // ── 統計結構 ──────────────────────────────────────────────────────────────
 
+#[derive(Clone, Copy, Default)]
+pub struct ParseDiffTiming {
+    pub noop_elapsed_ns: u64,
+    pub noop_component_ns: u64,
+    pub copy_in_ns: u64,
+    pub guest_ns: u64,
+    pub copy_out_ns: u64,
+}
+
 #[derive(Default)]
 pub struct ParseStats {
     pub total_batches: u64,
@@ -273,6 +583,22 @@ pub struct ParseStats {
     pub go_heap_peak_max: u64,
     /// WASM 線性記憶體峰值（各 batch 最大值）
     pub wasm_mem_peak_max: usize,
+    /// 累計 memory.grow 觸發次數（各 batch 加總）
+    pub total_grow_count: u64,
+    /// 累計 memory.grow 增量 bytes（各 batch 加總）
+    pub total_grow_delta_bytes: u64,
+    /// 累計 component 內部回報的執行時間 ns（各 batch 加總）
+    pub total_component_ns: u64,
+    /// 差分量測成功的 batch 數。
+    pub total_diff_batches: u64,
+    /// no-op parser 的整段 call_parse() 時間，用於估算 host→WCM copy-in。
+    pub total_noop_elapsed_ns: u64,
+    /// no-op parser 回報的 guest 端空邏輯時間。
+    pub total_noop_component_ns: u64,
+    /// 差分估算的 host→WCM copy-in 時間。
+    pub total_copy_in_ns: u64,
+    /// 差分估算的 WCM→host copy-out 時間。
+    pub total_copy_out_ns: u64,
 }
 
 #[derive(Default)]
@@ -283,6 +609,8 @@ pub struct FormatStats {
     pub total_elapsed: Duration,
     /// WASM 線性記憶體峰值（各 batch 最大值）
     pub wasm_mem_peak_max: usize,
+    /// 累計 component 內部回報的編碼邏輯時間 ns（各 batch 加總）
+    pub total_component_ns: u64,
 }
 
 #[derive(Default)]
@@ -297,4 +625,15 @@ pub struct TransportStats {
     pub total_elapsed: Duration,
     /// WASM 線性記憶體峰值
     pub wasm_mem_peak_max: usize,
+}
+
+#[derive(Default)]
+pub struct FilterStats {
+    pub total_batches: u64,
+    pub total_input_entries: u64,
+    pub total_kept_entries: u64,
+    pub total_dropped_entries: u64,
+    pub total_elapsed: Duration,
+    pub wasm_mem_peak_max: usize,
+    pub total_component_ns: u64,
 }
