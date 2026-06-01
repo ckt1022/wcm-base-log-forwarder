@@ -58,7 +58,7 @@ bindings:
 	@echo "Regenerated bindings from WIT."
 
 clean:
-	rm -f $(CORE_WASM) $(FINAL_WASM) $(OBJS)
+	rm -f $(CORE_WASM) $(FINAL_WASM) main.o cJSON.o parser_plugin.o
 
 check-tools:
 	@test -x "$(CLANG)" || { echo "ERROR: wasi-sdk not found at $(WASI_SDK_PATH)"; exit 1; }

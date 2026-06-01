@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{
     Arc, RwLock,
@@ -17,6 +18,7 @@ pub struct AppConfig {
     pub stages: PipelineStages,
     pub input: InputConfig,
     pub batch: BatchConfigRaw,
+    pub endpoint: EndpointSet,
     #[serde(default = "default_reload_secs")]
     pub config_reload_secs: u64,
 }
@@ -79,7 +81,8 @@ pub struct BatchConfigRaw {
     pub max_batch_lines: usize,
     pub channel_capacity: usize,
     pub max_format_chunk: usize,
-    pub transport_endpoint: String,
+    #[serde(default)]
+    pub transport_endpoint: Option<String>,
     pub max_transport_bytes: usize,
     pub transport_workers: usize,
 }
@@ -99,6 +102,9 @@ impl From<BatchConfigRaw> for BatchConfig {
         }
     }
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct EndpointSet(pub HashMap<String, String>);
 
 /// Load and parse forwarder.yaml (or any path).
 pub fn load_app_config(path: &str) -> Result<AppConfig, String> {
@@ -266,8 +272,8 @@ pub struct BatchConfig {
     /// 每次呼叫 format plugin 的最大 entry 數。
     /// TinyGo GC 在大批次時無法及時回收中間字串緩衝區，需分批呼叫。
     pub max_format_chunk: usize,
-    /// Transport plugin 目標端點 URL。
-    pub transport_endpoint: String,
+    /// Transport plugin 目標端點 URL（已由 endpoint map 取代，保留供相容）。
+    pub transport_endpoint: Option<String>,
     /// 每次呼叫 transport send() 的最大累積 byte 數（一次對應一個 HTTP POST）。
     /// WASI blocking-write-and-flush 單次寫入上限為 4096 B（sync/async 皆適用）；
     /// plugin 必須在內部分批寫入 HTTP body（每次 ≤ 4096 B）。
@@ -288,7 +294,7 @@ impl Default for BatchConfig {
             max_batch_lines: 50_000,
             channel_capacity: 150_000,
             max_format_chunk: 50_000,
-            transport_endpoint: String::from("http://127.0.0.1:8080/ingest"),
+            transport_endpoint: None,
             max_transport_bytes: 128 * 1024,
             transport_workers: 5,
         }
@@ -369,16 +375,14 @@ impl BatchConfig {
             );
         }
 
-        // transport_endpoint
-        // used at: runtime.rs transport_worker → make_transport_config_val(endpoint)
-        //          → 傳入 transport WASM plugin 的 init() 作為目標 URL
-        if !self.transport_endpoint.starts_with("http://")
-            && !self.transport_endpoint.starts_with("https://")
-        {
-            return Err(format!(
-                "transport_endpoint='{}' 不是合法的 HTTP/HTTPS URL",
-                self.transport_endpoint
-            ));
+        // transport_endpoint（選填，路由改由 endpoint map 負責）
+        if let Some(ep) = &self.transport_endpoint {
+            if !ep.starts_with("http://") && !ep.starts_with("https://") {
+                return Err(format!(
+                    "transport_endpoint='{}' 不是合法的 HTTP/HTTPS URL",
+                    ep
+                ));
+            }
         }
 
         // max_transport_bytes
@@ -446,8 +450,8 @@ impl BatchConfig {
             ),
             (
                 "transport_endpoint",
-                self.transport_endpoint.clone(),
-                "transport plugin init() 目標 URL (runtime.rs make_transport_config_val)",
+                self.transport_endpoint.clone().unwrap_or_else(|| "(via endpoint map)".to_string()),
+                "transport plugin init() 目標 URL（已由 endpoint map 取代）",
                 self.transport_endpoint == default.transport_endpoint,
             ),
             (

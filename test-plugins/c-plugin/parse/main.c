@@ -77,6 +77,23 @@ static void collect_all_tags(cJSON *root, parser_plugin_list_tuple2_string_strin
 }
 
 /**
+ * 根據 log level 回傳 route 標籤（同 Go plugin 的 routeTag 邏輯）
+ */
+static const char* route_tag_c(uint8_t level) {
+    switch (level) {
+    case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_ERROR:
+    case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_CRIT:
+    case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_ALERT:
+    case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_EMERG:
+        return "AB";
+    case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_WARN:
+        return "BC";
+    default:
+        return "C";
+    }
+}
+
+/**
  * 映射字串 Log Level 到系統定義的數值
  */
 static uint8_t map_level(const char *level_str) {
@@ -126,6 +143,9 @@ bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data,
 
         // 4. 自動收集所有標籤 (含根目錄非保留欄位與 att 物件)
         collect_all_tags(root, &ret->ptr[i].tags);
+
+        // 5. 設定 route 標籤
+        parser_plugin_string_dup(&ret->ptr[i].targettag, route_tag_c(ret->ptr[i].level));
 
         cJSON_Delete(root);
         g_processed_records++;

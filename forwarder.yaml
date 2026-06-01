@@ -2,9 +2,14 @@
 # All plugin paths are relative to this file's directory (or absolute).
 
 plugins:
+  # C# Parser
   #parse: "test-plugins/csharp-plugin/parse/parser_csharp.wasm"
-  #parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
-  parse: "test-plugins/go-plugin/parse_str/parser_json.wasm"
+  # C  Parser
+  parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
+  # GO Parser
+  #parse: "test-plugins/go-plugin/parse/parser_json.wasm"
+  #parse: "test-plugins/go-plugin/parse/parser_sys.wasm"
+  #parse: "test-plugins/go-plugin/parse/parser_fmt.wasm"
   parse_noop: ~
 
   filter: "test-plugins/csharp-plugin/filter/filter_csharp.wasm"
@@ -40,6 +45,12 @@ batch:
   transport_endpoint: "http://127.0.0.1:8080/ingest"
   max_transport_bytes: 131072
   transport_workers: 5
+
+# 後端transport的標籤，可以有多個，以字母方式排序。
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+  B: "http://127.0.0.1:8000/ingest"
+  C: "http://127.0.0.1:5000/ingest"
 
 # How often (seconds) to re-read this file and apply changes
 config_reload_secs: 10

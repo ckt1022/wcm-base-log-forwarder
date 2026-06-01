@@ -133,13 +133,13 @@ digest = "sha256:e7e854..."
 
 ```bash
 wkg wit build --wit-dir wit/
-# 輸出檔名由 WIT package 宣告決定：local:log-process.wasm
+# 輸出檔名由 WIT package 宣告決定：local:log-process@0.3.0.wasm
 ```
 
 驗證內容：
 
 ```bash
-wasm-tools component wit local:log-process.wasm
+wasm-tools component wit local:log-process@0.3.0.wasm
 ```
 
 ---
@@ -154,7 +154,7 @@ wit-bindgen-go generate \
   --world parser-plugin \
   --out internal/ \
   --package-root example.com/internal \
-  local:log-process@0.2.0.wasm
+  local:log-process@0.3.0.wasm
 ```
 
 產生的目錄結構：
@@ -290,7 +290,7 @@ PATH="/usr/local/go/bin:$PATH" \
 tinygo build \
   -target=wasip2 \
   -o parser.wasm \
-  --wit-package local:log-process.wasm \
+  --wit-package local:log-process@0.3.0.wasm \
   --wit-world parser-plugin \
   main.go
 ```
@@ -314,7 +314,7 @@ wasm-tools component wit parser.wasm
 ```bash
 GOROOT=/usr/local/go PATH="/usr/local/go/bin:$PATH" \
 tinygo build -target=wasip2 -o parser.wasm \
-  --wit-package local:log-process@0.2.0.wasm --wit-world parser-plugin main.go
+  --wit-package local:log-process@0.3.0.wasm --wit-world parser-plugin main.go
 ```
 
 **修改了 `wit/log_plugin.wit`：**

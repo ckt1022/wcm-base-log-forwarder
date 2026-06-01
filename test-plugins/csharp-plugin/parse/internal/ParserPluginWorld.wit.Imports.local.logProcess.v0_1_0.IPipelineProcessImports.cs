@@ -24,12 +24,14 @@ public interface IPipelineProcessImports {
         public LogLevel level;
         public string message;
         public global::System.Collections.Generic.List<(string, string)> tags;
+        public string targettag;
 
-        public ParsedEntry(string timestamp, LogLevel level, string message, global::System.Collections.Generic.List<(string, string)> tags) {
+        public ParsedEntry(string timestamp, LogLevel level, string message, global::System.Collections.Generic.List<(string, string)> tags, string targettag) {
             this.timestamp = timestamp;
             this.level = level;
             this.message = message;
             this.tags = tags;
+            this.targettag = targettag;
         }
     }
 

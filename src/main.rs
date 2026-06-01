@@ -18,6 +18,10 @@ fn main() -> wasmtime::Result<()> {
         Err(e) => { eprintln!("[config] {}", e); std::process::exit(1); }
     };
 
+    //for (name, url) in &app_cfg.endpoint.0 {
+    //    println!("endpoint {} = {}", name, url);
+    //}
+
     let batch_cfg = BatchConfig::from(app_cfg.batch.clone());
     if let Err(e) = batch_cfg.validate_and_describe() {
         eprintln!("[config-error] {}", e);

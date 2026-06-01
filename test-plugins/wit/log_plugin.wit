@@ -151,19 +151,6 @@ world parser-plugin {
     export report-usage: func() -> u64;
 }
 
-// ─────────────────────────────────────────────
-// enricher-plugin
-// 回傳 enrich-result，host 依 id 將 additional-tags 合併進原始 log-entry
-// ─────────────────────────────────────────────
-world enricher-plugin {
-    use pipeline-process.{log-entry, enrich-result, plugin-error};
-
-    export enrich: func(
-        struct-data: list<log-entry>
-    ) -> result<list<enrich-result>, plugin-error>;
-
-    export report-usage: func() -> u64;
-}
 
 // ─────────────────────────────────────────────
 // reduction-plugin
@@ -175,36 +162,6 @@ world reduction-plugin {
     export filter: func(
         struct-data: list<log-entry>
     ) -> result<list<filter-result>, plugin-error>;
-
-    export report-usage: func() -> u64;
-}
-
-// ─────────────────────────────────────────────
-// route-plugin
-// 回傳 route-result，host 依 id 取得 URL 後執行實際轉送
-// ─────────────────────────────────────────────
-world route-plugin {
-    use pipeline-process.{log-entry, route-result, plugin-error};
-
-    export route: func(
-        struct-data: list<log-entry>
-    ) -> result<list<route-result>, plugin-error>;
-
-    export report-usage: func() -> u64;
-}
-
-// ─────────────────────────────────────────────
-// masking-plugin
-// 唯一允許回傳修改後 log-entry 的插件
-// 因為欄位值替換（message 遮罩）是結構性修改，host 無法代勞
-// host 收到後以 id 確認對應關係，再用修改後版本替換原始版本
-// ─────────────────────────────────────────────
-world masking-plugin {
-    use pipeline-process.{log-entry, plugin-error};
-
-    export mask: func(
-        struct-data: list<log-entry>
-    ) -> result<list<log-entry>, plugin-error>;
 
     export report-usage: func() -> u64;
 }

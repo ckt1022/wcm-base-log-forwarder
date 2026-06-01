@@ -23,7 +23,7 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
     );
     eprintln!("Stages       : {}", stage_str);
     if stages.transport {
-        eprintln!("Endpoint     : {}", cfg.transport_endpoint);
+        eprintln!("Endpoint     : {}", cfg.transport_endpoint.as_deref().unwrap_or("(via endpoint map)"));
     }
     eprintln!("========================");
 }

@@ -205,12 +205,12 @@ namespace ParserPluginWorld {
                         global::System.Collections.Generic.List<global::ParserPluginWorld.wit.Imports.local.logProcess.v0_1_0.IPipelineProcessImports.ParsedEntry> payload = ret.AsOk;
                         *(byte*)(ptr + 0) = (byte)0;
 
-                        var bufferSize24 = 28 * (nuint)payload.Count;
+                        var bufferSize24 = 36 * (nuint)payload.Count;
                         void* address23 = global::System.Runtime.InteropServices.NativeMemory.AlignedAlloc(bufferSize24, 4);
 
                         for (int index22 = 0; index22 < payload.Count; ++index22) {
                             global::ParserPluginWorld.wit.Imports.local.logProcess.v0_1_0.IPipelineProcessImports.ParsedEntry element2 = payload[index22];
-                            int basePtr3 = (int)address23 + (index22 * 28);
+                            int basePtr3 = (int)address23 + (index22 * 36);
 
                             var stringSpan = global::System.MemoryExtensions.AsSpan(element2.timestamp);
                             var length = global::System.Text.Encoding.UTF8.GetByteCount(stringSpan);
@@ -255,6 +255,14 @@ namespace ParserPluginWorld {
                             }
                             new global::System.Span<int>((void*)((byte*)basePtr3 + 24), 1)[0] = element2.tags.Count;
                             new global::System.Span<nint>((void*)((byte*)basePtr3 + 20), 1)[0] = (nint)(int)address;
+
+                            var stringSpanTt = global::System.MemoryExtensions.AsSpan(element2.targettag);
+                            var lengthTt = global::System.Text.Encoding.UTF8.GetByteCount(stringSpanTt);
+                            var strPtrTt = global::System.Runtime.InteropServices.NativeMemory.Alloc((nuint)lengthTt);
+                            global::System.Text.Encoding.UTF8.GetBytes(stringSpanTt, new global::System.Span<byte>(strPtrTt, lengthTt));
+
+                            new global::System.Span<int>((void*)((byte*)basePtr3 + 32), 1)[0] = lengthTt;
+                            new global::System.Span<nint>((void*)((byte*)basePtr3 + 28), 1)[0] = (nint)(int)strPtrTt;
 
                         }
                         new global::System.Span<int>((void*)((byte*)ptr + 8), 1)[0] = payload.Count;
@@ -314,7 +322,7 @@ namespace ParserPluginWorld {
                     case 0: {
 
                         for (int index4 = 0; index4 < new global::System.Span<int>((void*)((byte*)p0 + 8), 1)[0]; ++index4) {
-                            int basePtr1 = (int)new global::System.Span<nint>((void*)((byte*)p0 + 4), 1)[0] + (index4 * 28);
+                            int basePtr1 = (int)new global::System.Span<nint>((void*)((byte*)p0 + 4), 1)[0] + (index4 * 36);
                             global::System.Runtime.InteropServices.NativeMemory.Free((void*)new global::System.Span<nint>((void*)((byte*)basePtr1 + 0), 1)[0]);
                             global::System.Runtime.InteropServices.NativeMemory.Free((void*)new global::System.Span<nint>((void*)((byte*)basePtr1 + 12), 1)[0]);
 
@@ -325,6 +333,7 @@ namespace ParserPluginWorld {
 
                             }
                             global::System.Runtime.InteropServices.NativeMemory.Free((void*)new global::System.Span<nint>((void*)((byte*)basePtr1 + 20), 1)[0]);
+                            global::System.Runtime.InteropServices.NativeMemory.Free((void*)new global::System.Span<nint>((void*)((byte*)basePtr1 + 28), 1)[0]);
 
                         }
                         global::System.Runtime.InteropServices.NativeMemory.Free((void*)new global::System.Span<nint>((void*)((byte*)p0 + 4), 1)[0]);

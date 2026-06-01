@@ -26,20 +26,27 @@ use crate::config::{
 };
 use crate::output::{
     print_filter_batch, print_flush_header, print_format_batch, print_parse_aggregate,
-    print_parse_batch, print_pipeline_summary, print_transport_batch,
+    print_parse_batch, print_pipeline_summary,
 };
 
 // ── 階段間傳遞的批次結構 ────────────────────────────────────────────────────
 
 struct ParsedBatch {
     entries: Vec<LogEntry>,
+    targettags: Vec<String>,
     seq: u64,
 }
 
 struct FormattedBatch {
     lines: Vec<Vec<u8>>,
+    targettags: Vec<String>,
     seq: u64,
     total_bytes: usize,
+}
+
+struct SendTask {
+    url: String,
+    lines: Vec<Vec<u8>>,
 }
 
 // ── Parse 平行化常數與 WorkBatch ──────────────────────────────────────────────
@@ -202,12 +209,11 @@ pub fn run_pipeline(
     cfg: Arc<RwLock<AppConfig>>,
 ) -> wasmtime::Result<()> {
     // Extract fixed startup values from the initial config snapshot.
-    let (mem_limit_bytes, endpoint, max_format_chunk, max_transport_bytes, transport_workers) = {
+    let (mem_limit_bytes, max_format_chunk, max_transport_bytes, transport_workers) = {
         let c = cfg.read().unwrap();
         let b = BatchConfig::from(c.batch.clone());
         (
             b.mem_limit_mb * 1024 * 1024,
-            b.transport_endpoint.clone(),
             b.max_format_chunk,
             b.max_transport_bytes,
             b.transport_workers,
@@ -270,32 +276,35 @@ pub fn run_pipeline(
         None
     };
 
-    // ── Transport thread (async, N workers) ───────────────────────────────────
+    // ── Transport thread (router + N async workers) ───────────────────────────
     let transport_handle = if let Some(shared) = transport {
         Some(thread::spawn(move || {
-            let rx_shared = Arc::new(Mutex::new(rx_formatted));
+            // router → workers 的工作佇列
+            let (tx_work, rx_work) = std::sync::mpsc::sync_channel::<SendTask>(1024);
+            let rx_work_shared = Arc::new(Mutex::new(rx_work));
+
+            // router thread：接 FormattedBatch，依 targettag 分流到 per-endpoint buffer，
+            // buffer 滿了就推 SendTask 進工作佇列。
+            let cfg_for_router = Arc::clone(&cfg);
+            let router_handle = thread::spawn(move || {
+                transport_router(rx_formatted, tx_work, cfg_for_router, max_transport_bytes);
+            });
+
+            // N transport workers：搶 SendTask，每次建立新 WASM 實例發送。
             let mut worker_handles = Vec::new();
-
             for i in 0..transport_workers {
-                let rx = Arc::clone(&rx_shared);
+                let rx = Arc::clone(&rx_work_shared);
                 let sh = Arc::clone(&shared);
-                let ep = endpoint.clone();
-
                 worker_handles.push(thread::spawn(move || {
                     tokio::runtime::Builder::new_current_thread()
                         .enable_all()
                         .build()
                         .unwrap()
-                        .block_on(transport_worker(
-                            rx,
-                            sh,
-                            mem_limit_bytes,
-                            ep,
-                            max_transport_bytes,
-                            i,
-                        ))
+                        .block_on(transport_worker(rx, sh, mem_limit_bytes, max_transport_bytes, i))
                 }));
             }
+
+            let _ = router_handle.join();
 
             let mut combined = TransportStats::default();
             for h in worker_handles {
@@ -697,17 +706,20 @@ fn do_parse_batch(
             let grow_delta_bytes = inst.store.data().limiter.grow_total_delta_bytes;
             let inst_id = inst.id;
 
-            let entries: Vec<LogEntry> = parsed
+            let (entries, targettags): (Vec<LogEntry>, Vec<String>) = parsed
                 .into_iter()
                 .enumerate()
-                .map(|(i, p): (usize, ParsedEntry)| LogEntry {
-                    id: seq * 100_000 + i as u64,
-                    timestamp: p.timestamp,
-                    level: p.level,
-                    message: p.message,
-                    tags: p.tags,
+                .map(|(i, p): (usize, ParsedEntry)| {
+                    let e = LogEntry {
+                        id: seq * 100_000 + i as u64,
+                        timestamp: p.timestamp,
+                        level: p.level,
+                        message: p.message,
+                        tags: p.tags,
+                    };
+                    (e, p.targettag)
                 })
-                .collect();
+                .unzip();
 
             if let Some(first) = entries.first() {
                 if let Some(tag) = first.tags.first() {
@@ -769,7 +781,7 @@ fn do_parse_batch(
                 stats.wasm_mem_peak_max = wasm_mem_peak;
             }
 
-            Some(ParsedBatch { entries, seq })
+            Some(ParsedBatch { entries, targettags, seq })
         }
         Ok(Err(e)) => {
             eprintln!("[worker{}][parse-error] batch={} {:?}", worker_id, seq, e);
@@ -908,11 +920,12 @@ fn filter_loop(
                             .map(|r| r.id)
                             .collect();
 
-                        let filtered: Vec<LogEntry> = pb
+                        let (filtered, kept_tags): (Vec<LogEntry>, Vec<String>) = pb
                             .entries
                             .into_iter()
-                            .filter(|e| keep_ids.contains(&e.id))
-                            .collect();
+                            .zip(pb.targettags.into_iter())
+                            .filter(|(e, _)| keep_ids.contains(&e.id))
+                            .unzip();
 
                         let kept = filtered.len();
                         let dropped = input_count - kept;
@@ -939,7 +952,7 @@ fn filter_loop(
                         }
 
                         if !filtered.is_empty() {
-                            let out = ParsedBatch { entries: filtered, seq };
+                            let out = ParsedBatch { entries: filtered, targettags: kept_tags, seq };
                             if tx.send(out).is_err() {
                                 break;
                             }
@@ -1102,8 +1115,13 @@ fn format_loop(
                         stats.wasm_mem_peak_max = batch_wasm_peak;
                     }
 
+                    debug_assert_eq!(
+                        all_lines.len(), pb.targettags.len(),
+                        "format: lines/targettags length mismatch (batch={})", pb.seq
+                    );
                     let fb = FormattedBatch {
                         lines: all_lines,
+                        targettags: pb.targettags,
                         seq: pb.seq,
                         total_bytes,
                     };
@@ -1117,6 +1135,81 @@ fn format_loop(
     }
 
     Ok(stats)
+}
+
+// ── Transport Router (sync) ───────────────────────────────────────────────────
+//
+// 從 FormattedBatch channel 收線，依 targettag 分流到各 endpoint 的 buffer。
+// fan-out："AB" → 同一條 line clone 後推入 buffer_A 和 buffer_B。
+// buffer 達 max_transport_bytes 或 timeout → 組成 SendTask 推給 N workers。
+
+fn transport_router(
+    rx: Receiver<FormattedBatch>,
+    tx_work: std::sync::mpsc::SyncSender<SendTask>,
+    cfg: Arc<RwLock<AppConfig>>,
+    max_transport_bytes: usize,
+) {
+    use std::collections::HashMap;
+
+    // key → (buffer, buffer_bytes)
+    let mut buffers: HashMap<String, (Vec<Vec<u8>>, usize)> = HashMap::new();
+    let max_wait = Duration::from_millis(
+        cfg.read().unwrap().batch.max_wait_ms,
+    );
+
+    let flush_buffer = |key: &str,
+                        buf: &mut Vec<Vec<u8>>,
+                        endpoint_map: &HashMap<String, String>,
+                        tx: &std::sync::mpsc::SyncSender<SendTask>| {
+        if buf.is_empty() { return; }
+        let url = match endpoint_map.get(key) {
+            Some(u) => u.clone(),
+            None => {
+                eprintln!("[router] unknown endpoint key '{}', dropping {} lines", key, buf.len());
+                buf.clear();
+                return;
+            }
+        };
+        let lines = std::mem::take(buf);
+        if tx.send(SendTask { url, lines }).is_err() {
+            eprintln!("[router] worker channel closed");
+        }
+    };
+
+    loop {
+        match rx.recv_timeout(max_wait) {
+            Ok(batch) => {
+                let endpoint_map = cfg.read().unwrap().endpoint.0.clone();
+                for (line, tag) in batch.lines.into_iter().zip(batch.targettags.iter()) {
+                    for key in tag.chars().map(|c| c.to_string()) {
+                        let (buf, buf_bytes) = buffers.entry(key.clone()).or_default();
+                        *buf_bytes += line.len();
+                        buf.push(line.clone());
+                        if *buf_bytes >= max_transport_bytes {
+                            let (buf, buf_bytes) = buffers.get_mut(&key).unwrap();
+                            flush_buffer(&key, buf, &endpoint_map, &tx_work);
+                            *buf_bytes = 0;
+                        }
+                    }
+                }
+            }
+            Err(RecvTimeoutError::Timeout) => {
+                let endpoint_map = cfg.read().unwrap().endpoint.0.clone();
+                for (key, (buf, buf_bytes)) in &mut buffers {
+                    flush_buffer(key, buf, &endpoint_map, &tx_work);
+                    *buf_bytes = 0;
+                }
+            }
+            Err(RecvTimeoutError::Disconnected) => {
+                let endpoint_map = cfg.read().unwrap().endpoint.0.clone();
+                for (key, (buf, buf_bytes)) in &mut buffers {
+                    flush_buffer(key, buf, &endpoint_map, &tx_work);
+                    *buf_bytes = 0;
+                }
+                break;
+            }
+        }
+    }
 }
 
 // ── Transport Worker (async) ──────────────────────────────────────────────────
@@ -1142,16 +1235,12 @@ async fn build_transport_store(
 }
 
 async fn transport_worker(
-    rx: Arc<Mutex<Receiver<FormattedBatch>>>,
+    rx: Arc<Mutex<std::sync::mpsc::Receiver<SendTask>>>,
     shared: SharedPlugin,
     mem_limit_bytes: usize,
-    endpoint: String,
     max_chunk_bytes: usize,
-    _id: usize,
+    id: usize,
 ) -> wasmtime::Result<TransportStats> {
-    let (mut store, mut plugin) = build_transport_store(&shared, mem_limit_bytes).await?;
-    let mut current_version = shared.read().unwrap().version;
-
     let make_config = |ep: &str| TransportConfig {
         endpoint: ep.to_string(),
         auth: AuthMethod::None,
@@ -1162,114 +1251,93 @@ async fn transport_worker(
         extra_headers: vec![],
         max_batch_bytes: 4096,
     };
-    match plugin.call_init(&mut store, &make_config(&endpoint)).await? {
-        Ok(()) => {}
-        Err(e) => {
-            eprintln!("[transport] init() failed: {:?}", e);
-            return Ok(TransportStats::default());
-        }
-    }
-    eprintln!("[transport] init() -> Ok  endpoint={}", endpoint);
 
     let mut stats = TransportStats::default();
 
     loop {
-        // Check for hot-reload while waiting for the next batch.
-        let recv_result = loop {
-            match rx.lock().unwrap().try_recv() {
-                Ok(b) => break Ok(b),
-                Err(std::sync::mpsc::TryRecvError::Empty) => {
-                    // Hot-reload check on each idle tick.
-                    let new_version = shared.read().unwrap().version;
-                    if new_version != current_version {
-                        eprintln!("[transport] plugin hot-swapped → v{}, reinitializing", new_version);
-                        match build_transport_store(&shared, mem_limit_bytes).await {
-                            Ok((s, p)) => {
-                                store = s; plugin = p; current_version = new_version;
-                                if let Ok(Err(e)) = plugin.call_init(&mut store, &make_config(&endpoint)).await {
-                                    eprintln!("[transport] reinit failed: {:?}", e);
-                                } else {
-                                    eprintln!("[transport] reinit OK  endpoint={}", endpoint);
-                                }
-                            }
-                            Err(e) => eprintln!("[transport] plugin reload failed (keeping old): {}", e),
-                        }
-                    }
-                    std::thread::sleep(Duration::from_millis(1));
-                }
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                    break Err(std::sync::mpsc::RecvError)
-                }
+        let task = match rx.lock().unwrap().recv() {
+            Ok(t) => t,
+            Err(_) => break,
+        };
+
+        // 每個 task 建立獨立 WASM 實例（stateless）
+        let (mut store, mut plugin) = match build_transport_store(&shared, mem_limit_bytes).await {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("[transport-{}] build store failed: {}", id, e);
+                continue;
             }
         };
-        match recv_result {
-            Ok(batch) => {
-                let seq = batch.seq;
-                let batch_started = Instant::now();
-                let mut batch_ok = true;
-                let mut batch_lines_sent: usize = 0;
-                let mut batch_bytes_sent: usize = 0;
-                let mut batch_wasm_peak: usize = 0;
 
-                let mut chunk_start = 0;
-                while chunk_start < batch.lines.len() {
-                    let mut chunk_end = chunk_start;
-                    let mut acc_bytes = 0usize;
-                    while chunk_end < batch.lines.len() {
-                        let line_len = batch.lines[chunk_end].len();
-                        if acc_bytes > 0 && acc_bytes + line_len > max_chunk_bytes {
-                            break;
-                        }
-                        acc_bytes += line_len;
-                        chunk_end += 1;
-                    }
-                    let chunk = &batch.lines[chunk_start..chunk_end];
-                    let chunk_bytes = acc_bytes;
+        match plugin.call_init(&mut store, &make_config(&task.url)).await {
+            Ok(Ok(())) => {}
+            Ok(Err(e)) => {
+                eprintln!("[transport-{}] init failed url={}: {:?}", id, task.url, e);
+                continue;
+            }
+            Err(e) => {
+                eprintln!("[transport-{}] init trap url={}: {}", id, task.url, e);
+                continue;
+            }
+        }
 
-                    match plugin.call_send(&mut store, chunk).await? {
-                        Ok(()) => {
-                            let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
-                            if wasm_mem_peak > batch_wasm_peak {
-                                batch_wasm_peak = wasm_mem_peak;
-                            }
-                            batch_lines_sent += chunk.len();
-                            batch_bytes_sent += chunk_bytes;
-                        }
-                        Err(e) => {
-                            eprintln!("[transport-error] send batch={}: {:?}", seq, e);
-                            batch_ok = false;
-                            break;
-                        }
-                    }
-                    chunk_start = chunk_end;
+        let batch_started = Instant::now();
+        let mut batch_ok = true;
+        let mut lines_sent: usize = 0;
+        let mut bytes_sent: usize = 0;
+        let mut wasm_peak: usize = 0;
+
+        let mut chunk_start = 0;
+        while chunk_start < task.lines.len() {
+            let mut chunk_end = chunk_start;
+            let mut acc_bytes = 0usize;
+            while chunk_end < task.lines.len() {
+                let line_len = task.lines[chunk_end].len();
+                if acc_bytes > 0 && acc_bytes + line_len > max_chunk_bytes {
+                    break;
                 }
+                acc_bytes += line_len;
+                chunk_end += 1;
+            }
+            let chunk = &task.lines[chunk_start..chunk_end];
+            let chunk_bytes = acc_bytes;
 
-                if batch_ok && batch_lines_sent > 0 {
-                    let elapsed = batch_started.elapsed();
-                    print_transport_batch(
-                        seq,
-                        batch_lines_sent,
-                        batch_bytes_sent,
-                        batch_wasm_peak,
-                        mem_limit_bytes,
-                        elapsed,
-                    );
-                    stats.total_batches += 1;
-                    stats.total_input_lines += batch_lines_sent as u64;
-                    stats.total_input_bytes += batch_bytes_sent as u64;
-                    stats.total_elapsed += elapsed;
-                    if batch_wasm_peak > stats.wasm_mem_peak_max {
-                        stats.wasm_mem_peak_max = batch_wasm_peak;
-                    }
+            match plugin.call_send(&mut store, chunk).await {
+                Ok(Ok(())) => {
+                    let peak = store.data().limiter.wasm_mem_peak;
+                    if peak > wasm_peak { wasm_peak = peak; }
+                    lines_sent += chunk.len();
+                    bytes_sent += chunk_bytes;
+                }
+                Ok(Err(e)) => {
+                    eprintln!("[transport-{}] send error url={}: {:?}", id, task.url, e);
+                    batch_ok = false;
+                    break;
+                }
+                Err(e) => {
+                    eprintln!("[transport-{}] send trap url={}: {}", id, task.url, e);
+                    batch_ok = false;
+                    break;
                 }
             }
-            Err(_) => break,
+            chunk_start = chunk_end;
+        }
+
+        if batch_ok && lines_sent > 0 {
+            let elapsed = batch_started.elapsed();
+            //eprintln!(
+            //    "[transport-{}] url={} lines={} bytes={} elapsed={:.1}ms",
+            //    id, task.url, lines_sent, bytes_sent, elapsed.as_secs_f64() * 1000.0
+            //);
+            stats.total_batches += 1;
+            stats.total_input_lines += lines_sent as u64;
+            stats.total_input_bytes += bytes_sent as u64;
+            stats.total_elapsed += elapsed;
+            if wasm_peak > stats.wasm_mem_peak_max {
+                stats.wasm_mem_peak_max = wasm_peak;
+            }
         }
     }
-
-    let bytes = plugin.call_report_usage(&mut store).await?;
-    stats.total_bytes_reported = bytes;
-    eprintln!("[transport] report-usage() -> {} bytes", bytes);
 
     Ok(stats)
 }

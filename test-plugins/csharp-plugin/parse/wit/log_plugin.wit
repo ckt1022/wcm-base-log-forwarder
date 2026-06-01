@@ -1,4 +1,4 @@
-package local:log-process@0.1.0;
+package local:log-process@0.3.0;
 
 // ─────────────────────────────────────────────
 // 核心共享型別
@@ -12,6 +12,7 @@ interface pipeline-process {
         level: log-level,
         message: string,
         tags: list<tuple<string, string>>,
+        targettag: string //用來route的標籤
     }
 
     /// 帶有 host 分配 id 的完整條目
@@ -81,65 +82,6 @@ interface pipeline-process {
 }
 
 // ─────────────────────────────────────────────
-// transport 專用型別（與核心型別分開，避免污染）
-// ─────────────────────────────────────────────
-interface transport-types {
-
-    variant auth-method {
-        none,
-        bearer-token(string),
-        basic-auth(basic-credential),
-        api-key(api-key-config),
-    }
-
-    record basic-credential {
-        username: string,
-        password: string,
-    }
-
-    record api-key-config {
-        /// HTTP 標頭名稱，例如 "X-API-Key"、"Authorization"
-        header-name: string,
-        key: string,
-    }
-
-    record retry-config {
-        max-retries: u32,
-        /// 第一次重試前的等待（毫秒）
-        initial-backoff-ms: u32,
-        /// 重試等待上限（毫秒）
-        max-backoff-ms: u32,
-    }
-
-    record tls-config {
-        /// false 代表跳過憑證驗證，僅用於內網測試
-        verify-peer: bool,
-        /// CA 憑證（PEM 格式），none 則使用系統預設 CA
-        ca-pem: option<string>,
-        /// mTLS 用戶端憑證（PEM 格式）
-        client-cert-pem: option<string>,
-        /// mTLS 用戶端私鑰（PEM 格式）
-        client-key-pem: option<string>,
-    }
-
-    record transport-config {
-        /// 目標端點，例如 "https://logs.example.com/ingest"
-        endpoint: string,
-        auth: auth-method,
-        /// TCP 連線超時（毫秒），0 = 無限等待
-        connect-timeout-ms: u32,
-        /// 完整請求超時（毫秒），0 = 無限等待
-        request-timeout-ms: u32,
-        retry: option<retry-config>,
-        tls: option<tls-config>,
-        /// 自訂 HTTP 標頭，例如追蹤 ID、來源標記
-        extra-headers: list<tuple<string, string>>,
-        /// 每批次最大位元組數，超過則分批發送，0 = 不限制
-        max-batch-bytes: u32,
-    }
-}
-
-// ─────────────────────────────────────────────
 // parser-plugin
 // 回傳 parsed-entry（無 id），host 統一分配 id 後轉為 log-entry
 // ─────────────────────────────────────────────
@@ -149,5 +91,4 @@ world parser-plugin {
 
     export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
-    export reset: func();
 }

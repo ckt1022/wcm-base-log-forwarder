@@ -12,7 +12,7 @@ interface pipeline-process {
         level: log-level,
         message: string,
         tags: list<tuple<string,string>>,
-        //targeturl: string //用來route的標籤
+        targettag: string //用來route的標籤
     }
 
     /// 帶有 host 分配 id 的完整條目

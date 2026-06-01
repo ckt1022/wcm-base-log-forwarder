@@ -427,7 +427,7 @@ void __wasm_export_exports_parser_plugin_parse_post_return(uint8_t * arg0) {
       if (len0 > 0) {
         uint8_t *ptr1 = *((uint8_t **) (arg0 + sizeof(void*)));
         for (size_t i2 = 0; i2 < len0; i2++) {
-          uint8_t *base = ptr1 + i2 * (7*sizeof(void*));
+          uint8_t *base = ptr1 + i2 * (9*sizeof(void*));
           (void) base;
           if ((*((size_t*) (base + sizeof(void*)))) > 0) {
             free(*((uint8_t **) (base + 0)));
@@ -449,6 +449,9 @@ void __wasm_export_exports_parser_plugin_parse_post_return(uint8_t * arg0) {
               }
             }
             free(ptr);
+          }
+          if ((*((size_t*) (base + (8*sizeof(void*))))) > 0) {
+            free(*((uint8_t **) (base + (7*sizeof(void*)))));
           }
         }
         free(ptr1);
@@ -474,7 +477,6 @@ void __wasm_export_exports_parser_plugin_parse_post_return(uint8_t * arg0) {
     }
   }
 }
-
 
 
 // Canonical ABI intrinsics
@@ -1143,6 +1145,7 @@ void wasi_sockets_ip_name_lookup_result_own_resolve_address_stream_error_code_fr
 void local_log_process_pipeline_process_parsed_entry_free(local_log_process_pipeline_process_parsed_entry_t *ptr) {
   parser_plugin_string_free(&ptr->timestamp);
   parser_plugin_string_free(&ptr->message);
+  parser_plugin_string_free(&ptr->targettag);
 }
 
 void local_log_process_pipeline_process_log_entry_free(local_log_process_pipeline_process_log_entry_t *ptr) {
@@ -4572,11 +4575,6 @@ __attribute__((__export_name__("report-usage")))
 int64_t __wasm_export_exports_parser_plugin_report_usage(void) {
   uint64_t ret = exports_parser_plugin_report_usage();
   return (int64_t) (ret);
-}
-
-__attribute__((__export_name__("reset")))
-void __wasm_export_exports_parser_plugin_reset(void) {
-  exports_parser_plugin_reset();
 }
 
 // Ensure that the *_component_type.o object is linked in

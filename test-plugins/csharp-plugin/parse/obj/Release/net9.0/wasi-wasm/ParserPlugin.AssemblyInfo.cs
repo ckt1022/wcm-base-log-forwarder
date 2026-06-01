@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ParserPlugin")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ab0e787d8cba0185a4afdc4321eaf3f7bd501d1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1ce295399fff0f7f52d31bd7446340a77113be21")]
 [assembly: System.Reflection.AssemblyProductAttribute("ParserPlugin")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ParserPlugin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -851,6 +851,7 @@ typedef struct local_log_process_pipeline_process_parsed_entry_t {
   local_log_process_pipeline_process_log_level_t   level;
   parser_plugin_string_t   message;
   parser_plugin_list_tuple2_string_string_t   tags;
+  parser_plugin_string_t   targettag;
 } local_log_process_pipeline_process_parsed_entry_t;
 
 // 帶有 host 分配 id 的完整條目
@@ -1127,7 +1128,6 @@ extern void wasi_random_insecure_seed_insecure_seed(parser_plugin_tuple2_u64_u64
 // Exported Functions from `parser-plugin`
 bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data, parser_plugin_list_parsed_entry_t *ret, parser_plugin_parse_error_t *err);
 uint64_t exports_parser_plugin_report_usage(void);
-void exports_parser_plugin_reset(void);
 
 // Helper Functions
 
