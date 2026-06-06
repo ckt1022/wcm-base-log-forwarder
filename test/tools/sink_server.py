@@ -70,7 +70,10 @@ class SinkHandler(BaseHTTPRequestHandler):
         for line in lines:
             try:
                 obj = json.loads(line)
-                write_ts = obj.get("write_ts")
+                # Fluent Bit json_lines format: [timestamp, {record}]
+                # Flat dict format: {"field": ...}
+                record = obj[1] if isinstance(obj, list) and len(obj) == 2 else obj
+                write_ts = record.get("write_ts") if isinstance(record, dict) else None
                 if write_ts:
                     latencies.append(recv_ts - float(write_ts))
             except Exception:
