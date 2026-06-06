@@ -66,6 +66,8 @@ cleanup() {
     kill "$INJECT_PID" 2>/dev/null || true
     pkill -P "$INJECT_PID" 2>/dev/null || true
     [[ -n "$SINK_PID" ]] && kill "$SINK_PID" 2>/dev/null || true
+    truncate -s 0 "$LOG_FILE" 2>/dev/null || true
+    echo "[run_crash] log file cleared"
 }
 trap cleanup EXIT INT TERM
 
