@@ -4,15 +4,10 @@
 
 ### lua plugin 出問題
 - [ ] 進入無限迴圈
-   結果:會持續的block並占用100%的CPU不停，持續至少30秒，沒有測試再更長的情況(問題:要測試多就)
 - [ ] I/O blocking
-   結果:持續block，占用少量CPU，強制結束後會把剩餘的log一次彈出(也是測試30秒)
 - [ ] CPU exhaustion
-   結果:在最新版本中，cpu有一定上限，超過會自動出現錯誤訊息，後續能正常運作
 - [ ] Memory exhaustion
-   結果:不會持續上升會有上限
 - [ ] 單筆解析錯誤
-   結果:若解析發生錯誤，該筆會在fluent bit的log出現錯誤，該筆不會被轉送到server
 
 ### wasm plugin 出問題
 - [ ] 進入無限迴圈

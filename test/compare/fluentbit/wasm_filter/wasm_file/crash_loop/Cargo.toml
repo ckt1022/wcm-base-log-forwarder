@@ -1,0 +1,9 @@
+[package]
+name    = "crash_loop"
+version = "0.1.0"
+edition = "2021"
+
+# cdylib produces a .wasm file (dynamic library without a _start entry point)
+# that Fluent Bit's filter_wasm plugin can load and call via its exported symbol.
+[lib]
+crate-type = ["cdylib"]
