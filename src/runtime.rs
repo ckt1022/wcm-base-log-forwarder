@@ -209,7 +209,8 @@ pub fn run_pipeline(
     cfg: Arc<RwLock<AppConfig>>,
 ) -> wasmtime::Result<()> {
     // Extract fixed startup values from the initial config snapshot.
-    let (mem_limit_bytes, max_format_chunk, max_transport_bytes, transport_workers) = {
+    let (mem_limit_bytes, max_format_chunk, max_transport_bytes, transport_workers,
+         pipeline_channel_capacity, stage_timeout) = {
         let c = cfg.read().unwrap();
         let b = BatchConfig::from(c.batch.clone());
         (
@@ -217,14 +218,16 @@ pub fn run_pipeline(
             b.max_format_chunk,
             b.max_transport_bytes,
             b.transport_workers,
+            b.pipeline_channel_capacity,
+            Duration::from_millis(b.stage_timeout_ms),
         )
     };
 
     // parse → filter channel（或直接 parse → format 若 filter 停用）
-    let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(20000);
+    let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(pipeline_channel_capacity);
     // filter → format channel
-    let (tx_filtered, rx_filtered) = std::sync::mpsc::sync_channel::<ParsedBatch>(20000);
-    let (tx_formatted, rx_formatted) = std::sync::mpsc::sync_channel::<FormattedBatch>(20000);
+    let (tx_filtered, rx_filtered) = std::sync::mpsc::sync_channel::<ParsedBatch>(pipeline_channel_capacity);
+    let (tx_formatted, rx_formatted) = std::sync::mpsc::sync_channel::<FormattedBatch>(pipeline_channel_capacity);
 
     let cfg_for_parse = Arc::clone(&cfg);
 
@@ -251,7 +254,7 @@ pub fn run_pipeline(
     // ── Filter thread (sync) ──────────────────────────────────────────────────
     let filter_handle = if let Some(shared) = filter {
         Some(thread::spawn(move || {
-            filter_loop(rx_parsed, tx_filtered, shared, mem_limit_bytes)
+            filter_loop(rx_parsed, tx_filtered, shared, mem_limit_bytes, stage_timeout)
         }))
     } else {
         // filter 停用：把 rx_parsed 直接橋接到 tx_filtered
@@ -268,7 +271,7 @@ pub fn run_pipeline(
     // ── Format thread (sync) ──────────────────────────────────────────────────
     let format_handle = if let Some(shared) = format {
         Some(thread::spawn(move || {
-            format_loop(rx_filtered, tx_formatted, shared, mem_limit_bytes, max_format_chunk)
+            format_loop(rx_filtered, tx_formatted, shared, mem_limit_bytes, max_format_chunk, stage_timeout)
         }))
     } else {
         drop(tx_formatted);
@@ -300,7 +303,7 @@ pub fn run_pipeline(
                         .enable_all()
                         .build()
                         .unwrap()
-                        .block_on(transport_worker(rx, sh, mem_limit_bytes, max_transport_bytes, i))
+                        .block_on(transport_worker(rx, sh, mem_limit_bytes, max_transport_bytes, i, stage_timeout))
                 }));
             }
 
@@ -858,6 +861,38 @@ fn write_error_file(header: &str, lines: &[String]) {
     }
 }
 
+fn write_entry_error_file(header: &str, entries: &[LogEntry]) {
+    match File::create("error.txt") {
+        Ok(mut file) => {
+            let _ = writeln!(file, "{}", header);
+            for e in entries {
+                let tags: Vec<String> = e.tags.iter()
+                    .map(|(k, v)| format!("{}={}", k, v))
+                    .collect();
+                let _ = writeln!(
+                    file,
+                    "id={} ts={} level={:?} msg={} tags=[{}]",
+                    e.id, e.timestamp, e.level, e.message, tags.join(",")
+                );
+            }
+        }
+        Err(e) => eprintln!("無法寫入 error.txt: {}", e),
+    }
+}
+
+fn write_bytes_error_file(header: &str, lines: &[Vec<u8>]) {
+    match File::create("error.txt") {
+        Ok(mut file) => {
+            let _ = writeln!(file, "{}", header);
+            for line in lines {
+                let _ = file.write_all(line);
+                let _ = writeln!(file);
+            }
+        }
+        Err(e) => eprintln!("無法寫入 error.txt: {}", e),
+    }
+}
+
 // ── Filter Loop (sync) ───────────────────────────────────────────────────────
 //
 // 一個長壽 store，迴圈接收 ParsedBatch，呼叫 filter()，
@@ -868,8 +903,8 @@ fn filter_loop(
     tx: SyncSender<ParsedBatch>,
     shared: SharedPlugin,
     mem_limit_bytes: usize,
+    stage_timeout: Duration,
 ) -> wasmtime::Result<FilterStats> {
-    // Helper: build a fresh store+plugin from the current shared slot.
     let make_filter = |shared: &SharedPlugin| -> wasmtime::Result<(Store<MyState>, ReductionPlugin, u64)> {
         let slot = shared.read().unwrap();
         let state = MyState {
@@ -889,7 +924,6 @@ fn filter_loop(
     let mut stats = FilterStats::default();
 
     loop {
-        // Hot-reload: check before each batch
         let new_version = shared.read().unwrap().version;
         if new_version != current_version {
             match make_filter(&shared) {
@@ -905,72 +939,131 @@ fn filter_loop(
             Ok(pb) => {
                 let seq = pb.seq;
                 let input_count = pb.entries.len();
-                let started = Instant::now();
+                let mut entries = pb.entries;
+                let mut targettags = pb.targettags;
+                const MAX_RETRIES: u32 = 2;
+                let mut channel_closed = false;
 
-                match plugin.call_filter(&mut store, &pb.entries) {
-                    Ok(Ok(filter_results)) => {
-                        let elapsed = started.elapsed();
-                        let component_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
-                        let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
-
-                        // id set 讓查找 O(1)
-                        let keep_ids: std::collections::HashSet<u64> = filter_results
-                            .iter()
-                            .filter(|r| r.keep)
-                            .map(|r| r.id)
-                            .collect();
-
-                        let (filtered, kept_tags): (Vec<LogEntry>, Vec<String>) = pb
-                            .entries
-                            .into_iter()
-                            .zip(pb.targettags.into_iter())
-                            .filter(|(e, _)| keep_ids.contains(&e.id))
-                            .unzip();
-
-                        let kept = filtered.len();
-                        let dropped = input_count - kept;
-
-                        print_filter_batch(
-                            seq,
-                            input_count,
-                            kept,
-                            dropped,
-                            wasm_mem_peak,
-                            mem_limit_bytes,
-                            elapsed,
-                            component_ns,
-                        );
-
-                        stats.total_batches += 1;
-                        stats.total_input_entries += input_count as u64;
-                        stats.total_kept_entries += kept as u64;
-                        stats.total_dropped_entries += dropped as u64;
-                        stats.total_elapsed += elapsed;
-                        stats.total_component_ns += component_ns;
-                        if wasm_mem_peak > stats.wasm_mem_peak_max {
-                            stats.wasm_mem_peak_max = wasm_mem_peak;
-                        }
-
-                        if !filtered.is_empty() {
-                            let out = ParsedBatch { entries: filtered, targettags: kept_tags, seq };
-                            if tx.send(out).is_err() {
-                                break;
+                'retry: for attempt in 0..=MAX_RETRIES {
+                    if attempt > 0 {
+                        match make_filter(&shared) {
+                            Ok((s, p, v)) => {
+                                store = s; plugin = p; current_version = v;
+                            }
+                            Err(e) => {
+                                eprintln!("[filter] 重建失敗 batch={} attempt={}: {}", seq, attempt, e);
+                                if attempt == MAX_RETRIES {
+                                    write_entry_error_file(
+                                        &format!("filter重建失敗 batch={}", seq),
+                                        &entries,
+                                    );
+                                }
+                                continue 'retry;
                             }
                         }
                     }
-                    Ok(Err(e)) => {
-                        eprintln!("[filter-error] batch={}: {:?}", seq, e);
-                        // 插件回傳錯誤時透傳原始批次，不丟資料
-                        if tx.send(pb).is_err() {
-                            break;
+
+                    let started = Instant::now();
+                    match plugin.call_filter(&mut store, &entries) {
+                        Ok(Ok(filter_results)) => {
+                            let elapsed = started.elapsed();
+
+                            if elapsed > stage_timeout {
+                                eprintln!(
+                                    "[filter] batch={} 超時 {}ms > {}ms 嘗試 {}/{}",
+                                    seq, elapsed.as_millis(), stage_timeout.as_millis(),
+                                    attempt + 1, MAX_RETRIES + 1
+                                );
+                                if attempt < MAX_RETRIES {
+                                    continue 'retry;
+                                }
+                                write_entry_error_file(
+                                    &format!("filter超時失敗 batch={}", seq),
+                                    &entries,
+                                );
+                                break 'retry;
+                            }
+
+                            let component_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                            let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+
+                            let keep_ids: std::collections::HashSet<u64> = filter_results
+                                .iter()
+                                .filter(|r| r.keep)
+                                .map(|r| r.id)
+                                .collect();
+
+                            // std::mem::take 移出資料（留空 Vec），避免在 retry loop 中 move
+                            let owned_entries = std::mem::take(&mut entries);
+                            let owned_tags = std::mem::take(&mut targettags);
+
+                            let (filtered, kept_tags): (Vec<LogEntry>, Vec<String>) = owned_entries
+                                .into_iter()
+                                .zip(owned_tags.into_iter())
+                                .filter(|(e, _)| keep_ids.contains(&e.id))
+                                .unzip();
+
+                            let kept = filtered.len();
+                            let dropped = input_count - kept;
+
+                            print_filter_batch(
+                                seq,
+                                input_count,
+                                kept,
+                                dropped,
+                                wasm_mem_peak,
+                                mem_limit_bytes,
+                                elapsed,
+                                component_ns,
+                            );
+
+                            stats.total_batches += 1;
+                            stats.total_input_entries += input_count as u64;
+                            stats.total_kept_entries += kept as u64;
+                            stats.total_dropped_entries += dropped as u64;
+                            stats.total_elapsed += elapsed;
+                            stats.total_component_ns += component_ns;
+                            if wasm_mem_peak > stats.wasm_mem_peak_max {
+                                stats.wasm_mem_peak_max = wasm_mem_peak;
+                            }
+
+                            if !filtered.is_empty() {
+                                let out = ParsedBatch { entries: filtered, targettags: kept_tags, seq };
+                                if tx.send(out).is_err() {
+                                    channel_closed = true;
+                                }
+                            }
+                            break 'retry;
+                        }
+                        Ok(Err(e)) => {
+                            eprintln!(
+                                "[filter-error] batch={} 嘗試 {}/{}: {:?}",
+                                seq, attempt + 1, MAX_RETRIES + 1, e
+                            );
+                            if attempt == MAX_RETRIES {
+                                write_entry_error_file(
+                                    &format!("filter錯誤 batch={}", seq),
+                                    &entries,
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!(
+                                "[filter-trap] batch={} 嘗試 {}/{}: {}",
+                                seq, attempt + 1, MAX_RETRIES + 1, e
+                            );
+                            if attempt == MAX_RETRIES {
+                                write_entry_error_file(
+                                    &format!("filter trap batch={}", seq),
+                                    &entries,
+                                );
+                            }
                         }
                     }
-                    Err(e) => {
-                        eprintln!("[filter-trap] batch={}: {}", seq, e);
-                        if tx.send(pb).is_err() {
-                            break;
-                        }
-                    }
+                }
+
+                if channel_closed {
+                    break;
                 }
             }
             Err(_) => break,
@@ -988,6 +1081,7 @@ fn format_loop(
     shared: SharedPlugin,
     mem_limit_bytes: usize,
     max_chunk: usize,
+    stage_timeout: Duration,
 ) -> wasmtime::Result<FormatStats> {
     let mut current_version = shared.read().unwrap().version;
     let mut stats = FormatStats::default();
@@ -995,139 +1089,177 @@ fn format_loop(
     loop {
         match rx.recv() {
             Ok(pb) => {
-                // Snapshot engine/component/linker once per batch; detect hot-reload.
-                let (engine, component, linker) = {
-                    let slot = shared.read().unwrap();
-                    if slot.version != current_version {
-                        eprintln!("[format] plugin hot-swapped → v{}", slot.version);
-                        current_version = slot.version;
-                    }
-                    (slot.engine.clone(), slot.component.clone(), slot.linker.clone())
-                };
-
+                let seq = pb.seq;
                 let entry_count = pb.entries.len();
-                let batch_started = Instant::now();
-                let mut all_lines: Vec<Vec<u8>> = Vec::new();
-                let mut batch_wasm_peak: usize = 0;
-                let mut batch_logic_ns: u64 = 0;
-                let mut batch_ok = true;
+                const MAX_RETRIES: u32 = 2;
+                let mut final_batch: Option<FormattedBatch> = None;
+                let mut channel_closed = false;
 
-                for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
-                    let state = MyState {
-                        ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
-                        table: ResourceTable::new(),
-                        limiter: MyLimiter::new(mem_limit_bytes),
-                        http: WasiHttpCtx::new(),
+                'retry: for attempt in 0..=MAX_RETRIES {
+                    // 每次嘗試重新快照 engine/component/linker（同時偵測熱抽換）
+                    let (engine, component, linker) = {
+                        let slot = shared.read().unwrap();
+                        if slot.version != current_version {
+                            eprintln!("[format] plugin hot-swapped → v{}", slot.version);
+                            current_version = slot.version;
+                        }
+                        (slot.engine.clone(), slot.component.clone(), slot.linker.clone())
                     };
-                    let mut store = Store::new(&engine, state);
-                    store.limiter(|s| &mut s.limiter);
 
-                    let plugin = FormatPlugin::instantiate(&mut store, &component, &linker)?;
+                    let batch_started = Instant::now();
+                    let mut all_lines: Vec<Vec<u8>> = Vec::new();
+                    let mut batch_wasm_peak: usize = 0;
+                    let mut batch_logic_ns: u64 = 0;
+                    let mut batch_ok = true;
 
-                    match plugin.call_format(&mut store, chunk) {
-                        Ok(Ok(bytes)) => {
-                            let logic_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
-                            batch_logic_ns += logic_ns;
-                            let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
-                            if wasm_mem_peak > batch_wasm_peak {
-                                batch_wasm_peak = wasm_mem_peak;
-                            }
-                            // parse [4-byte LE length][data] frames
-                            let mut pos = 0;
-                            while pos + 4 <= bytes.len() {
-                                let len = u32::from_le_bytes([
-                                    bytes[pos],
-                                    bytes[pos + 1],
-                                    bytes[pos + 2],
-                                    bytes[pos + 3],
-                                ]) as usize;
-                                pos += 4;
-                                if pos + len <= bytes.len() {
-                                    all_lines.push(bytes[pos..pos + len].to_vec());
-                                    pos += len;
-                                } else {
-                                    eprintln!(
-                                        "[format] malformed frame batch={} chunk={}: \
-                                         declared {} bytes but only {} remain",
-                                        pb.seq,
-                                        chunk_idx,
-                                        len,
-                                        bytes.len() - pos
-                                    );
-                                    batch_ok = false;
-                                    break;
+                    for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
+                        let state = MyState {
+                            ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+                            table: ResourceTable::new(),
+                            limiter: MyLimiter::new(mem_limit_bytes),
+                            http: WasiHttpCtx::new(),
+                        };
+                        let mut store = Store::new(&engine, state);
+                        store.limiter(|s| &mut s.limiter);
+
+                        match FormatPlugin::instantiate(&mut store, &component, &linker) {
+                            Ok(plugin) => {
+                                match plugin.call_format(&mut store, chunk) {
+                                    Ok(Ok(bytes)) => {
+                                        let logic_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                                        batch_logic_ns += logic_ns;
+                                        let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
+                                        if wasm_mem_peak > batch_wasm_peak {
+                                            batch_wasm_peak = wasm_mem_peak;
+                                        }
+                                        // parse [4-byte LE length][data] frames
+                                        let mut pos = 0;
+                                        while pos + 4 <= bytes.len() {
+                                            let len = u32::from_le_bytes([
+                                                bytes[pos],
+                                                bytes[pos + 1],
+                                                bytes[pos + 2],
+                                                bytes[pos + 3],
+                                            ]) as usize;
+                                            pos += 4;
+                                            if pos + len <= bytes.len() {
+                                                all_lines.push(bytes[pos..pos + len].to_vec());
+                                                pos += len;
+                                            } else {
+                                                eprintln!(
+                                                    "[format] malformed frame batch={} chunk={}: \
+                                                     declared {} bytes but only {} remain",
+                                                    seq, chunk_idx, len, bytes.len() - pos
+                                                );
+                                                batch_ok = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    Ok(Err(_)) => {
+                                        eprintln!(
+                                            "[format-error] batch={} chunk={} 嘗試 {}/{}",
+                                            seq, chunk_idx, attempt + 1, MAX_RETRIES + 1
+                                        );
+                                        batch_ok = false;
+                                    }
+                                    Err(e) => {
+                                        eprintln!(
+                                            "[format-oom] batch={} chunk={} 嘗試 {}/{}: {:?}",
+                                            seq, chunk_idx, attempt + 1, MAX_RETRIES + 1, e
+                                        );
+                                        batch_ok = false;
+                                    }
                                 }
+                                store.data().limiter.print_max("format");
+                            }
+                            Err(e) => {
+                                eprintln!(
+                                    "[format] 實例化失敗 batch={} chunk={} 嘗試 {}/{}: {}",
+                                    seq, chunk_idx, attempt + 1, MAX_RETRIES + 1, e
+                                );
+                                batch_ok = false;
                             }
                         }
-                        Ok(Err(_)) => {
-                            eprintln!("[format-error] batch={} chunk={}", pb.seq, chunk_idx);
-                            batch_ok = false;
-                        }
-                        Err(e) => {
-                            eprintln!("[format-oom] batch={} chunk={}: {:?}", pb.seq, chunk_idx, e);
-                            batch_ok = false;
+
+                        if !batch_ok {
+                            break;
                         }
                     }
-                    store.data().limiter.print_max("format");
+
+                    let elapsed = batch_started.elapsed();
+
+                    if batch_ok && !all_lines.is_empty() {
+                        if elapsed > stage_timeout {
+                            eprintln!(
+                                "[format] batch={} 超時 {}ms > {}ms 嘗試 {}/{}",
+                                seq, elapsed.as_millis(), stage_timeout.as_millis(),
+                                attempt + 1, MAX_RETRIES + 1
+                            );
+                            if attempt < MAX_RETRIES {
+                                continue 'retry;
+                            }
+                            write_entry_error_file(
+                                &format!("format超時失敗 batch={}", seq),
+                                &pb.entries,
+                            );
+                            break 'retry;
+                        }
+
+                        let output_lines = all_lines.len();
+                        let total_bytes: usize = all_lines.iter().map(|l| l.len()).sum();
+
+                        print_format_batch(
+                            seq,
+                            entry_count,
+                            output_lines,
+                            batch_wasm_peak,
+                            mem_limit_bytes,
+                            elapsed,
+                            batch_logic_ns,
+                        );
+
+                        stats.total_batches += 1;
+                        stats.total_input_entries += entry_count as u64;
+                        stats.total_output_lines += output_lines as u64;
+                        stats.total_elapsed += elapsed;
+                        stats.total_component_ns += batch_logic_ns;
+                        if batch_wasm_peak > stats.wasm_mem_peak_max {
+                            stats.wasm_mem_peak_max = batch_wasm_peak;
+                        }
+
+                        debug_assert_eq!(
+                            all_lines.len(), pb.targettags.len(),
+                            "format: lines/targettags length mismatch (batch={})", seq
+                        );
+                        final_batch = Some(FormattedBatch {
+                            lines: all_lines,
+                            targettags: pb.targettags.clone(),
+                            seq,
+                            total_bytes,
+                        });
+                        break 'retry;
+                    } else {
+                        eprintln!(
+                            "[format] batch={} 失敗 嘗試 {}/{}",
+                            seq, attempt + 1, MAX_RETRIES + 1
+                        );
+                        if attempt == MAX_RETRIES {
+                            write_entry_error_file(
+                                &format!("format失敗 batch={}", seq),
+                                &pb.entries,
+                            );
+                        }
+                    }
                 }
 
-                if batch_ok && !all_lines.is_empty() {
-                    let elapsed = batch_started.elapsed();
-                    let output_lines = all_lines.len();
-                    let total_bytes: usize = all_lines.iter().map(|l| l.len()).sum();
-
-                    /*
-                    // pseudo-random sample: pick one entry to show for inspection
-                    let idx = (pb.seq as usize)
-                        .wrapping_mul(2654435761)
-                        .wrapping_add(output_lines)
-                        % output_lines;
-                    let sample = &all_lines[idx];
-                    let n = sample.len().min(300);
-                    let preview = String::from_utf8_lossy(&sample[..n]);
-                    let text = preview.trim_end_matches('\n');
-                    let ellipsis = if sample.len() > 300 { "…" } else { "" };
-                    eprintln!(
-                        "[format-sample] batch={} #{}/{}: {}{}",
-                        pb.seq,
-                        idx + 1,
-                        output_lines,
-                        text,
-                        ellipsis
-                    );
-                    */
-                    print_format_batch(
-                        pb.seq,
-                        entry_count,
-                        output_lines,
-                        batch_wasm_peak,
-                        mem_limit_bytes,
-                        elapsed,
-                        batch_logic_ns,
-                    );
-
-                    stats.total_batches += 1;
-                    stats.total_input_entries += entry_count as u64;
-                    stats.total_output_lines += output_lines as u64;
-                    stats.total_elapsed += elapsed;
-                    stats.total_component_ns += batch_logic_ns;
-                    if batch_wasm_peak > stats.wasm_mem_peak_max {
-                        stats.wasm_mem_peak_max = batch_wasm_peak;
-                    }
-
-                    debug_assert_eq!(
-                        all_lines.len(), pb.targettags.len(),
-                        "format: lines/targettags length mismatch (batch={})", pb.seq
-                    );
-                    let fb = FormattedBatch {
-                        lines: all_lines,
-                        targettags: pb.targettags,
-                        seq: pb.seq,
-                        total_bytes,
-                    };
+                if let Some(fb) = final_batch {
                     if tx.send(fb).is_err() {
-                        break;
+                        channel_closed = true;
                     }
+                }
+                if channel_closed {
+                    break;
                 }
             }
             Err(_) => break,
@@ -1240,6 +1372,7 @@ async fn transport_worker(
     mem_limit_bytes: usize,
     max_chunk_bytes: usize,
     id: usize,
+    stage_timeout: Duration,
 ) -> wasmtime::Result<TransportStats> {
     let make_config = |ep: &str| TransportConfig {
         endpoint: ep.to_string(),
@@ -1302,23 +1435,66 @@ async fn transport_worker(
             let chunk = &task.lines[chunk_start..chunk_end];
             let chunk_bytes = acc_bytes;
 
-            match plugin.call_send(&mut store, chunk).await {
-                Ok(Ok(())) => {
-                    let peak = store.data().limiter.wasm_mem_peak;
-                    if peak > wasm_peak { wasm_peak = peak; }
-                    lines_sent += chunk.len();
-                    bytes_sent += chunk_bytes;
+            const MAX_RETRIES: u32 = 2;
+            let mut chunk_ok = false;
+
+            for attempt in 0..=MAX_RETRIES {
+                let chunk_started = Instant::now();
+                match plugin.call_send(&mut store, chunk).await {
+                    Ok(Ok(())) => {
+                        let elapsed = chunk_started.elapsed();
+                        if elapsed > stage_timeout {
+                            eprintln!(
+                                "[transport-{}] send 超時 {}ms url={} 嘗試 {}/{}",
+                                id, elapsed.as_millis(), task.url,
+                                attempt + 1, MAX_RETRIES + 1
+                            );
+                            if attempt < MAX_RETRIES {
+                                continue;
+                            }
+                            write_bytes_error_file(
+                                &format!("transport超時 url={}", task.url),
+                                chunk,
+                            );
+                            break;
+                        }
+                        let peak = store.data().limiter.wasm_mem_peak;
+                        if peak > wasm_peak { wasm_peak = peak; }
+                        lines_sent += chunk.len();
+                        bytes_sent += chunk_bytes;
+                        chunk_ok = true;
+                        break;
+                    }
+                    Ok(Err(e)) => {
+                        eprintln!(
+                            "[transport-{}] send error url={} 嘗試 {}/{}: {:?}",
+                            id, task.url, attempt + 1, MAX_RETRIES + 1, e
+                        );
+                        if attempt == MAX_RETRIES {
+                            write_bytes_error_file(
+                                &format!("transport send error url={}", task.url),
+                                chunk,
+                            );
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!(
+                            "[transport-{}] send trap url={} 嘗試 {}/{}: {}",
+                            id, task.url, attempt + 1, MAX_RETRIES + 1, e
+                        );
+                        if attempt == MAX_RETRIES {
+                            write_bytes_error_file(
+                                &format!("transport trap url={}", task.url),
+                                chunk,
+                            );
+                        }
+                    }
                 }
-                Ok(Err(e)) => {
-                    eprintln!("[transport-{}] send error url={}: {:?}", id, task.url, e);
-                    batch_ok = false;
-                    break;
-                }
-                Err(e) => {
-                    eprintln!("[transport-{}] send trap url={}: {}", id, task.url, e);
-                    batch_ok = false;
-                    break;
-                }
+            }
+
+            if !chunk_ok {
+                batch_ok = false;
+                break;
             }
             chunk_start = chunk_end;
         }

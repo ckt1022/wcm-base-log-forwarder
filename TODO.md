@@ -1,214 +1,136 @@
-# Architecture TODO
+# WCM Log Forwarder — 進度追蹤
 
-## 速度
-
-### [1] Parse 並行化（N parse workers）
-**目標：** 突破單執行緒 parse 上限（~12,500 eps），線性擴展吞吐量。
-
-**設計：**
-- `run_pipeline` 中開 N 個 parse worker，各持有獨立 `Store`，共用同一組 `Engine` / `Component`
-- N 個 worker 從同一個 `rx_raw` 搶讀 `LineItem`（`sync_channel` 天然分流）
-- 每個 worker 產出帶 `seq` 的 `ParsedBatch` 丟入同一個 channel
-
-**順序問題：**
-- 若下游不要求順序（論文吞吐量實驗）：直接讓 format 接收亂序 batch
-- 若需要順序（正確性驗證）：在 format 前加 reorder buffer，等待 seq 連續才往下送
-
-**WIT 無需修改，只改 runtime.rs。**
+> 依據 `project_proposal.pdf` 整理，對照目前原始碼（2026-06-15）
 
 ---
 
-### [2] Instance Pool + `gc-reset` WIT 導出（解決 OOM + 消除每 batch 啟動成本）
-**目標：** 把目前「每 batch 重建 Store + 重新 instantiate」改為少量長駐實例，同時避免 TinyGo heap 在 reuse 時累積導致 OOM。
+## 已完成 (Done)
 
-**OOM 的真正原因：**
-```
-batch N 處理完 → Rust 已拿走結果
-              → TinyGo GC 尚未回收 → 舊資料仍佔 WASM heap
-batch N+1 立刻開始 → TinyGo heap = (舊 4MB) + (新 4MB) → OOM
-```
-問題不是 WASM 記憶體不能縮，而是 **host 端在 GC 還沒跑完就餵下一批**，時機不受控。
+### 核心框架（第 4 節：實作內容）
 
-**解法：WIT 加入 `gc-reset` 導出，讓 GC 時機變成雙方協議**
+- [x] **Rust + Wasmtime 宿主實作**：以 Rust 語言搭配 Wasmtime 實作 Host，協調各 Component 間的資料傳遞
+- [x] **WIT 介面定義**：定義 `parser-plugin`、`reduction-plugin`（filter）、`format-plugin`、`transport-plugin` 四個 world，版本 v0.3.0
+- [x] **四階段管線**：Parse → Filter → Format → Transport，各階段獨立 thread 並以 `sync_channel` 背壓串聯
+- [x] **階段可選啟用**：透過 `stages.filter/format/transport` YAML 設定，停用時自動橋接不阻塞上游
 
-```wit
-// wit/log_plugin.wit — parser-plugin world 新增
-export gc-reset: func() -> u64;
-// plugin 實作：runtime.GC() + 回傳清理後的 HeapInuse bytes
-// host 用此決定是否繼續重用這個實例
-```
+### 插件系統
 
-**Host 端 Instance Pool 設計（runtime.rs）：**
-```
-struct WarmInstance { store: Store<MyState>, plugin: ParserPlugin }
-struct InstancePool { ready: VecDeque<WarmInstance>, capacity: usize }
+- [x] **WCM 插件熱更換（Hot Swap）**：`spawn_config_watcher()` 週期性監測 WASM 路徑與 mtime，變更時自動重新編譯並替換插件槽（`Arc<RwLock<PluginRuntime>>`），pipeline 在下一批次自動切換，不需重啟
+- [x] **Parse 實例池（ParsePool）**：預熱 3 個備援 WASM 實例，支援用後即丟策略，解決 GC 語言（Go）重用實例 OOM 問題
+- [x] **OOM 重試機制**：Parse 階段最多 3 次重試；超過上限寫入 `error.txt` 並跳過此批次
+- [x] **記憶體限制（MyLimiter）**：`ResourceLimiter` 在 `memory.grow` 時強制上限，超過即 trap 插件，宿主不受影響
 
-parse_loop 流程：
-  1. pool.try_take()  → 有 → 直接用（零啟動成本）
-                      → 沒有 → 新建（blocking，稀有）
-  2. 執行 batch
-  3. call gc-reset() → heap < 70% limit → pool.return(instance)
-                     → heap 超標     → drop，pool.request_new()
-  4. 背景 pre-warmer 確保 pool 常備 ≥1 個暖實例
-```
+### 輸入
 
-**影響範圍：**
-- `wit/log_plugin.wit`：parser / format / enricher plugin worlds 各加一行 `export gc-reset`
-- `src/runtime.rs`：`do_parse_batch` 改用 pool；新增 `InstancePool` struct
-- Plugin 實作需加 `GcReset()` 函式（行為固定，plugin 作者只需複製範例）
+- [x] **TCP 輸入模式**：Tokio async TcpListener，支援多條並發連線
+- [x] **File Tail 輸入模式**：Polling 追蹤新增日誌行（50ms 間隔）；檔案不存在時每秒重試
 
-**論文角度：** 這是 WCM 特有的設計模式 — *Explicit Memory Contract*：host 與 plugin 通過 WIT 協商 GC 時機，是原生 WASM（無法跨邊界控制 GC）做不到的。值得作為獨立 contribution 描述。
+### 路由（Routing）
 
----
+- [x] **ParsedEntry.targettag 路由欄位**：Parser 插件回傳 `targettag`，host 以每個字元映射 endpoint key
+- [x] **多端點 Fan-out**：單條日誌可複製到多個 endpoint（targettag="AB" → buffer_A 和 buffer_B）
+- [x] **YAML endpoint map**：`endpoint.<key>: <url>` 動態設定，支援熱重載
 
-### [3] WIT 介面傳遞格式改為 flat buffer
-**現況：** 目前已改為 `list<string>`（從原本的 `list<list<u8>>`）
-**目標：** 消除 canonical ABI 對每行做一次 memory copy 的 overhead。
+### Transport
 
-**問題：** `list<string>` 的 Component Model ABI，wasmtime 對每條 line 各呼叫一次 `cabi_realloc` + 一次 memcpy，N 條 → N 次 WASM 函式呼叫。
+- [x] **非同步 HTTP Transport**：使用 WASI async + WASI HTTP，繞過 sync 模式 4096B 限制
+- [x] **N 個 Transport Workers**：共用工作佇列，平行進行多個 HTTP POST
+- [x] **Transport Router**：依 targettag 分流，buffer 達 `max_transport_bytes` 或 timeout 後 flush
 
-**改法 A（簡單，推薦先做）：**
-```wit
-// 新增 parse-flat，舊 parse 保留，host 視情況選擇呼叫
-export parse-flat: func(
-    raw-data: list<u8>,    // concat(lines, '\n')
-    line-count: u32,
-) -> result<list<parsed-entry>, parse-error>;
-```
-Host 端：`batch.lines.join("\n").into_bytes()` → 一次 memcpy 傳入 WASM，`cabi_realloc` 呼叫從 N 次降為 1 次。
+### 量測與觀測
 
-**改法 B（彈性，支援行內有換行的二進位資料）：**
-```wit
-export parse-flat: func(
-    data: list<u8>,        // flat byte buffer
-    offsets: list<u32>,    // offsets[i] = 第 i 行起始
-    lengths: list<u32>,    // lengths[i] = 第 i 行長度
-) -> result<list<parsed-entry>, parse-error>;
-```
-ABI 只有 3 次大塊 copy，與行數完全無關。
+- [x] **Diff 量測（no-op parser）**：可選 `parse_noop` 插件，估算 copy-in / guest 邏輯 / copy-out 各自的時間
+- [x] **WASM 記憶體追蹤**：每批次記錄峰值 `wasm_mem_peak`、`grow_count`、`grow_delta_bytes`
+- [x] **`report-usage()` 介面**：插件回報內部邏輯執行時間（ns）
+- [x] **Pipeline Summary 輸出**：結束時印出 Parse / Filter / Format / Transport / E2E 完整彙總表格
 
-**影響：** `log_plugin.wit` parser-plugin world + 所有語言 parser plugin 加一個函式（舊 `parse` 保留相容）。
+### 配置
+
+- [x] **YAML 設定檔**：所有 batch 參數、插件路徑、輸入模式、endpoint map 均可由 YAML 控制
+- [x] **參數驗證（`validate_and_describe`）**：啟動時驗證各參數合理性，印出對應程式碼路徑說明
+
+### 比較實驗（第 5 節：比較指標與對象）
+
+- [x] **Fluent Bit Lua 插件實驗**：已完成（`test/compare/fluentbit/lua/`），資料有 loop / cpu / mem / io CSV
+- [x] **Fluent Bit WASM filter 實驗**：已完成（`test/compare/fluentbit/wasm_filter/`），資料有各項 CSV
+- [x] **Native Go 解析基準**：`benchmark/go/main.go` 提供 JSON / logfmt / syslog 三種格式的純 Go 解析吞吐量
+- [x] **Log 產生器**：`tools/gen/main.go` 支援多種格式、flat/wave/bursty 流量模式
+
+### 語言跨語言驗證
+
+- [x] **C 插件**：Parse（JSON）、Format（JSON flat）
+- [x] **C# 插件**：Parse、Filter
+- [x] **Go 插件**：Parse（JSON/sys/fmt）、Format、no-op parser
+- [x] **Rust 插件**：Transport
 
 ---
 
-### [4] Output ABI 優化：tags 改為 parallel flat list
-**目標：** 消除 `list<tuple<string,string>>` 的 nested list ABI 間接層，降低每個 entry 的 Rust heap allocation 次數。
+## 未完成 / 待辦 (TODO)
 
-**問題：**
-```
-list<parsed-entry> 反序列化時（wasmtime → Rust）：
-  每個 entry 的 tags: list<tuple<string,string>>
-    → wasmtime 需先讀 outer list ptr/len
-    → 對每個 tuple 再讀 2 個 string ptr/len
-    → 2 次獨立 heap alloc + memcpy per tag pair
-  syslog 每條 entry ≈ 4–6 個 tags → 8–12 次 String alloc
-```
+### 效能量測（第 3.1 節：WCM 效能成本量化）
 
-**改法：** 把一個 nested list 拆成兩個 parallel flat list
-```wit
-record parsed-entry {
-    timestamp: string,
-    level: log-level,
-    message: string,
-    // 原本：tags: list<tuple<string, string>>
-    tag-keys:   list<string>,   // ["host", "app", ...]
-    tag-values: list<string>,   // ["web1", "nginx", ...]
-}
-```
-wasmtime 可對 `list<string>` 做連續記憶體讀取（一次 bounds check + batch memcpy），取代原本 per-tuple 的間接跳讀。
+- [ ] **原生 Rust pipeline 基準**（最重要的對照組）：實作同程序內的 Rust 函式呼叫 pipeline（無 WASM），量測「無沙箱成本的天花板」吞吐量
+- [ ] **裸 core-wasm + C-ABI 對照**：以 offset+length 的 C-ABI 傳遞資料的 core-wasm 版本，隔離出 Component Model / Canonical ABI 的「額外」成本
+- [ ] **延遲分佈量測**：per-batch p50 / p95 / p99 / p999 尾延遲（目前只有平均值）
+- [ ] **CPU cycles/record 量測**：在固定輸入速率下量測 cycles/record（比 CPU% 更可比較）
+- [ ] **實例化時間基準（冷啟動）**：量測 ms/component 的冷啟動時間，評估熱抽換與水平擴充的成本
+- [ ] **記憶體隨階段數成長曲線**：多實例 / 多階段下 RSS 與 linear memory 的成長曲線
+- [ ] **複製次數 / bytes 插樁計數**：在 host 內部加入計數器，量化 Canonical ABI 邊界複製量
 
-**Host 端重組：**
-```rust
-// 反序列化後：
-let tags: Vec<(String, String)> = entry.tag_keys.into_iter()
-    .zip(entry.tag_values.into_iter())
-    .collect();
-```
+### 效能比較（第 3.2 節：與市面工具比較）
 
-**影響：** `log_plugin.wit` 修改 `parsed-entry` record + `log-entry` record（同步改）+ 所有語言 plugin 的 tags 組裝方式（低改動量）。
+- [ ] **與 Vector VRL 比較**：量測 Vector 使用 VRL 做相同日誌處理的吞吐量與延遲
+- [ ] **subprocess + pipe/IPC 對照**：量測以「fork 獨立程序 + pipe」達成隔離的成本，回答「為何選 WASM 而非 fork」
 
----
+### 安全性驗證（第 3.3 節 / 第 5.1 節）
 
-~~## 穩定性~~
-完成parse
-### [5] Parse 錯誤不應 crash 整個 pipeline
-**目標：** 一個 bad batch 只丟失該批次，不終止整條 pipeline。
+- [ ] **能力阻擋測試（parser 嘗試開 socket）**：製作一個嘗試呼叫網路函式的惡意 parse 插件，驗證 linker 是否在 `instantiate()` 或 runtime 正確阻擋
+- [ ] **故障隔離測試（plugin panic）**：製作會 trap / panic 的插件，驗證宿主程序不崩潰、其他批次繼續處理
+- [ ] **越界存取測試**：製作越界記憶體存取的插件，驗證 Wasmtime 沙箱攔截
+- [ ] **記憶體超限測試**：驗證 `MyLimiter` 阻擋機制在高負載下的行為
+- [ ] **不可信插件整合測試**：整合上述案例，系統化記錄「攻擊被擋下」的案例研究
 
-**現況（runtime.rs do_parse_batch）：**
-```rust
-Err(e) => {
-    eprintln!("[parse-oom] batch={}", seq);
-    batch.clear();
-    return Err(e);  // ← 這會讓 parse thread 終止，整個 pipeline 停掉
-}
-```
+### 功能補全
 
-**改法：**
-```rust
-Err(e) => {
-    eprintln!("[parse-error] batch={} skipped: {}", seq, e);
-    stats.total_error_batches += 1;
-    batch.clear();
-    return Ok(None);  // 跳過這批，繼續下一批
-}
-```
+- [ ] **CPU fuel / timeout 機制**：加入 Wasmtime fuel 或 thread timeout，防止插件無限迴圈讓管線靜止
+- [ ] **Transport 重試機制（HTTP backoff）**：`TransportConfig.retry`（max-retries / backoff）的 HTTP 層級重試尚未實作；已實作 WASM 呼叫層級超時偵測與 2 次重試
+- [x] **Format / Filter 錯誤寫入 error file**：format 與 filter 階段失敗批次現在參考 parse 的 `write_error_file()` 寫入 error.txt
+- [ ] **stdin 輸入模式接入**：`spawn_stdin_reader()` 已實作，需在 `main.rs` 的 `InputMode` match 加入 stdin 分支
 
-**ParseStats 需新增：** `total_error_batches: u64`
+
+### 語言跨語言補全
+
+- [ ] **C++ 插件**：提案提及 C++ 作為語言之一，目前未有 C++ 實作的插件
+
+### 效能調優（README 工作日記提到）
+
+- [ ] **提高 Transport 吞吐量**：目前每個 SendTask 各自建立新 WASM 實例，有初始化開銷；考慮 transport 也採用 instance pool
+- [ ] **結構化傳送 vs Flat 傳送時間比較**：量測 WCM Canonical ABI（結構化）與 core-wasm C-ABI（flat offset+length）的傳送時間差異
+
+### 工程品質
+
+- [x] **parse→filter / filter→format / format→transport channel 容量加入 YAML 控制**：新增 `batch.pipeline_channel_capacity` 欄位，預設 20,000
+- [ ] **`PARSE_WORKERS` 加入 YAML 控制**：目前硬編碼為 1（`runtime.rs:54`）
+- [ ] **`print_transport_batch()` 接入**：`output.rs:160` 已定義但 `transport_worker` 未呼叫
+- [ ] **`mem_limit_mb` 和 `transport_workers` 熱重載支援**：目前這兩個值在 `run_pipeline()` 啟動時一次性讀取，無法熱重載
 
 ---
 
-### [6] Poison message 隔離（WIT 層設計）
-**目標：** 讓 plugin 能逐行回報解析結果，而非整批成功或整批失敗。
+## 進度摘要
 
-**現況：**
-```wit
-// 整批成功或整批失敗，host 無法知道哪幾行出問題
-parse: func(raw-data: list<list<u8>>) -> result<list<parsed-entry>, parse-error>
-```
-
-**改法：**
-```wit
-variant line-result {
-    ok(parsed-entry),
-    err(parse-error),   // 包含 line-index: u32 + reason
-}
-
-parse: func(raw-data: list<list<u8>>) -> list<line-result>
-```
-Host 拿到後：
-- `ok` → 送入下游
-- `err` → 寫入 dead-letter queue（未來 Phase 2 實作）或 stderr log
-
-**影響：** 需要改 WIT + 所有語言 parser plugin。
-
----
-
-### [7] ChannelStats 串入 pipeline（背壓可觀測性）
-**目標：** 讓 stdin reader 和 parse thread 能觀測 channel 積壓狀況，為論文背壓實驗提供數據。
-
-**現況：** `ChannelStats` 結構已在 config.rs 建好，但未連接進 pipeline。
-
-**改法：**
-
-1. `spawn_stdin_reader` 接收 `ChannelStats` 並在每次 `tx.send()` 後呼叫 `on_send`
-2. `parse_loop` 在每次 `rx.recv()` 後呼叫 `on_recv`
-3. Parse loop 定期取 `snapshot()` 記錄高水位，加入 `ParseStats`
-4. `print_pipeline_summary` 印出 channel 平均積壓 / 峰值積壓
-
-**論文用途：** 直接量化「parse 跟不上時 channel 積壓曲線」，是背壓機制的核心實驗數據。
-
-**只改 app.rs + runtime.rs + output.rs，不改 WIT。**
-
-### [8] Q1：設計上需要順序嗎？
-架構角度：不需要強制順序，但要能追溯。
-
-Log forwarder 的傳送目標（Elasticsearch、Loki、S3）本質上是 append-only 的，它們依賴 timestamp 欄位排序，而非接收順序。亂序的 batch 送到後，目標系統自己會用 timestamp 排好。
-
-論文角度：這個問題本身就是一個研究點。
-
-情境	需要順序？	理由
-吞吐量 / 延遲基準測試	不需要	評估的是處理能力，不是保序
-正確性驗證	需要	要確認每條 log 都送到且沒重複
-安全隔離實驗（plugin crash）	不需要	看的是「crash 後系統是否繼續運作」
-與 Fluent Bit 比較	要記錄差異	Fluent Bit 單執行緒保序，本系統 N workers 不保序，是一個 trade-off 值得討論
-建議設計： 在 ParsedBatch 上保留 seq 欄位（已有），讓系統「有能力重排但預設不重排」。論文可以把這個作為 configurable trade-off 討論，不需要在系統裡強制實作 reorder buffer。
+| 類別 | 完成 | 待辦 |
+|------|------|------|
+| 核心框架與管線 | ✅ | — |
+| 插件熱更換 | ✅ | — |
+| 輸入模式 | TCP + Tail ✅ | stdin 未接入 |
+| 路由 | ✅ | — |
+| Transport 非同步 HTTP | ✅ | 重試機制未實作 |
+| 差分量測 | ✅ | — |
+| 效能基準（原生 Rust、core-wasm + C-ABI） | ❌ | 最關鍵的對照組未做 |
+| 延遲分佈（p50/p95/p99）| ❌ | 未實作 |
+| CPU cycles/record | ❌ | 未實作 |
+| Vector VRL 比較 | ❌ | 未做 |
+| 安全性驗證 | ❌ | 所有案例均未完成 |
+| CPU fuel / timeout | ❌ | 無限迴圈無保護 |
+| Enrich 階段 | ❌ | WIT 已定義，host 未實作 |
+| C++ 插件 | ❌ | 未實作 |

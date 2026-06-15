@@ -11,7 +11,7 @@ import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 
-PORT = 5000
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 5000
 
 # Thread-safe counters
 _lock = threading.Lock()
@@ -90,7 +90,7 @@ class LogReceiver(BaseHTTPRequestHandler):
 
 def main():
     server = ThreadingHTTPServer(("127.0.0.1", PORT), LogReceiver)
-    print(f"[server] Listening on http://127.0.0.1:{PORT}/ingest (multi-threaded)")
+    print(f"[server] Listening on http://127.0.0.1:{PORT}/ingest (multi-threaded)", flush=True)
     print("[server] Press Ctrl+C to stop.\n")
     print(
         f"{'#':>7}  {'bytes':>10}   {'lines':>6}  {'batch/s':>8}"

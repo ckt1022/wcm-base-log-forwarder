@@ -1,19 +1,25 @@
 # WCM Log Forwarder Configuration
 # All plugin paths are relative to this file's directory (or absolute).
 
+# 使用哪些階段，若有階段未啟用，預設使用RUST原生處理
+# 
+# (以下尚未實作)
+# Parse:Default為解析json，只做最簡單的時間戳、日誌內容、日誌層級解析，預設endpoint標籤為A
+# Filter:Default為不開啟就不做任何事情
+# Format:Default為組合成json。
+# Transport:Default傳遞
 plugins:
   # C# Parser
   #parse: "test-plugins/csharp-plugin/parse/parser_csharp.wasm"
   # C  Parser
-  parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
+  #parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
   # GO Parser
-  #parse: "test-plugins/go-plugin/parse/parser_json.wasm"
+  parse: "test-plugins/go-plugin/parse/parser_json.wasm"
   #parse: "test-plugins/go-plugin/parse/parser_sys.wasm"
   #parse: "test-plugins/go-plugin/parse/parser_fmt.wasm"
   parse_noop: ~
 
   filter: "test-plugins/csharp-plugin/filter/filter_csharp.wasm"
-  # filter: "test-plugins/csharp-plugin/filter/filter_csharp.wasm"
 
   format: "test-plugins/c-plugin/format/format_json-flat.wasm"
 
@@ -45,6 +51,10 @@ batch:
   transport_endpoint: "http://127.0.0.1:8080/ingest"
   max_transport_bytes: 131072
   transport_workers: 5
+  # parse→filter / filter→format / format→transport 三條 pipeline channel 容量
+  pipeline_channel_capacity: 20000
+  # 每個階段 WASM 呼叫超時上限（ms）；超過後重試最多 2 次，均失敗寫入 error.txt
+  stage_timeout_ms: 30000
 
 # 後端transport的標籤，可以有多個，以字母方式排序。
 endpoint:

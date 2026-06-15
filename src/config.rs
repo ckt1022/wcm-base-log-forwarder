@@ -24,6 +24,8 @@ pub struct AppConfig {
 }
 
 fn default_reload_secs() -> u64 { 10 }
+fn default_pipeline_channel_capacity() -> usize { 20_000 }
+fn default_stage_timeout_ms() -> u64 { 30_000 }
 
 /// Paths to each WASM plugin. Relative paths are resolved against the config file's directory.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -85,6 +87,12 @@ pub struct BatchConfigRaw {
     pub transport_endpoint: Option<String>,
     pub max_transport_bytes: usize,
     pub transport_workers: usize,
+    /// parse→filter / filter→format / format→transport channel 容量。
+    #[serde(default = "default_pipeline_channel_capacity")]
+    pub pipeline_channel_capacity: usize,
+    /// 每個階段 WASM 呼叫的超時上限（毫秒）；超過後自動重試，重試 2 次均失敗則寫入 error.txt。
+    #[serde(default = "default_stage_timeout_ms")]
+    pub stage_timeout_ms: u64,
 }
 
 impl From<BatchConfigRaw> for BatchConfig {
@@ -99,6 +107,8 @@ impl From<BatchConfigRaw> for BatchConfig {
             transport_endpoint: r.transport_endpoint,
             max_transport_bytes: r.max_transport_bytes,
             transport_workers: r.transport_workers,
+            pipeline_channel_capacity: r.pipeline_channel_capacity,
+            stage_timeout_ms: r.stage_timeout_ms,
         }
     }
 }
@@ -283,6 +293,10 @@ pub struct BatchConfig {
     /// 平行 transport worker 數量。每個 worker 持有獨立 WASM store，
     /// 共用同一個 FormattedBatch channel，允許同時進行多個 HTTP POST。
     pub transport_workers: usize,
+    /// parse→filter / filter→format / format→transport 三條 pipeline channel 的共用容量。
+    pub pipeline_channel_capacity: usize,
+    /// 每個階段 WASM 呼叫的超時上限（毫秒）；超過後自動重試（最多 2 次），均失敗則寫入 error.txt。
+    pub stage_timeout_ms: u64,
 }
 
 impl Default for BatchConfig {
@@ -297,6 +311,8 @@ impl Default for BatchConfig {
             transport_endpoint: None,
             max_transport_bytes: 128 * 1024,
             transport_workers: 5,
+            pipeline_channel_capacity: 20_000,
+            stage_timeout_ms: 30_000,
         }
     }
 }
@@ -405,6 +421,20 @@ impl BatchConfig {
             return Err("transport_workers 不能為 0".to_string());
         }
 
+        // pipeline_channel_capacity
+        // used at: runtime.rs run_pipeline → sync_channel::<ParsedBatch>(pipeline_channel_capacity)
+        //          → 控制 parse→filter / filter→format / format→transport 三條 channel 容量
+        if self.pipeline_channel_capacity == 0 {
+            return Err("pipeline_channel_capacity 不能為 0".to_string());
+        }
+
+        // stage_timeout_ms
+        // used at: runtime.rs filter_loop / format_loop / transport_worker
+        //          → 每個 WASM 呼叫的超時上限；超過後重試（最多 2 次），均失敗則寫入 error.txt
+        if self.stage_timeout_ms == 0 {
+            return Err("stage_timeout_ms 不能為 0".to_string());
+        }
+
         Ok(())
     }
 
@@ -439,7 +469,7 @@ impl BatchConfig {
             (
                 "channel_capacity",
                 format!("{}", self.channel_capacity),
-                "stdin→parse LineItem channel 容量 [注意: parsed/formatted channel 硬編碼 20000]",
+                "stdin→parse LineItem channel 容量",
                 self.channel_capacity == default.channel_capacity,
             ),
             (
@@ -465,6 +495,18 @@ impl BatchConfig {
                 format!("{}", self.transport_workers),
                 "並行 transport worker 數量，每個持有獨立 WASM store",
                 self.transport_workers == default.transport_workers,
+            ),
+            (
+                "pipeline_channel_capacity",
+                format!("{}", self.pipeline_channel_capacity),
+                "parse→filter / filter→format / format→transport 三條 channel 容量",
+                self.pipeline_channel_capacity == default.pipeline_channel_capacity,
+            ),
+            (
+                "stage_timeout_ms",
+                format!("{} ms", self.stage_timeout_ms),
+                "每階段 WASM 呼叫超時上限，超過後重試 2 次，均失敗寫 error.txt",
+                self.stage_timeout_ms == default.stage_timeout_ms,
             ),
         ];
 
