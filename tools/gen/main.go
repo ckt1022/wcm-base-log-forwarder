@@ -394,6 +394,7 @@ func main() {
 
 	var total, reportBase uint64
 	lineBuf := make([]byte, 0, 512)
+	loopSent := false
 
 	// Traffic shaping state
 	var cumTarget float64
@@ -469,6 +470,27 @@ func main() {
 		}
 
 		shouldHaveSent := uint64(cumTarget)
+
+		// 在第 20 秒時先在 stdout 印出訊號，再注入一筆含 "LOOP" 的觸發 log
+		if !loopSent && now.Sub(start) >= 10*time.Second {
+			loopSent = true
+			if err := w.Flush(); err != nil {
+				fmt.Fprintf(logOut, "flush error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Fprintln(os.Stdout, "[gen-signal] t=20s: about to emit LOOP trigger log")
+			ts := now.Format(time.RFC3339Nano)
+			loopLog := fmt.Sprintf(`{"ts":"%s","level":"warn","msg":"LOOP trigger","loop":"true"}`, ts)
+			if _, err := fmt.Fprintln(w, loopLog); err != nil {
+				fmt.Fprintf(logOut, "write error: %v\n", err)
+				os.Exit(1)
+			}
+			if err := w.Flush(); err != nil {
+				fmt.Fprintf(logOut, "flush error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Fprintf(logOut, "[gen] LOOP trigger emitted at t=%.2fs\n", now.Sub(start).Seconds())
+		}
 
 		var produced int
 		for total < shouldHaveSent && produced < 50000 {

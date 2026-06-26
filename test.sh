@@ -161,7 +161,7 @@ echo ""
 go run "$SCRIPT_DIR/tools/gen/main.go" \
     -rate 10000 \
     -duration 180 \
-    -traffic wave \
+    -traffic flat \
     -mode json-mixed \
     >> "$TAIL_PATH"
 

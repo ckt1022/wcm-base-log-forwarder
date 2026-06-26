@@ -27,13 +27,13 @@ TOOLS_DIR="$(realpath "$WASM_DIR/../../../tools")"
 CONTAINER_NAME="fb-wasm-${TEST}"
 STATS_FILE="$WASM_DIR/stats_${TEST}.csv"
 IMAGE="cr.fluentbit.io/fluent/fluent-bit:5.0.7"
-TEST_DURATION=300   # seconds — sustained blocking tests
+TEST_DURATION=180   # seconds — sustained blocking tests
 
 # mem needs high rate to fill 512 MB within TEST_DURATION (2 KB/record × 10 000 lps = 20 MB/s)
 if [ "${1:-loop}" = "mem" ]; then
     LOGGEN_RATE=30000
 else
-    LOGGEN_RATE=20
+    LOGGEN_RATE=10000
 fi
 
 case "$TEST" in

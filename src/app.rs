@@ -305,6 +305,7 @@ pub fn build_runtime(wasm_path: String) -> wasmtime::Result<(Engine, Component, 
     config.wasm_component_model(true);
     config.strategy(Strategy::Cranelift);
     config.cranelift_opt_level(OptLevel::Speed);
+    config.epoch_interruption(true);
 
     let engine = Engine::new(&config)?;
     let mut linker: Linker<MyState> = Linker::new(&engine);
@@ -327,6 +328,7 @@ pub fn build_transport_runtime(
     config.wasm_component_model(true);
     config.strategy(Strategy::Cranelift);
     config.cranelift_opt_level(OptLevel::Speed);
+    config.epoch_interruption(true);
 
     let engine = Engine::new(&config)?;
     let mut linker: Linker<MyState> = Linker::new(&engine);

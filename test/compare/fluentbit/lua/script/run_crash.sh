@@ -27,7 +27,7 @@ TEST_DURATION=180   # seconds — for loop / io / cpu / mem sustained tests
 if [ "${1:-loop}" = "mem" ]; then
     LOGGEN_RATE=10000
 else
-    LOGGEN_RATE=20
+    LOGGEN_RATE=10000
 fi
 
 case "$TEST" in

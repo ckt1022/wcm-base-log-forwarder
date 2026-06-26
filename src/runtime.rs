@@ -1,10 +1,11 @@
 use std::collections::VecDeque;
 use std::fs::File;
 use std::io::Write;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use wasmtime::Store;
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
@@ -52,6 +53,11 @@ struct SendTask {
 // ── Parse 平行化常數與 WorkBatch ──────────────────────────────────────────────
 
 const PARSE_WORKERS: usize = 1;
+
+/// Epoch deadline used during WASM instantiation (_initialize).
+/// Instantiation should complete in milliseconds; this gives ~28 hours of headroom
+/// so the pool replenish / filter rebuild never trips the epoch guard.
+const INSTANTIATE_EPOCH_DEADLINE: u64 = 10_000_000;
 
 /// dispatcher 分發給 parse worker 的工作單元。
 struct WorkBatch {
@@ -125,6 +131,7 @@ impl ParsePool {
         };
         let mut store = Store::new(&slot.engine, state);
         store.limiter(|s| &mut s.limiter);
+        store.set_epoch_deadline(INSTANTIATE_EPOCH_DEADLINE);
         let plugin = ParserPlugin::instantiate(&mut store, &slot.component, &slot.linker)?;
         drop(slot);
         self.current_count += 1;
@@ -196,6 +203,19 @@ impl ParsePool {
 
 // ── 對外入口 ──────────────────────────────────────────────────────────────────
 
+/// Spawn a background thread that increments the engine's epoch every 10 ms.
+/// When a Store's epoch deadline is reached the current WASM call traps,
+/// unblocking any infinite loop or hung plugin.
+/// The thread always reads the current engine from the SharedPlugin so it
+/// automatically follows hot-swaps without needing a restart.
+fn spawn_epoch_ticker(shared: &SharedPlugin) {
+    let sh = Arc::clone(shared);
+    thread::spawn(move || loop {
+        thread::sleep(Duration::from_millis(10));
+        sh.read().unwrap().engine.increment_epoch();
+    });
+}
+
 /// Pipeline 入口：input → [parse thread] → [filter thread?] → [format thread] → [transport thread]
 /// `cfg` is shared with the config-watcher thread; parse_dispatcher reads batch params from it
 /// on each iteration, enabling hot-reload of max_wait, max_batch_lines, safe_data_ratio.
@@ -222,6 +242,8 @@ pub fn run_pipeline(
             Duration::from_millis(b.stage_timeout_ms),
         )
     };
+    // Each epoch tick = 10 ms; deadline = how many ticks until a blocked plugin is killed.
+    let deadline_ticks = stage_timeout.as_millis() as u64 / 10;
 
     // parse → filter channel（或直接 parse → format 若 filter 停用）
     let (tx_parsed, rx_parsed) = std::sync::mpsc::sync_channel::<ParsedBatch>(pipeline_channel_capacity);
@@ -235,6 +257,10 @@ pub fn run_pipeline(
 
     // ── Parse thread（dispatcher + N workers）────────────────────────────────
     let parse_handle = if let Some(shared) = parse {
+        spawn_epoch_ticker(&shared);
+        if let Some(ref noop) = parse_noop {
+            spawn_epoch_ticker(noop);
+        }
         Some(thread::spawn(move || {
             parse_loop(
                 rx_raw,
@@ -243,6 +269,7 @@ pub fn run_pipeline(
                 parse_noop,
                 cfg_for_parse,
                 mem_limit_bytes,
+                deadline_ticks,
             )
         }))
     } else {
@@ -253,6 +280,7 @@ pub fn run_pipeline(
 
     // ── Filter thread (sync) ──────────────────────────────────────────────────
     let filter_handle = if let Some(shared) = filter {
+        spawn_epoch_ticker(&shared);
         Some(thread::spawn(move || {
             filter_loop(rx_parsed, tx_filtered, shared, mem_limit_bytes, stage_timeout)
         }))
@@ -270,6 +298,7 @@ pub fn run_pipeline(
 
     // ── Format thread (sync) ──────────────────────────────────────────────────
     let format_handle = if let Some(shared) = format {
+        spawn_epoch_ticker(&shared);
         Some(thread::spawn(move || {
             format_loop(rx_filtered, tx_formatted, shared, mem_limit_bytes, max_format_chunk, stage_timeout)
         }))
@@ -281,6 +310,7 @@ pub fn run_pipeline(
 
     // ── Transport thread (router + N async workers) ───────────────────────────
     let transport_handle = if let Some(shared) = transport {
+        spawn_epoch_ticker(&shared);
         Some(thread::spawn(move || {
             // router → workers 的工作佇列
             let (tx_work, rx_work) = std::sync::mpsc::sync_channel::<SendTask>(1024);
@@ -380,11 +410,42 @@ fn parse_loop(
     parse_noop: Option<SharedPlugin>,
     cfg: Arc<RwLock<AppConfig>>,
     mem_limit_bytes: usize,
+    deadline_ticks: u64,
 ) -> wasmtime::Result<ParseStats> {
     let wall_start = Instant::now();
 
     let (tx_work, rx_work) = std::sync::mpsc::sync_channel::<WorkBatch>(64);
     let rx_work = Arc::new(Mutex::new(rx_work));
+
+    // 共用計數器：parse workers 累積已處理的 input lines
+    let total_parsed_lines = Arc::new(AtomicU64::new(0));
+    let sampler_stop = Arc::new(AtomicBool::new(false));
+
+    // 每秒採樣 thread：寫入 parse_throughput.csv
+    let sampler_total = Arc::clone(&total_parsed_lines);
+    let sampler_flag = Arc::clone(&sampler_stop);
+    let sampler_handle = thread::spawn(move || {
+        let mut csv = match File::create("parse_throughput.csv") {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!("[sampler] 無法建立 parse_throughput.csv: {}", e);
+                return;
+            }
+        };
+        let _ = writeln!(csv, "ts,total_line");
+        loop {
+            thread::sleep(Duration::from_secs(1));
+            if sampler_flag.load(Ordering::Relaxed) {
+                break;
+            }
+            let ts = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let total = sampler_total.load(Ordering::Relaxed);
+            let _ = writeln!(csv, "{},{}", ts, total);
+        }
+    });
 
     // 啟動 PARSE_WORKERS 個 worker thread
     let mut worker_handles = Vec::new();
@@ -393,8 +454,9 @@ fn parse_loop(
         let tx_p = tx.clone();
         let sh = Arc::clone(&shared);
         let noop = parse_noop.as_ref().map(Arc::clone);
+        let counter = Arc::clone(&total_parsed_lines);
         worker_handles.push(thread::spawn(move || {
-            parse_worker(worker_id, rx_w, tx_p, sh, noop, mem_limit_bytes)
+            parse_worker(worker_id, rx_w, tx_p, sh, noop, mem_limit_bytes, deadline_ticks, counter)
         }));
     }
 
@@ -434,6 +496,10 @@ fn parse_loop(
             Err(_) => return Err(wasmtime::Error::msg(format!("parse worker {} panicked", i))),
         }
     }
+
+    // 所有 workers 已完成，停止採樣 thread
+    sampler_stop.store(true, Ordering::Relaxed);
+    let _ = sampler_handle.join();
 
     print_parse_aggregate(&combined, PARSE_WORKERS, wall_elapsed, total_errors);
     Ok(combined)
@@ -555,6 +621,8 @@ fn parse_worker(
     shared: SharedPlugin,
     parse_noop: Option<SharedPlugin>,
     mem_limit_bytes: usize,
+    deadline_ticks: u64,
+    total_lines: Arc<AtomicU64>,
 ) -> wasmtime::Result<(ParseStats, u32)> {
     let mut pool = ParsePool::new(shared, mem_limit_bytes, POOL_TARGET_SIZE)?;
     let mut noop_pool = parse_noop
@@ -580,6 +648,7 @@ fn parse_worker(
         pool.check_reload();
         if let Some(np) = &mut noop_pool { np.check_reload(); }
 
+        let lines_before = stats.total_input_lines;
         if !worker_flush_batch(
             worker_id,
             &mut pool,
@@ -590,10 +659,13 @@ fn parse_worker(
             &mut stats,
             &tx,
             &mut error_count,
-            3,
+            1,
+            deadline_ticks,
         ) {
+            total_lines.fetch_add(stats.total_input_lines - lines_before, Ordering::Relaxed);
             break;
         }
+        total_lines.fetch_add(stats.total_input_lines - lines_before, Ordering::Relaxed);
     }
 
     eprintln!(
@@ -616,6 +688,7 @@ fn worker_flush_batch(
     tx: &SyncSender<ParsedBatch>,
     error_count: &mut u32,
     max_retries: u32,
+    deadline_ticks: u64,
 ) -> bool {
     for attempt in 0..=max_retries {
         let mut inst = match pool.acquire() {
@@ -640,6 +713,7 @@ fn worker_flush_batch(
             pool.mem_limit_bytes,
             reason,
             stats,
+            deadline_ticks,
         ) {
             Ok(Some(pb)) => {
                 //pool.release(inst);
@@ -653,7 +727,7 @@ fn worker_flush_batch(
             }
             Err(e) => {
                 eprintln!(
-                    "[worker{}][OOM {}/{}] batch={}: {}",
+                    "[worker{}][trap {}/{}] batch={}: {}",
                     worker_id,
                     attempt + 1,
                     max_retries + 1,
@@ -663,11 +737,11 @@ fn worker_flush_batch(
                 pool.discard_and_replenish(inst);
                 if attempt == max_retries {
                     eprintln!(
-                        "[worker{}][OOM] exceeded retries, skip batch {}",
+                        "[worker{}][trap] exceeded retries, skip batch {}",
                         worker_id, seq
                     );
                     *error_count += 1;
-                    write_error_file("以下這批是OOM", &batch.lines);
+                    write_error_file("以下這批發生trap/timeout", &batch.lines);
                     batch.clear();
                 }
             }
@@ -685,17 +759,19 @@ fn do_parse_batch(
     mem_limit_bytes: usize,
     reason: &FlushReason,
     stats: &mut ParseStats,
+    deadline_ticks: u64,
 ) -> wasmtime::Result<Option<ParsedBatch>> {
     let input_lines = batch.len();
     let input_bytes = batch.bytes;
     let started = Instant::now();
 
+    inst.store.set_epoch_deadline(deadline_ticks);
     let result = match inst.plugin.call_parse(&mut inst.store, &batch.lines) {
         Ok(Ok(parsed)) => {
             let elapsed = started.elapsed();
             let component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
             let diff = match noop_pool {
-                Some(pool) => match measure_noop_parse(pool, &batch.lines, component_ns, elapsed) {
+                Some(pool) => match measure_noop_parse(pool, &batch.lines, component_ns, elapsed, deadline_ticks) {
                     Ok(diff) => Some(diff),
                     Err(e) => {
                         eprintln!("[worker{}][diff-warn] batch={} {}", worker_id, seq, e);
@@ -803,11 +879,13 @@ fn measure_noop_parse(
     lines: &[String],
     guest_ns: u64,
     real_elapsed: Duration,
+    deadline_ticks: u64,
 ) -> wasmtime::Result<ParseDiffTiming> {
     let mut inst = pool.acquire()?;
     inst.store.data_mut().limiter.reset_batch_stats();
 
     let started = Instant::now();
+    inst.store.set_epoch_deadline(deadline_ticks);
     let call_result = inst.plugin.call_parse(&mut inst.store, lines);
     let noop_elapsed = started.elapsed();
 
@@ -915,12 +993,14 @@ fn filter_loop(
         };
         let mut store = Store::new(&slot.engine, state);
         store.limiter(|s| &mut s.limiter);
+        store.set_epoch_deadline(INSTANTIATE_EPOCH_DEADLINE);
         let plugin = ReductionPlugin::instantiate(&mut store, &slot.component, &slot.linker)?;
         let version = slot.version;
         Ok((store, plugin, version))
     };
 
     let (mut store, mut plugin, mut current_version) = make_filter(&shared)?;
+    let deadline_ticks = stage_timeout.as_millis() as u64 / 10;
     let mut stats = FilterStats::default();
 
     loop {
@@ -964,6 +1044,7 @@ fn filter_loop(
                     }
 
                     let started = Instant::now();
+                    store.set_epoch_deadline(deadline_ticks);
                     match plugin.call_filter(&mut store, &entries) {
                         Ok(Ok(filter_results)) => {
                             let elapsed = started.elapsed();
@@ -1084,6 +1165,7 @@ fn format_loop(
     stage_timeout: Duration,
 ) -> wasmtime::Result<FormatStats> {
     let mut current_version = shared.read().unwrap().version;
+    let deadline_ticks = stage_timeout.as_millis() as u64 / 10;
     let mut stats = FormatStats::default();
 
     loop {
@@ -1121,9 +1203,11 @@ fn format_loop(
                         };
                         let mut store = Store::new(&engine, state);
                         store.limiter(|s| &mut s.limiter);
+                        store.set_epoch_deadline(INSTANTIATE_EPOCH_DEADLINE);
 
                         match FormatPlugin::instantiate(&mut store, &component, &linker) {
                             Ok(plugin) => {
+                                store.set_epoch_deadline(deadline_ticks);
                                 match plugin.call_format(&mut store, chunk) {
                                     Ok(Ok(bytes)) => {
                                         let logic_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
@@ -1362,6 +1446,7 @@ async fn build_transport_store(
     };
     let mut store = Store::new(&engine, state);
     store.limiter(|s| &mut s.limiter);
+    store.set_epoch_deadline(INSTANTIATE_EPOCH_DEADLINE);
     let plugin = TransportPlugin::instantiate_async(&mut store, &component, &linker).await?;
     Ok((store, plugin))
 }
@@ -1385,6 +1470,7 @@ async fn transport_worker(
         max_batch_bytes: 4096,
     };
 
+    let deadline_ticks = stage_timeout.as_millis() as u64 / 10;
     let mut stats = TransportStats::default();
 
     loop {
@@ -1402,6 +1488,7 @@ async fn transport_worker(
             }
         };
 
+        store.set_epoch_deadline(deadline_ticks);
         match plugin.call_init(&mut store, &make_config(&task.url)).await {
             Ok(Ok(())) => {}
             Ok(Err(e)) => {
@@ -1440,6 +1527,7 @@ async fn transport_worker(
 
             for attempt in 0..=MAX_RETRIES {
                 let chunk_started = Instant::now();
+                store.set_epoch_deadline(deadline_ticks);
                 match plugin.call_send(&mut store, chunk).await {
                     Ok(Ok(())) => {
                         let elapsed = chunk_started.elapsed();

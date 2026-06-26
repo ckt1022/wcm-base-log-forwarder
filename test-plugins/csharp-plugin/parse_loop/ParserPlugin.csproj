@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RuntimeIdentifier>wasi-wasm</RuntimeIdentifier>
+    <UseAppHost>false</UseAppHost>
+    <PublishTrimmed>true</PublishTrimmed>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SelfContained>true</SelfContained>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- WASI SDK sysroot – set WASI_SDK_PATH env var or override here -->
+    <WASI_SDK_PATH>$(WASI_SDK_PATH)</WASI_SDK_PATH>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM"
+                      Version="9.0.0-*" />
+    <PackageReference Include="runtime.linux-x64.Microsoft.DotNet.ILCompiler.LLVM"
+                      Version="9.0.0-*" />
+  </ItemGroup>
+
+  <!-- wit-bindgen 生成的 stub 已由根目錄的實作取代，排除避免重複定義 -->
+  <ItemGroup>
+    <Compile Remove="internal/ParserPluginWorldExportsImpl.cs" />
+  </ItemGroup>
+</Project>

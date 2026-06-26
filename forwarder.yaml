@@ -8,13 +8,17 @@
 # Filter:Default為不開啟就不做任何事情
 # Format:Default為組合成json。
 # Transport:Default傳遞
+
+
 plugins:
   # C# Parser
   #parse: "test-plugins/csharp-plugin/parse/parser_csharp.wasm"
+  parse: "test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm"
   # C  Parser
   #parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
+  #parse: "test-plugins/c-plugin/parse_access/parser_c_access.wasm"
   # GO Parser
-  parse: "test-plugins/go-plugin/parse/parser_json.wasm"
+  #parse: "test-plugins/go-plugin/parse/parser_json.wasm"
   #parse: "test-plugins/go-plugin/parse/parser_sys.wasm"
   #parse: "test-plugins/go-plugin/parse/parser_fmt.wasm"
   parse_noop: ~
@@ -44,8 +48,8 @@ input:
 batch:
   mem_limit_mb: 256
   safe_data_ratio: 0.5
-  max_wait_ms: 5000
-  max_batch_lines: 50000
+  max_wait_ms: 1000
+  max_batch_lines: 10000
   channel_capacity: 150000
   max_format_chunk: 50000
   transport_endpoint: "http://127.0.0.1:8080/ingest"
@@ -54,7 +58,7 @@ batch:
   # parse→filter / filter→format / format→transport 三條 pipeline channel 容量
   pipeline_channel_capacity: 20000
   # 每個階段 WASM 呼叫超時上限（ms）；超過後重試最多 2 次，均失敗寫入 error.txt
-  stage_timeout_ms: 30000
+  stage_timeout_ms: 5000
 
 # 後端transport的標籤，可以有多個，以字母方式排序。
 endpoint:
