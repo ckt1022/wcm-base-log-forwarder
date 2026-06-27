@@ -1,0 +1,637 @@
+fluentd有重啟的功能，即使OOM也不會中斷
+
+[run_crash] starting sink server (port 8080) -> /home/ckt1022/wcm-base-log-forwarder/test/compare/fluentd/stats_mem_sink.csv
+[sink] listening on port 8080, writing to /home/ckt1022/wcm-base-log-forwarder/test/compare/fluentd/stats_mem_sink.csv
+[run_crash] launching container...
+[sink] tput=0.0 lps  lat=0 ms  total=0
+                                      08ba63118431b1582b080ee0ec4331b6630a1782603cbd69af7c004256b292ee
+[run_crash] streaming container output (Ctrl+C to stop)...
+---
+[inject] waiting for fluentd to be ready...
+[sink] tput=0.0 lps  lat=0 ms  total=0
+                                      2026-06-27 11:13:41 +0000 [info]: init supervisor logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:13:41 +0000 [info]: parsing config file is succeeded path="/fluentd/etc/fluent.conf"
+2026-06-27 11:13:41 +0000 [info]: gem 'fluentd' version '1.16.3'
+2026-06-27 11:13:41 +0000 [warn]: Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:13:41 +0000 [info]: using configuration file: <ROOT>
+  <source>
+    @type tail
+    path "/fluentd/log/input.log"
+    pos_file "/tmp/input.log.pos"
+    tag "app.log"
+    read_from_head true
+    refresh_interval 1
+    <parse>
+      @type "json"
+      unmatched_lines
+    </parse>
+  </source>
+  <filter app.log>
+    @type loop_trigger
+    keyword "loop"
+  </filter>
+  <filter app.log>
+    @type cpu_test
+    keyword "cputest"
+  </filter>
+  <filter app.log>
+    @type mem_test
+    keyword memtest
+    chunk_size_mb 50
+  </filter>
+  <match app.log>
+    @type http
+    endpoint "http://127.0.0.1:8080/ingest"
+    <format>
+      @type "json"
+    </format>
+    <buffer>
+      @type "memory"
+      flush_interval 1s
+      chunk_limit_size 1m
+    </buffer>
+  </match>
+</ROOT>
+2026-06-27 11:13:41 +0000 [info]: starting fluentd-1.16.3 pid=7 ruby="3.1.4"
+2026-06-27 11:13:41 +0000 [info]: spawn command to main:  cmdline=["/usr/local/bin/ruby", "-Eascii-8bit:ascii-8bit", "/usr/local/bundle/bin/fluentd", "--config", "/fluentd/etc/fluent.conf", "--plugin", "/fluentd/plugins", "--under-supervisor"]
+[sink] tput=0.0 lps  lat=0 ms  total=0
+                                      2026-06-27 11:13:42 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:13:42 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:13:42 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:13:42 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:13:42 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:13:42 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:13:42 +0000 [info]: adding source type="tail"
+2026-06-27 11:13:42 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:13:42 +0000 [info]: #0 starting fluentd worker pid=16 ppid=7 worker=0
+2026-06-27 11:13:42 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:13:42 +0000 [info]: #0 following tail of /fluentd/log/input.log
+2026-06-27 11:13:42 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=0.0 lps  lat=0 ms  total=0
+                                      [inject] fluentd is ready (2s)
+                                                                    [inject] starting loggen 30000 lps for 180s ...
+                                                                                                                   [loggen] steady 80000 lines/s × 180s  error_rate=0.0%
+                                            [sink] tput=33221.1 lps  lat=51.404 ms  total=33232
+                                                                                               [sink] tput=61215.1 lps  lat=48.112 ms  total=94459
+                      [sink] tput=55358.7 lps  lat=51.85 ms  total=149905
+                                                                         [sink] tput=55407.3 lps  lat=50.302 ms  total=205354
+ [sink] tput=61500.7 lps  lat=67.624 ms  total=266868
+                                                     [sink] tput=61188.8 lps  lat=73.324 ms  total=328072
+                                                                                                         [sink] tput=22479.3 lps  lat=61.167 ms  total=350557
+                                 2026-06-27 11:13:50 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+2026-06-27 11:13:51 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:13:51 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:13:51 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:13:51 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:13:51 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:13:51 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:13:51 +0000 [info]: adding source type="tail"
+2026-06-27 11:13:51 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:13:51 +0000 [info]: #0 starting fluentd worker pid=21 ppid=7 worker=0
+2026-06-27 11:13:51 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:13:51 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=0.0 lps  lat=0 ms  total=350557
+                                           [sink] tput=129668.3 lps  lat=1241.805 ms  total=480644
+                                                                                                  2026-06-27 11:13:53 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=101844.2 lps  lat=447.151 ms  total=582515
+                                                      [inject] TRIGGER (mem) — traffic should drop to 0 at sink
+                                                                                                               [sink] tput=60951.8 lps  lat=49.376 ms  total=643481
+                                       [sink] tput=61050.8 lps  lat=48.405 ms  total=704549
+                                                                                           [sink] tput=49908.3 lps  lat=63.325 ms  total=754470
+                   [sink] tput=56027.5 lps  lat=75.534 ms  total=810514
+                                                                       [sink] tput=61334.1 lps  lat=77.294 ms  total=871861
+                                                                                                                           2026-06-27 11:13:58 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+2026-06-27 11:13:59 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:13:59 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:13:59 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:13:59 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:13:59 +0000 [info]: adding match pattern="app.log" type="http"
+[sink] tput=0.0 lps  lat=0 ms  total=871861
+                                           2026-06-27 11:13:59 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:13:59 +0000 [info]: adding source type="tail"
+2026-06-27 11:13:59 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:13:59 +0000 [info]: #0 starting fluentd worker pid=26 ppid=7 worker=0
+2026-06-27 11:13:59 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:13:59 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=101875.1 lps  lat=837.531 ms  total=973760
+                                                      2026-06-27 11:14:00 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=78507.8 lps  lat=174.86 ms  total=1052286
+                                                     [sink] tput=61015.1 lps  lat=53.133 ms  total=1113315
+                                                                                                          [sink] tput=55386.3 lps  lat=50.766 ms  total=1168715
+                                   [sink] tput=55382.6 lps  lat=54.192 ms  total=1224110
+                                                                                        [sink] tput=50275.7 lps  lat=90.662 ms  total=1274399
+                 [sink] tput=56153.3 lps  lat=70.869 ms  total=1330567
+                                                                      2026-06-27 11:14:07 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=11318.2 lps  lat=65.416 ms  total=1341888
+                                                     2026-06-27 11:14:08 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:14:08 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:14:08 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:14:08 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:14:08 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:14:08 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:14:08 +0000 [info]: adding source type="tail"
+2026-06-27 11:14:08 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:14:08 +0000 [info]: #0 starting fluentd worker pid=31 ppid=7 worker=0
+2026-06-27 11:14:08 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:14:08 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=11314.5 lps  lat=1622.833 ms  total=1353205
+                                                       [sink] tput=113190.0 lps  lat=1283.754 ms  total=1466427
+                                                                                                               2026-06-27 11:14:10 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=96122.4 lps  lat=493.697 ms  total=1562575
+                                                      [sink] tput=55396.2 lps  lat=54.151 ms  total=1617985
+                                                                                                           [sink] tput=55435.7 lps  lat=52.012 ms  total=1673433
+                                    [sink] tput=55231.8 lps  lat=56.421 ms  total=1728893
+                                                                                         [sink] tput=55823.9 lps  lat=73.988 ms  total=1784771
+                  [sink] tput=55898.5 lps  lat=84.658 ms  total=1840684
+                                                                       2026-06-27 11:14:15 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+2026-06-27 11:14:16 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:14:16 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:14:16 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:14:16 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:14:16 +0000 [info]: adding match pattern="app.log" type="http"
+[sink] tput=0.0 lps  lat=0 ms  total=1840684
+                                            2026-06-27 11:14:16 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:14:16 +0000 [info]: adding source type="tail"
+2026-06-27 11:14:16 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:14:16 +0000 [info]: #0 starting fluentd worker pid=36 ppid=7 worker=0
+2026-06-27 11:14:16 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:14:16 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=90541.6 lps  lat=922.189 ms  total=1931249
+                                                      2026-06-27 11:14:17 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=89897.9 lps  lat=249.798 ms  total=2021170
+                                                      [sink] tput=55403.3 lps  lat=54.695 ms  total=2076584
+                                                                                                           [sink] tput=49863.7 lps  lat=57.161 ms  total=2126457
+                                    [sink] tput=60923.5 lps  lat=51.721 ms  total=2187395
+                                                                                         [sink] tput=50388.2 lps  lat=82.144 ms  total=2237794
+                  [sink] tput=50056.3 lps  lat=88.387 ms  total=2288023
+                                                                       2026-06-27 11:14:24 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=11248.9 lps  lat=59.477 ms  total=2299281
+                                                     2026-06-27 11:14:24 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:14:24 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:14:24 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:14:24 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:14:24 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:14:24 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:14:24 +0000 [info]: adding source type="tail"
+2026-06-27 11:14:25 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:14:25 +0000 [info]: #0 starting fluentd worker pid=41 ppid=7 worker=0
+2026-06-27 11:14:25 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:14:25 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=22584.2 lps  lat=1535.161 ms  total=2321923
+                                                       [sink] tput=113112.6 lps  lat=1197.543 ms  total=2435151
+                                                                                                               2026-06-27 11:14:27 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=95794.0 lps  lat=406.44 ms  total=2531051
+                                                     [sink] tput=53114.0 lps  lat=51.012 ms  total=2584205
+                                                                                                          [sink] tput=37804.6 lps  lat=74.117 ms  total=2622018
+                                   [sink] tput=58235.2 lps  lat=57.365 ms  total=2680272
+                                                                                        [sink] tput=44816.7 lps  lat=79.695 ms  total=2725099
+                 [sink] tput=50126.5 lps  lat=87.24 ms  total=2775241
+                                                                     2026-06-27 11:14:32 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+2026-06-27 11:14:33 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:14:33 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:14:33 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:14:33 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:14:33 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:14:33 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:14:33 +0000 [info]: adding source type="tail"
+[sink] tput=0.0 lps  lat=0 ms  total=2775241
+                                            2026-06-27 11:14:33 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:14:33 +0000 [info]: #0 starting fluentd worker pid=46 ppid=7 worker=0
+2026-06-27 11:14:33 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:14:33 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=90534.7 lps  lat=935.94 ms  total=2865810
+                                                     2026-06-27 11:14:34 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=89823.6 lps  lat=235.589 ms  total=2955655
+                                                      [sink] tput=55369.8 lps  lat=52.822 ms  total=3011036
+                                                                                                           [sink] tput=49790.2 lps  lat=55.98 ms  total=3061096
+                                   [sink] tput=54969.6 lps  lat=56.029 ms  total=3116490
+                                                                                        [sink] tput=55712.0 lps  lat=72.116 ms  total=3172217
+                 [sink] tput=56192.7 lps  lat=84.829 ms  total=3228421
+                                                                      2026-06-27 11:14:40 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=5532.2 lps  lat=49.094 ms  total=3233955
+                                                    2026-06-27 11:14:41 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:14:41 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:14:41 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:14:41 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:14:41 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:14:41 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:14:41 +0000 [info]: adding source type="tail"
+2026-06-27 11:14:41 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:14:41 +0000 [info]: #0 starting fluentd worker pid=51 ppid=7 worker=0
+2026-06-27 11:14:41 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:14:41 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=79222.2 lps  lat=930.511 ms  total=3313198
+                                                      2026-06-27 11:14:42 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=90046.3 lps  lat=279.043 ms  total=3403270
+                                                      [sink] tput=49851.7 lps  lat=55.742 ms  total=3453134
+                                                                                                           [sink] tput=60895.8 lps  lat=53.579 ms  total=3514063
+                                    [sink] tput=50032.6 lps  lat=56.295 ms  total=3564107
+                                                                                         [sink] tput=55702.6 lps  lat=68.738 ms  total=3619822
+                  [sink] tput=50104.8 lps  lat=85.708 ms  total=3669938
+                                                                       2026-06-27 11:14:48 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=22315.8 lps  lat=73.403 ms  total=3692259
+                                                     2026-06-27 11:14:49 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:14:49 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:14:49 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:14:49 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:14:49 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:14:49 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:14:49 +0000 [info]: adding source type="tail"
+2026-06-27 11:14:49 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:14:49 +0000 [info]: #0 starting fluentd worker pid=56 ppid=7 worker=0
+2026-06-27 11:14:49 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:14:49 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=50864.7 lps  lat=956.665 ms  total=3743138
+                                                      2026-06-27 11:14:51 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=107567.3 lps  lat=481.194 ms  total=3850736
+                                                       [sink] tput=61063.1 lps  lat=48.222 ms  total=3911814
+                                                                                                            [sink] tput=55510.0 lps  lat=56.262 ms  total=3967341
+                                     [sink] tput=55117.2 lps  lat=49.108 ms  total=4022760
+                                                                                          [sink] tput=61109.1 lps  lat=59.182 ms  total=4083916
+                   [sink] tput=61034.5 lps  lat=67.309 ms  total=4145253
+                                                                        2026-06-27 11:14:57 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=33558.7 lps  lat=91.092 ms  total=4178833
+                                                     2026-06-27 11:14:57 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:14:57 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:14:57 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:14:57 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:14:57 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:14:57 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:14:57 +0000 [info]: adding source type="tail"
+2026-06-27 11:14:58 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:14:58 +0000 [info]: #0 starting fluentd worker pid=61 ppid=7 worker=0
+2026-06-27 11:14:58 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:14:58 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=22640.8 lps  lat=1074.99 ms  total=4201479
+                                                      [sink] tput=113180.5 lps  lat=681.656 ms  total=4314683
+                                                                                                             2026-06-27 11:14:59 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=64749.1 lps  lat=77.034 ms  total=4379462
+                                                     [sink] tput=52884.4 lps  lat=51.427 ms  total=4432638
+                                                                                                          [sink] tput=59134.3 lps  lat=48.727 ms  total=4492272
+                                   [sink] tput=54159.7 lps  lat=61.408 ms  total=4546443
+                                                                                        [sink] tput=61525.1 lps  lat=85.12 ms  total=4607980
+                [sink] tput=44749.3 lps  lat=77.305 ms  total=4652739
+                                                                     2026-06-27 11:15:05 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=0.0 lps  lat=0 ms  total=4652739
+                                            2026-06-27 11:15:06 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:15:06 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:15:06 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:15:06 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:15:06 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:15:06 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:15:06 +0000 [info]: adding source type="tail"
+2026-06-27 11:15:06 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:15:06 +0000 [info]: #0 starting fluentd worker pid=66 ppid=7 worker=0
+2026-06-27 11:15:06 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:15:06 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=50863.1 lps  lat=1492.006 ms  total=4703620
+                                                       [sink] tput=113169.5 lps  lat=1086.353 ms  total=4816846
+                                                                                                               2026-06-27 11:15:08 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=90053.0 lps  lat=242.122 ms  total=4906920
+                                                      [sink] tput=55382.5 lps  lat=52.447 ms  total=4962317
+                                                                                                           [sink] tput=60900.4 lps  lat=49.292 ms  total=5023254
+                                    [sink] tput=50214.8 lps  lat=66.219 ms  total=5073522
+                                                                                         [sink] tput=61358.5 lps  lat=78.896 ms  total=5134896
+                  [sink] tput=33490.6 lps  lat=73.33 ms  total=5168394
+                                                                      2026-06-27 11:15:14 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=0.0 lps  lat=0 ms  total=5168394
+                                            2026-06-27 11:15:15 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:15:15 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:15:15 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:15:15 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:15:15 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:15:15 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:15:15 +0000 [info]: adding source type="tail"
+2026-06-27 11:15:15 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:15:15 +0000 [info]: #0 starting fluentd worker pid=71 ppid=7 worker=0
+2026-06-27 11:15:15 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:15:15 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=84354.9 lps  lat=1395.677 ms  total=5253198
+                                                       [sink] tput=100996.1 lps  lat=876.468 ms  total=5355130
+                                                                                                              2026-06-27 11:15:17 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=78441.9 lps  lat=157.597 ms  total=5433594
+                                                      [sink] tput=55482.6 lps  lat=50.331 ms  total=5489371
+                                                                                                           [sink] tput=54561.0 lps  lat=53.591 ms  total=5544786
+                                    [sink] tput=60899.8 lps  lat=72.83 ms  total=5606061
+                                                                                        [sink] tput=50412.4 lps  lat=81.783 ms  total=5656487
+                 2026-06-27 11:15:22 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=16648.1 lps  lat=69.692 ms  total=5673141
+                                                     2026-06-27 11:15:23 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:15:23 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:15:23 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:15:23 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:15:23 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:15:23 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:15:23 +0000 [info]: adding source type="tail"
+2026-06-27 11:15:23 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:15:23 +0000 [info]: #0 starting fluentd worker pid=76 ppid=7 worker=0
+2026-06-27 11:15:23 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:15:23 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=56512.8 lps  lat=953.433 ms  total=5729742
+                                                      2026-06-27 11:15:25 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=101603.3 lps  lat=447.002 ms  total=5831393
+                                                       [sink] tput=61004.9 lps  lat=52.101 ms  total=5892413
+                                                                                                            [sink] tput=55248.9 lps  lat=53.503 ms  total=5947819
+                                     [sink] tput=55384.0 lps  lat=50.432 ms  total=6003251
+                                                                                          [sink] tput=55488.9 lps  lat=64.834 ms  total=6058751
+                   [sink] tput=61499.2 lps  lat=66.163 ms  total=6120265
+                                                                        [sink] tput=27916.8 lps  lat=73.659 ms  total=6148188
+ 2026-06-27 11:15:31 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=0.0 lps  lat=0 ms  total=6148188
+                                            2026-06-27 11:15:32 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:15:32 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:15:32 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:15:32 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:15:32 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:15:32 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:15:32 +0000 [info]: adding source type="tail"
+2026-06-27 11:15:32 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:15:32 +0000 [info]: #0 starting fluentd worker pid=81 ppid=7 worker=0
+2026-06-27 11:15:32 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:15:32 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=90086.7 lps  lat=1378.961 ms  total=6238759
+                                                       [sink] tput=106903.5 lps  lat=826.329 ms  total=6346255
+                                                                                                              2026-06-27 11:15:34 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=72703.3 lps  lat=110.86 ms  total=6418979
+                                                     [sink] tput=55378.2 lps  lat=53.419 ms  total=6474370
+                                                                                                          [sink] tput=55421.4 lps  lat=54.703 ms  total=6530075
+                                   [sink] tput=55481.0 lps  lat=62.719 ms  total=6585606
+                                                                                        [sink] tput=55873.3 lps  lat=82.123 ms  total=6641492
+                 2026-06-27 11:15:40 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=16781.9 lps  lat=92.201 ms  total=6658278
+                                                     2026-06-27 11:15:41 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:15:41 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:15:41 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:15:41 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:15:41 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:15:41 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:15:41 +0000 [info]: adding source type="tail"
+2026-06-27 11:15:41 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:15:41 +0000 [info]: #0 starting fluentd worker pid=86 ppid=7 worker=0
+2026-06-27 11:15:41 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:15:41 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=5558.4 lps  lat=1667.339 ms  total=6663838
+                                                      [sink] tput=107613.8 lps  lat=1376.841 ms  total=6771483
+                                                                                                              [sink] tput=107477.8 lps  lat=601.847 ms  total=6878986
+                                         2026-06-27 11:15:43 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=55567.7 lps  lat=64.31 ms  total=6934567
+                                                    [sink] tput=55351.7 lps  lat=56.514 ms  total=6990069
+                                                                                                         [sink] tput=49789.6 lps  lat=61.901 ms  total=7039913
+                                  [sink] tput=50121.4 lps  lat=78.374 ms  total=7090045
+                                                                                       [sink] tput=55856.9 lps  lat=88.948 ms  total=7146202
+                2026-06-27 11:15:49 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=11269.7 lps  lat=80.234 ms  total=7157532
+                                                     2026-06-27 11:15:50 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:15:50 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:15:50 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:15:50 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:15:50 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:15:50 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:15:50 +0000 [info]: adding source type="tail"
+2026-06-27 11:15:50 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:15:50 +0000 [info]: #0 starting fluentd worker pid=91 ppid=7 worker=0
+2026-06-27 11:15:50 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:15:50 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=22516.1 lps  lat=1593.484 ms  total=7180168
+                                                       [sink] tput=107113.9 lps  lat=1350.712 ms  total=7287654
+                                                                                                               2026-06-27 11:15:52 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=107535.7 lps  lat=500.044 ms  total=7395216
+                                                       [sink] tput=49836.1 lps  lat=56.692 ms  total=7445063
+                                                                                                            [sink] tput=61205.4 lps  lat=50.967 ms  total=7506284
+                                     [sink] tput=49880.3 lps  lat=57.007 ms  total=7556180
+                                                                                          [sink] tput=50607.5 lps  lat=86.844 ms  total=7606800
+                   [sink] tput=44877.3 lps  lat=75.363 ms  total=7651691
+                                                                        2026-06-27 11:15:57 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=0.0 lps  lat=0 ms  total=7651691
+                                            2026-06-27 11:15:58 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:15:58 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:15:58 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:15:58 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:15:58 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:15:58 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:15:58 +0000 [info]: adding source type="tail"
+2026-06-27 11:15:58 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:15:58 +0000 [info]: #0 starting fluentd worker pid=96 ppid=7 worker=0
+2026-06-27 11:15:58 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:15:58 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=96128.1 lps  lat=799.555 ms  total=7747846
+                                                      2026-06-27 11:15:59 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=61655.7 lps  lat=151.938 ms  total=7809515
+                                                      [sink] tput=60931.1 lps  lat=51.684 ms  total=7870459
+                                                                                                           [sink] tput=49569.7 lps  lat=56.618 ms  total=7920291
+                                    [sink] tput=55159.5 lps  lat=54.232 ms  total=7975736
+                                                                                         [sink] tput=55889.7 lps  lat=90.531 ms  total=8031640
+                  [sink] tput=50021.8 lps  lat=77.688 ms  total=8081932
+                                                                       2026-06-27 11:16:06 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=33362.7 lps  lat=87.516 ms  total=8115328
+                                                     2026-06-27 11:16:06 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:16:06 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:16:06 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:16:06 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:16:06 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:16:06 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:16:06 +0000 [info]: adding source type="tail"
+2026-06-27 11:16:06 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:16:06 +0000 [info]: #0 starting fluentd worker pid=101 ppid=7 worker=0
+2026-06-27 11:16:06 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:16:06 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=50619.7 lps  lat=922.905 ms  total=8166220
+                                                      2026-06-27 11:16:08 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=101147.9 lps  lat=400.675 ms  total=8267878
+                                                       [sink] tput=60952.4 lps  lat=47.568 ms  total=8328844
+                                                                                                            [sink] tput=55370.7 lps  lat=52.453 ms  total=8384228
+                                     [sink] tput=60949.4 lps  lat=48.315 ms  total=8445191
+                                                                                          [sink] tput=55373.4 lps  lat=63.104 ms  total=8500861
+                   [sink] tput=61301.7 lps  lat=73.446 ms  total=8562331
+                                                                        [sink] tput=38830.0 lps  lat=62.025 ms  total=8601170
+ 2026-06-27 11:16:14 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=0.0 lps  lat=0 ms  total=8601170
+                                            2026-06-27 11:16:15 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:16:15 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:16:15 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:16:15 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:16:15 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:16:15 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:16:15 +0000 [info]: adding source type="tail"
+2026-06-27 11:16:15 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:16:15 +0000 [info]: #0 starting fluentd worker pid=106 ppid=7 worker=0
+2026-06-27 11:16:15 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:16:15 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=90536.6 lps  lat=1332.426 ms  total=8691731
+                                                       [sink] tput=106933.8 lps  lat=692.019 ms  total=8799231
+                                                                                                              2026-06-27 11:16:17 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=60775.7 lps  lat=69.466 ms  total=8860645
+                                                     [sink] tput=60361.9 lps  lat=48.086 ms  total=8921612
+                                                                                                          [sink] tput=54992.6 lps  lat=51.595 ms  total=8977025
+                                   [sink] tput=50006.2 lps  lat=82.973 ms  total=9027045
+                                                                                        [sink] tput=50461.8 lps  lat=85.636 ms  total=9077522
+                 2026-06-27 11:16:23 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=22257.3 lps  lat=58.949 ms  total=9099785
+                                                     2026-06-27 11:16:24 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:16:24 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:16:24 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:16:24 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:16:24 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:16:24 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:16:24 +0000 [info]: adding source type="tail"
+2026-06-27 11:16:24 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:16:24 +0000 [info]: #0 starting fluentd worker pid=111 ppid=7 worker=0
+2026-06-27 11:16:24 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:16:24 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=0.0 lps  lat=0 ms  total=9099785
+                                            [sink] tput=118471.1 lps  lat=1369.159 ms  total=9218593
+                                                                                                    2026-06-27 11:16:26 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=107583.8 lps  lat=532.152 ms  total=9326206
+                                                       [sink] tput=55416.7 lps  lat=55.268 ms  total=9381635
+                                                                                                            [sink] tput=60927.2 lps  lat=51.355 ms  total=9442576
+                                     [sink] tput=49881.1 lps  lat=50.792 ms  total=9492470
+                                                                                          [sink] tput=66797.0 lps  lat=68.421 ms  total=9559286
+                   [sink] tput=56145.7 lps  lat=74.069 ms  total=9615446
+                                                                        2026-06-27 11:16:32 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=5535.4 lps  lat=49.171 ms  total=9620985
+                                                    2026-06-27 11:16:33 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:16:33 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:16:33 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:16:33 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:16:33 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:16:33 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:16:33 +0000 [info]: adding source type="tail"
+2026-06-27 11:16:33 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:16:33 +0000 [info]: #0 starting fluentd worker pid=116 ppid=7 worker=0
+2026-06-27 11:16:33 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:16:33 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=39562.4 lps  lat=1475.449 ms  total=9660559
+                                                       [sink] tput=113169.7 lps  lat=1108.605 ms  total=9773759
+                                                                                                               2026-06-27 11:16:35 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=101411.1 lps  lat=310.643 ms  total=9875192
+                                                       [sink] tput=55403.8 lps  lat=51.253 ms  total=9930608
+                                                                                                            [sink] tput=60627.8 lps  lat=51.734 ms  total=9991565
+                                     [sink] tput=50096.2 lps  lat=68.013 ms  total=10041701
+                                                                                           [sink] tput=50130.7 lps  lat=74.456 ms  total=10091843
+                     [sink] tput=50324.4 lps  lat=76.907 ms  total=10142180
+                                                                           2026-06-27 11:16:40 +0000 [error]: Worker 0 exited unexpectedly with signal SIGKILL
+[sink] tput=0.0 lps  lat=0 ms  total=10142180
+                                             2026-06-27 11:16:41 +0000 [info]: #0 init worker0 logger path=nil rotate_age=nil rotate_size=nil
+2026-06-27 11:16:41 +0000 [info]: adding filter pattern="app.log" type="loop_trigger"
+2026-06-27 11:16:41 +0000 [info]: adding filter pattern="app.log" type="cpu_test"
+2026-06-27 11:16:41 +0000 [info]: adding filter pattern="app.log" type="mem_test"
+2026-06-27 11:16:41 +0000 [info]: adding match pattern="app.log" type="http"
+2026-06-27 11:16:41 +0000 [warn]: #0 Status code 503 is going to be removed from default `retryable_response_codes` from fluentd v2. Please add it by yourself if you wish
+2026-06-27 11:16:41 +0000 [info]: adding source type="tail"
+2026-06-27 11:16:41 +0000 [warn]: parameter 'keyword' in <filter app.log>
+  @type mem_test
+  keyword memtest
+  chunk_size_mb 50
+</filter> is not used.
+2026-06-27 11:16:41 +0000 [info]: #0 starting fluentd worker pid=121 ppid=7 worker=0
+2026-06-27 11:16:41 +0000 [warn]: #0 [MEM TEST] 將於 5 秒後開始洩漏，速率 5 rec/s × 50MB
+2026-06-27 11:16:41 +0000 [info]: #0 following tail of /fluentd/log/input.log
+[sink] tput=67906.4 lps  lat=1457.556 ms  total=10210108
+                                                        [sink] tput=113186.5 lps  lat=901.349 ms  total=10323324
+                                                                                                                [inject] 180s done, stopping container
+                          2026-06-27 11:16:43 +0000 [info]: Received graceful stop
+2026-06-27 11:16:43 +0000 [info]: #0 fluentd worker is now running worker=0
+[sink] tput=78557.2 lps  lat=204.01 ms  total=10401897
+                                                      2026-06-27 11:16:44 +0000 [info]: #0 fluentd worker is now stopping worker=0
+2026-06-27 11:16:44 +0000 [info]: #0 shutting down fluentd worker worker=0
+2026-06-27 11:16:44 +0000 [info]: #0 shutting down input plugin type=:tail plugin_id="object:8c0"
+2026-06-27 11:16:44 +0000 [info]: #0 shutting down filter plugin type=:loop_trigger plugin_id="object:85c"
+2026-06-27 11:16:44 +0000 [info]: #0 shutting down filter plugin type=:cpu_test plugin_id="object:870"
+2026-06-27 11:16:44 +0000 [info]: #0 shutting down filter plugin type=:mem_test plugin_id="object:884"
+[sink] tput=9559.5 lps  lat=41.864 ms  total=10411459
+                                                     2026-06-27 11:16:45 +0000 [info]: #0 shutting down output plugin type=:http plugin_id="object:898"
+2026-06-27 11:16:45 +0000 [info]: Worker 0 finished with status 0
+---
+[run_crash] container exited
+[run_crash] docker stats -> /home/ckt1022/wcm-base-log-forwarder/test/compare/fluentd/stats_mem.csv
+[run_crash] sink throughput -> /home/ckt1022/wcm-base-log-forwarder/test/compare/fluentd/stats_mem_sink.csv
+
+[run_crash] cleaning up...
+fd-mem
+      fd-mem
+fd-mem
+[run_crash] log file cleared

@@ -1,0 +1,12 @@
+FROM fluent/fluentd:v1.16-debian-1
+
+USER root
+
+# 如果自訂邏輯需要額外的 gem，在這裡裝
+# RUN fluent-gem install <some-gem>
+# 左邊是本機相對於fluentd的路徑。
+# 右邊是容器內的路徑。
+COPY fluent.conf /fluentd/etc/fluent.conf
+COPY plugins/ /fluentd/plugins/
+
+USER fluent
