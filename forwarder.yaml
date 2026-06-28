@@ -17,6 +17,7 @@ plugins:
   # C  Parser
   #parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
   #parse: "test-plugins/c-plugin/parse_access/parser_c_access.wasm"
+  #parse: "test-plugins/c-plugin/parse_bad/parser_c_bad.wasm"
   # GO Parser
   #parse: "test-plugins/go-plugin/parse/parser_json.wasm"
   #parse: "test-plugins/go-plugin/parse/parser_sys.wasm"
@@ -31,9 +32,9 @@ plugins:
 
 # Which pipeline stages to enable
 stages:
-  filter: true
-  format: true
-  transport: true
+  filter: false
+  format: false
+  transport: false
 
 # Input source — choose one mode
 input:

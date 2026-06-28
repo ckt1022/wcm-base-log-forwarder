@@ -87,7 +87,32 @@ interface pipeline-process {
 // ─────────────────────────────────────────────
 world parser-plugin {
     use pipeline-process.{parsed-entry, parse-error};
-    include wasi:cli/imports@0.2.0;
+
+    // WASI for C libc runtime (via wasip1 reactor adapter).
+    // filesystem/* and cli/environment are declared so the WIT matches C#
+    // and tools can validate the world, but the host (WasiCtxBuilder) provides
+    // NO preopened dirs and NO env vars — runtime-level blocking.
+    // wasi:sockets is intentionally omitted: plugins must not open connections.
+    import wasi:clocks/monotonic-clock@0.2.0;
+    import wasi:clocks/wall-clock@0.2.0;
+    import wasi:filesystem/types@0.2.0;
+    import wasi:filesystem/preopens@0.2.0;
+    import wasi:io/error@0.2.0;
+    import wasi:io/poll@0.2.0;
+    import wasi:io/streams@0.2.0;
+    import wasi:cli/environment@0.2.0;
+    import wasi:cli/exit@0.2.0;
+    import wasi:cli/stdin@0.2.0;
+    import wasi:cli/stdout@0.2.0;
+    import wasi:cli/stderr@0.2.0;
+    import wasi:cli/terminal-input@0.2.0;
+    import wasi:cli/terminal-output@0.2.0;
+    import wasi:cli/terminal-stdin@0.2.0;
+    import wasi:cli/terminal-stdout@0.2.0;
+    import wasi:cli/terminal-stderr@0.2.0;
+    import wasi:random/random@0.2.0;
+    import wasi:random/insecure@0.2.0;
+    import wasi:random/insecure-seed@0.2.0;
 
     export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;

@@ -92,7 +92,7 @@
 
 ### 功能補全
 
-- [ ] **CPU fuel / timeout 機制**：加入 Wasmtime fuel 或 thread timeout，防止插件無限迴圈讓管線靜止
+- [x] **CPU fuel / timeout 機制**：加入 Wasmtime fuel 或 thread timeout，防止插件無限迴圈讓管線靜止
 - [ ] **Transport 重試機制（HTTP backoff）**：`TransportConfig.retry`（max-retries / backoff）的 HTTP 層級重試尚未實作；已實作 WASM 呼叫層級超時偵測與 2 次重試
 - [x] **Format / Filter 錯誤寫入 error file**：format 與 filter 階段失敗批次現在參考 parse 的 `write_error_file()` 寫入 error.txt
 - [ ] **stdin 輸入模式接入**：`spawn_stdin_reader()` 已實作，需在 `main.rs` 的 `InputMode` match 加入 stdin 分支

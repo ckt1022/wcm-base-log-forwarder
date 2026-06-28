@@ -146,9 +146,31 @@ interface transport-types {
 // ─────────────────────────────────────────────
 world parser-plugin {
     use pipeline-process.{parsed-entry, parse-error};
-    include wasi:cli/imports@0.2.0;
 
-    // 解析的函數
+    // Minimal WASI for C/Go/Rust libc runtime (via wasip1 reactor adapter).
+    // Intentionally excludes wasi:filesystem and wasi:sockets – parser plugins
+    // must not access the file system or open network connections.
+    // If a plugin binary imports either of these, instantiation will fail at
+    // link time, making unauthorized capability use visible in the host log.
+    import wasi:clocks/monotonic-clock@0.2.0;
+    import wasi:clocks/wall-clock@0.2.0;
+    import wasi:io/error@0.2.0;
+    import wasi:io/poll@0.2.0;
+    import wasi:io/streams@0.2.0;
+    import wasi:cli/environment@0.2.0;
+    import wasi:cli/exit@0.2.0;
+    import wasi:cli/stdin@0.2.0;
+    import wasi:cli/stdout@0.2.0;
+    import wasi:cli/stderr@0.2.0;
+    import wasi:cli/terminal-input@0.2.0;
+    import wasi:cli/terminal-output@0.2.0;
+    import wasi:cli/terminal-stdin@0.2.0;
+    import wasi:cli/terminal-stdout@0.2.0;
+    import wasi:cli/terminal-stderr@0.2.0;
+    import wasi:random/random@0.2.0;
+    import wasi:random/insecure@0.2.0;
+    import wasi:random/insecure-seed@0.2.0;
+
     export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
     export report-usage: func() -> u64;
 }

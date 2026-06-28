@@ -1,0 +1,41 @@
+# Vector — CPU 耗盡測試（cpu）
+# 對應 Fluentd: plugins/filter_cpu_test.rb
+#
+# 測試流程:
+#   1. loggen 持續輸入 → HTTP sink 轉發到 sink_server（建立基準吞吐量）
+#   2. 注入 {"inject":"cputest"} → cpu_stress.lua 進入無限數學迴圈
+#   3. sink_server 記錄流量歸零的時間點
+
+[sources.file_input]
+type = "file"
+include = ["/etc/vector/test-logs.log"]
+read_from = "beginning"
+
+[transforms.parse_json]
+type = "remap"
+inputs = ["file_input"]
+source = '''
+  result, err = parse_json(.message)
+  if err == null {
+    . = result
+  }
+'''
+
+[transforms.cpu_stress]
+type = "lua"
+version = "2"
+inputs = ["parse_json"]
+source = 'dofile("/etc/vector/lua/cpu_stress.lua")'
+hooks.process = "process"
+
+[sinks.http_output]
+type = "http"
+inputs = ["cpu_stress"]
+uri = "http://127.0.0.1:8080/ingest"
+method = "post"
+encoding.codec = "json"
+framing.method = "newline_delimited"
+
+  [sinks.http_output.batch]
+  max_events = 1000
+  timeout_secs = 1

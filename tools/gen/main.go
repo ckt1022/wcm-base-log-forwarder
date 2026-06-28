@@ -472,7 +472,7 @@ func main() {
 		shouldHaveSent := uint64(cumTarget)
 
 		// 在第 20 秒時先在 stdout 印出訊號，再注入一筆含 "LOOP" 的觸發 log
-		if !loopSent && now.Sub(start) >= 10*time.Second {
+		if !loopSent && now.Sub(start) >= 15*time.Second {
 			loopSent = true
 			if err := w.Flush(); err != nil {
 				fmt.Fprintf(logOut, "flush error: %v\n", err)

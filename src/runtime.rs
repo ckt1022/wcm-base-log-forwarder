@@ -124,7 +124,7 @@ impl ParsePool {
     fn create_one(&mut self) -> wasmtime::Result<ParseInstance> {
         let slot = self.shared.read().unwrap();
         let state = MyState {
-            ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+            ctx: WasiCtxBuilder::new().inherit_stdio().build(),
             table: ResourceTable::new(),
             limiter: MyLimiter::new(self.mem_limit_bytes),
             http: WasiHttpCtx::new(),
@@ -160,12 +160,44 @@ impl ParsePool {
             match self.create_one() {
                 Ok(inst) => self.ready.push_back(inst),
                 Err(e) => {
-                    eprintln!(
-                        "[pool] replenish failed ({}/{}): {}",
-                        self.ready.len(),
-                        self.target_size,
-                        e
-                    );
+                    let msg = e.to_string();
+                    // 從錯誤訊息中提取缺少的 import 名稱，格式通常為
+                    // "unknown import: `<interface>::<func>`"
+                    let import_hint = msg
+                        .find("unknown import")
+                        .and_then(|_| msg.find('`'))
+                        .map(|s| {
+                            let rest = &msg[s + 1..];
+                            let end = rest.find('`').unwrap_or(rest.len());
+                            &rest[..end]
+                        })
+                        .unwrap_or("(unknown)");
+
+                    if msg.contains("wasi:sockets") || msg.contains("tcp-create-socket")
+                        || msg.contains("udp-create-socket") || msg.contains("ip-name-lookup")
+                    {
+                        eprintln!(
+                            "[SECURITY][pool] 拒絕載入：plugin import 了未授權的 socket 介面 `{}` ({}/{})",
+                            import_hint, self.ready.len(), self.target_size
+                        );
+                    } else if msg.contains("wasi:filesystem") {
+                        eprintln!(
+                            "[SECURITY][pool] 拒絕載入：plugin import 了未授權的 filesystem 介面 `{}` ({}/{})",
+                            import_hint, self.ready.len(), self.target_size
+                        );
+                    } else if msg.contains("unknown import") {
+                        eprintln!(
+                            "[SECURITY][pool] 拒絕載入：plugin import 了 linker 中不存在的介面 `{}` ({}/{})",
+                            import_hint, self.ready.len(), self.target_size
+                        );
+                    } else {
+                        eprintln!(
+                            "[pool] replenish failed ({}/{}): {}",
+                            self.ready.len(),
+                            self.target_size,
+                            e
+                        );
+                    }
                     break;
                 }
             }
@@ -801,8 +833,13 @@ fn do_parse_batch(
                 .unzip();
 
             if let Some(first) = entries.first() {
-                if let Some(tag) = first.tags.first() {
-                    eprintln!("[parse][batch={}] first-tag: {}={}", seq, tag.0, tag.1);
+                if !first.tags.is_empty() {
+                    let tag_str: Vec<String> = first
+                        .tags
+                        .iter()
+                        .map(|(k, v)| format!("{}={}", k, v))
+                        .collect();
+                    eprintln!("[parse][batch={}] tags: {}", seq, tag_str.join(" | "));
                 }
             }
             print_flush_header(seq, batch, reason);
@@ -986,7 +1023,7 @@ fn filter_loop(
     let make_filter = |shared: &SharedPlugin| -> wasmtime::Result<(Store<MyState>, ReductionPlugin, u64)> {
         let slot = shared.read().unwrap();
         let state = MyState {
-            ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+            ctx: WasiCtxBuilder::new().inherit_stdio().build(),
             table: ResourceTable::new(),
             limiter: MyLimiter::new(mem_limit_bytes),
             http: WasiHttpCtx::new(),
@@ -1196,7 +1233,7 @@ fn format_loop(
 
                     for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
                         let state = MyState {
-                            ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+                            ctx: WasiCtxBuilder::new().inherit_stdio().build(),
                             table: ResourceTable::new(),
                             limiter: MyLimiter::new(mem_limit_bytes),
                             http: WasiHttpCtx::new(),
@@ -1439,7 +1476,7 @@ async fn build_transport_store(
         (slot.engine.clone(), slot.component.clone(), slot.linker.clone())
     };
     let state = MyState {
-        ctx: WasiCtxBuilder::new().inherit_stdio().inherit_env().build(),
+        ctx: WasiCtxBuilder::new().inherit_stdio().build(),
         table: ResourceTable::new(),
         limiter: MyLimiter::new(mem_limit_bytes),
         http: WasiHttpCtx::new(),

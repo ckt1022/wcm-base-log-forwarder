@@ -1,132 +1,126 @@
 #include "parser_plugin.h"
+#include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 /*
- * parse_access plugin – WCM IO capability access test
+ * parse_access – WCM runtime-level blocking demo
  *
- * 目的：在沒有授予 IO 權限的情況下，呼叫 WASI filesystem 和 socket API，
- * 驗證 WCM 能力模型是否能阻擋未授權的外部 IO 存取。
+ * WIT world: filesystem/types+preopens 與 cli/environment 均有宣告（與正式 parse 相同）。
+ * 關鍵：host 的 WasiCtxBuilder 沒有注入任何 preopened dir 或環境變數。
  *
- * 測試項目：
- *   1. Filesystem – 取得 preopens 並嘗試開啟/建立檔案
- *   2. Network    – 嘗試建立 TCP socket
+ * 這證明了：WIT 中宣告能力 ≠ 真的能存取資源。
+ * 實際能存取什麼，完全由 host 在建立 WasiCtx 時決定。
  *
- * 每次 parse() 呼叫都會回傳一個 parsed-entry，其 tags 記錄了每項測試的結果。
- * 若 WCM 阻擋了存取，相關 API 會回傳錯誤碼（not-permitted / access-denied）；
- * 若未阻擋，結果會顯示 "allowed"，表示存取成功。
+ *  [A] fopen() – POSIX 層嘗試檔案存取
+ *      WIT 有 filesystem 能力，但 host 沒有給 preopened dir。
+ *      libc 在 __wasilibc_find_relpath() 短路，回傳 ENOTCAPABLE。
+ *      host 完全看不到這次存取嘗試（WASI p2 層從未被呼叫）。
+ *
+ *  [B] wasi_cli_environment_get_environment() – 直接 WASI p2 呼叫
+ *      WIT 有 cli/environment 能力，但 host 沒有呼叫 inherit_env()。
+ *      直接呼叫 WASI p2 → 到達 wasmtime 實作 → 回傳空列表。
+ *      與 fopen() 不同，此呼叫 host 可以攔截（可見）。
  */
 
 static uint64_t g_last_exec_ns = 0;
 
-/* 測試 1: 嘗試透過 WASI filesystem preopens 存取檔案系統 */
-static const char *try_filesystem_access(void) {
-    wasi_filesystem_preopens_list_tuple2_own_descriptor_string_t dirs;
-    wasi_filesystem_preopens_get_directories(&dirs);
-
-    if (dirs.len == 0) {
-        /* WCM 沒有給予任何 preopen 目錄 → 無法存取 filesystem */
-        wasi_filesystem_preopens_list_tuple2_own_descriptor_string_free(&dirs);
-        return "fs:no-preopens(blocked)";
+/*
+ * Test 1 – filesystem access via standard POSIX fopen().
+ * Translates through wasip1 path_open → adapter → WasiCtx.
+ * Without preopened dirs the libc returns ENOTCAPABLE immediately.
+ */
+static const char *try_filesystem_access(void)
+{
+    errno = 0;
+    FILE *f = fopen("wcm_capability_probe.txt", "r");
+    if (f) {
+        fclose(f);
+        return "fs:ALLOWED!(unexpected)";
     }
-
-    /* 取得 preopens 成功：嘗試在第一個目錄下建立/開啟檔案 */
-    wasi_filesystem_types_borrow_descriptor_t root_borrow =
-        wasi_filesystem_types_borrow_descriptor(dirs.ptr[0].f0);
-
-    parser_plugin_string_t path;
-    parser_plugin_string_dup(&path, "access_test_probe.txt");
-
-    wasi_filesystem_types_own_descriptor_t file_fd;
-    wasi_filesystem_types_error_code_t fs_err;
-
-    bool opened = wasi_filesystem_types_method_descriptor_open_at(
-        root_borrow,
-        WASI_FILESYSTEM_TYPES_PATH_FLAGS_SYMLINK_FOLLOW,
-        &path,
-        WASI_FILESYSTEM_TYPES_OPEN_FLAGS_CREATE,
-        WASI_FILESYSTEM_TYPES_DESCRIPTOR_FLAGS_WRITE,
-        &file_fd,
-        &fs_err
-    );
-
-    parser_plugin_string_free(&path);
-    wasi_filesystem_preopens_list_tuple2_own_descriptor_string_free(&dirs);
-
-    if (opened) {
-        wasi_filesystem_types_descriptor_drop_own(file_fd);
-        return "fs:write-open-ok(allowed)";
+    switch (errno) {
+    case 76:      return "fs:ENOTCAPABLE(blocked-no-preopens)";
+    case ENOENT:  return "fs:ENOENT(blocked-no-preopens)";
+    case EACCES:  return "fs:EACCES(denied)";
+    default: {
+        static char buf[48];
+        snprintf(buf, sizeof(buf), "fs:errno=%d(blocked)", errno);
+        return buf;
     }
-
-    /* 有 preopen 但開檔被拒 */
-    switch (fs_err) {
-        case WASI_FILESYSTEM_TYPES_ERROR_CODE_NOT_PERMITTED: return "fs:open-not-permitted";
-        case WASI_FILESYSTEM_TYPES_ERROR_CODE_ACCESS:        return "fs:open-access-denied";
-        case WASI_FILESYSTEM_TYPES_ERROR_CODE_READ_ONLY:     return "fs:open-read-only";
-        default:                                              return "fs:open-error(other)";
     }
 }
 
-/* 測試 2: 嘗試建立 TCP socket */
-static const char *try_network_access(void) {
-    wasi_sockets_tcp_create_socket_own_tcp_socket_t sock;
-    wasi_sockets_tcp_create_socket_error_code_t net_err;
+/*
+ * Test 2 – 直接呼叫 WASI p2 讀取環境變數
+ *
+ * WIT 中有宣告 wasi:cli/environment，所以 wit-bindgen 生成了
+ * wasi_cli_environment_get_environment() 的 C binding。
+ *
+ * 此呼叫 直接到達 wasmtime 的 WASI p2 實作（不像 fopen 被 libc 短路）。
+ * 因為 WasiCtxBuilder 沒有呼叫 inherit_env()，回傳空列表。
+ *
+ * 與 Test A（fopen）的核心差異：
+ *   Test A：WASI 層完全不可見 → host 無法攔截
+ *   Test B：WASI 層可見       → host 可以替換實作並攔截記錄
+ */
+static const char *try_direct_p2_env_call(void)
+{
+    parser_plugin_list_tuple2_string_string_t env_list;
+    wasi_cli_environment_get_environment(&env_list);
 
-    bool created = wasi_sockets_tcp_create_socket_create_tcp_socket(
-        WASI_SOCKETS_NETWORK_IP_ADDRESS_FAMILY_IPV4,
-        &sock,
-        &net_err
-    );
+    size_t count = env_list.len;
+    parser_plugin_list_tuple2_string_string_free(&env_list);
 
-    if (created) {
-        wasi_sockets_tcp_tcp_socket_drop_own(sock);
-        return "net:tcp-socket-ok(allowed)";
+    if (count == 0) {
+        return "p2-env:empty-list(WasiCtxBuilder-no-inherit_env=blocked)";
     }
 
-    switch (net_err) {
-        case WASI_SOCKETS_NETWORK_ERROR_CODE_ACCESS_DENIED:   return "net:tcp-access-denied(blocked)";
-        case WASI_SOCKETS_NETWORK_ERROR_CODE_NOT_SUPPORTED:   return "net:tcp-not-supported";
-        default:                                               return "net:tcp-error(other)";
-    }
+    static char buf[64];
+    snprintf(buf, sizeof(buf), "p2-env:LEAK!count=%zu(host-misconfigured)", count);
+    return buf;
 }
 
 bool exports_parser_plugin_parse(parser_plugin_list_string_t *raw_data,
                                   parser_plugin_list_parsed_entry_t *ret,
-                                  parser_plugin_parse_error_t *err) {
+                                  parser_plugin_parse_error_t *err)
+{
     (void)err;
 
+    // [A] WIT 有 filesystem 能力，但 host 未提供 preopened dir → POSIX 短路失敗
     const char *fs_result  = try_filesystem_access();
-    const char *net_result = try_network_access();
 
-    /* 回傳一個 parsed entry，記錄此次 IO 存取測試的結果 */
+    // [B] WIT 有 environment 能力，但 host 未注入環境變數 → p2 直接呼叫回傳空列表
+    const char *env_result = try_direct_p2_env_call();
+
     ret->len = 1;
-    ret->ptr = (parser_plugin_parsed_entry_t *)calloc(1, sizeof(parser_plugin_parsed_entry_t));
+    ret->ptr = (parser_plugin_parsed_entry_t *)calloc(
+        1, sizeof(parser_plugin_parsed_entry_t));
 
     parser_plugin_string_dup(&ret->ptr[0].timestamp, "");
     ret->ptr[0].level = LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_WARN;
 
-    char msg[512];
+    char msg[480];
     snprintf(msg, sizeof(msg),
-             "[WCM-IO-TEST] input=%zu | %s | %s",
-             raw_data->len, fs_result, net_result);
+             "[WCM-CAP-TEST] input=%zu | %s | %s",
+             raw_data->len, fs_result, env_result);
     parser_plugin_string_dup(&ret->ptr[0].message, msg);
 
-    /* Tags: fs_access 與 net_access 分別記錄兩項測試結果 */
     ret->ptr[0].tags.len = 2;
     ret->ptr[0].tags.ptr = (parser_plugin_tuple2_string_string_t *)malloc(
-        2 * sizeof(parser_plugin_tuple2_string_string_t)
-    );
-    parser_plugin_string_dup(&ret->ptr[0].tags.ptr[0].f0, "fs_access");
+        2 * sizeof(parser_plugin_tuple2_string_string_t));
+    parser_plugin_string_dup(&ret->ptr[0].tags.ptr[0].f0, "A_fs_access_posix");
     parser_plugin_string_dup(&ret->ptr[0].tags.ptr[0].f1, fs_result);
-    parser_plugin_string_dup(&ret->ptr[0].tags.ptr[1].f0, "net_access");
-    parser_plugin_string_dup(&ret->ptr[0].tags.ptr[1].f1, net_result);
+    parser_plugin_string_dup(&ret->ptr[0].tags.ptr[1].f0, "B_p2_env_direct");
+    parser_plugin_string_dup(&ret->ptr[0].tags.ptr[1].f1, env_result);
 
     parser_plugin_string_dup(&ret->ptr[0].targettag, "C");
 
     return true;
 }
 
-uint64_t exports_parser_plugin_report_usage(void) {
+uint64_t exports_parser_plugin_report_usage(void)
+{
     return g_last_exec_ns;
 }

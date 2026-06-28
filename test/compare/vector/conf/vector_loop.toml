@@ -1,0 +1,41 @@
+# Vector — 無窮迴圈測試（loop）
+# 對應 Fluentd: plugins/filter_loop_trigger.rb
+#
+# 測試流程:
+#   1. loggen 持續輸入 → HTTP sink 轉發到 sink_server（建立基準吞吐量）
+#   2. 注入 {"inject":"loop"} → loop_trigger.lua 進入 while true
+#   3. sink_server 記錄流量歸零的時間點
+
+[sources.file_input]
+type = "file"
+include = ["/etc/vector/test-logs.log"]
+read_from = "beginning"
+
+[transforms.parse_json]
+type = "remap"
+inputs = ["file_input"]
+source = '''
+  result, err = parse_json(.message)
+  if err == null {
+    . = result
+  }
+'''
+
+[transforms.loop_trigger]
+type = "lua"
+version = "2"
+inputs = ["parse_json"]
+source = 'dofile("/etc/vector/lua/loop_trigger.lua")'
+hooks.process = "process"
+
+[sinks.http_output]
+type = "http"
+inputs = ["loop_trigger"]
+uri = "http://127.0.0.1:8080/ingest"
+method = "post"
+framing.method = "newline_delimited"
+encoding.codec = "json"
+
+[sinks.http_output.batch]
+max_events = 10000
+timeout_secs = 0.5
