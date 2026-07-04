@@ -85,11 +85,11 @@ static const char* route_tag_c(uint8_t level) {
     case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_CRIT:
     case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_ALERT:
     case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_EMERG:
-        return "AB";
+        return "A";
     case LOCAL_LOG_PROCESS_PIPELINE_PROCESS_LOG_LEVEL_WARN:
-        return "BC";
+        return "A";
     default:
-        return "C";
+        return "A";
     }
 }
 

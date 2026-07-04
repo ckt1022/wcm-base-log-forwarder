@@ -89,6 +89,14 @@ var traceIDs = []string{"4bf92f3577b34da6", "00f067aa0ba902b7", "e457b5a2e4d86bd
 // Line builders - JSON
 // -----------------------------------------------------------------
 
+// simpleJSONLineLen is the fixed byte length for every json-simple line.
+// Computed from max natural content (149 B) + padding field overhead (11 B) + margin (12 B).
+// All lines are padded to exactly this length via a trailing "_p" field.
+const simpleJSONLineLen = 172
+
+// simpleJSONPad is a pre-allocated space string used for padding; length must be >= 50.
+const simpleJSONPad = "                                                                " // 64 spaces
+
 func buildSimpleJSONLine(dst []byte, ts, level, svc, code string) []byte {
 	dst = dst[:0]
 	dst = append(dst, `{"ts":"`...)
@@ -101,7 +109,13 @@ func buildSimpleJSONLine(dst []byte, ts, level, svc, code string) []byte {
 	dst = append(dst, svc...)
 	dst = append(dst, `","code":"`...)
 	dst = append(dst, code...)
-	dst = append(dst, `"}}`...)
+	dst = append(dst, `"},"_p":"`...)
+	padLen := simpleJSONLineLen - len(dst) - 2 // -2 for closing `"}`
+	if padLen < 0 {
+		padLen = 0
+	}
+	dst = append(dst, simpleJSONPad[:padLen]...)
+	dst = append(dst, `"}`...)
 	return dst
 }
 

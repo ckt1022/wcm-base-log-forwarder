@@ -8,19 +8,19 @@ use std::sync::{Arc, RwLock};
 
 use config::{AppConfig, BatchConfig, InputMode, PluginSlots, load_app_config, spawn_config_watcher};
 
+// 主程式入口
 fn main() -> wasmtime::Result<()> {
+    // 服務的設定檔案，可以透過啟動程式碼的第一個參數來輸入
+    // 若沒有則使用預設檔案 root/forwarder.yaml
     let config_path = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "forwarder.yaml".to_string());
 
+    // 讀取YAML設定檔案
     let app_cfg = match load_app_config(&config_path) {
         Ok(c) => c,
         Err(e) => { eprintln!("[config] {}", e); std::process::exit(1); }
     };
-
-    //for (name, url) in &app_cfg.endpoint.0 {
-    //    println!("endpoint {} = {}", name, url);
-    //}
 
     let batch_cfg = BatchConfig::from(app_cfg.batch.clone());
     if let Err(e) = batch_cfg.validate_and_describe() {
@@ -32,17 +32,25 @@ fn main() -> wasmtime::Result<()> {
     let safe_data_budget = (mem_limit_bytes as f64 * batch_cfg.safe_data_ratio) as usize;
     output::print_startup(&batch_cfg, safe_data_budget, &app_cfg.stages);
 
+    // 以下為讀取設定檔案並建立plugin的插槽
+
+    // 取出config檔案的路徑
     let config_dir = Path::new(&config_path)
         .parent()
         .unwrap_or(Path::new("."));
+    
+    // 組合成plugin路徑
+    let plugin_dir = config_dir.join("plugin/");
 
+    // resolve讀取每個plugin的路徑並組合成絕對路徑
     let resolve = |p: &str| -> String {
         let pp = Path::new(p);
         if pp.is_absolute() { p.to_string() }
-        else { config_dir.join(pp).to_string_lossy().to_string() }
+        else { plugin_dir.join(pp).to_string_lossy().to_string() }
     };
 
     // Build SharedPlugin slots from config paths
+    // 建立每個元件的插槽，並且送入pipeline函數
     let parse_slot = app::new_shared_runtime(&resolve(&app_cfg.plugins.parse))?;
 
     let parse_noop_slot = app_cfg.plugins.parse_noop.as_deref()

@@ -12,10 +12,9 @@ SERVER_PY="$SCRIPT_DIR/tools/test/server.py"
 FORWARDER_BIN="$SCRIPT_DIR/target/debug/wcm-base-log-forwarder"
 
 # ─── 清理函式 ────────────────────────────────────────────────────────────────
-# 使用 process substitution（> >(tee ...)）讓 $! 捕捉到的是主程序 PID，
-# 而非管道末端的 tee，確保 kill 能正確終止目標程序。
 SERVER_PIDS=()
 FORWARDER_PID=""
+_TEE_PID=""
 _CLEANUP_DONE=0
 
 cleanup() {
@@ -27,6 +26,7 @@ cleanup() {
 
     # 先送 SIGTERM，給程序機會優雅結束
     [[ -n "$FORWARDER_PID" ]] && kill -TERM "$FORWARDER_PID" 2>/dev/null || true
+    [[ -n "$_TEE_PID" ]]      && kill -TERM "$_TEE_PID"      2>/dev/null || true
     for pid in "${SERVER_PIDS[@]+"${SERVER_PIDS[@]}"}"; do
         kill -TERM "$pid" 2>/dev/null || true
     done
@@ -36,6 +36,7 @@ cleanup() {
     while (( SECONDS < deadline )); do
         local alive=0
         [[ -n "$FORWARDER_PID" ]] && kill -0 "$FORWARDER_PID" 2>/dev/null && alive=1
+        [[ -n "$_TEE_PID" ]]      && kill -0 "$_TEE_PID"      2>/dev/null && alive=1
         for pid in "${SERVER_PIDS[@]+"${SERVER_PIDS[@]}"}"; do
             kill -0 "$pid" 2>/dev/null && alive=1
         done
@@ -44,6 +45,7 @@ cleanup() {
     done
 
     [[ -n "$FORWARDER_PID" ]] && kill -9 "$FORWARDER_PID" 2>/dev/null || true
+    [[ -n "$_TEE_PID" ]]      && kill -9 "$_TEE_PID"      2>/dev/null || true
     for pid in "${SERVER_PIDS[@]+"${SERVER_PIDS[@]}"}"; do
         kill -9 "$pid" 2>/dev/null || true
     done
@@ -126,12 +128,17 @@ echo ""
 echo "[test] 啟動 forwarder  (stdout → 終端 + $LOG_DIR/forwarder.log)"
 : > "$TAIL_PATH"
 : > "$LOG_DIR/forwarder.log"
-# 直接執行 binary（不透過 cargo run）：$! = forwarder 本身的 PID
-"$FORWARDER_BIN" \
-    > >(tee -a "$LOG_DIR/forwarder.log") \
-    2>&1 &
+# 以具名 fd 開啟 tee 並取得其 PID。
+# 必須用 exec {fd}> >(tee ...) 而非直接 > >(tee ...) &：
+# 後者在某些 bash 版本下 parent 不會關閉 pipe 的寫端副本，
+# 導致 forwarder 被 kill 後 tee 收不到 EOF 而永久阻塞，wait 永不返回。
+exec {_TEE_IN}> >(tee -a "$LOG_DIR/forwarder.log")
+_TEE_PID=$!
+"$FORWARDER_BIN" >&$_TEE_IN 2>&1 &
 FORWARDER_PID=$!
-echo "[test] forwarder 已啟動  pid=$FORWARDER_PID"
+# 關閉 parent 的寫端副本，確保 forwarder 結束時 tee 收到 EOF 並自動退出
+exec {_TEE_IN}>&-
+echo "[test] forwarder 已啟動  pid=$FORWARDER_PID  tee_pid=$_TEE_PID"
 
 # 等待 5 秒讓 forwarder 完成初始化（載入 WASM 插件、開啟 tail）
 echo ""

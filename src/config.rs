@@ -84,7 +84,7 @@ pub struct BatchConfigRaw {
     pub channel_capacity: usize,
     pub max_format_chunk: usize,
     #[serde(default)]
-    pub transport_endpoint: Option<String>,
+    //pub transport_endpoint: Option<String>,
     pub max_transport_bytes: usize,
     pub transport_workers: usize,
     /// parse→filter / filter→format / format→transport channel 容量。
@@ -104,7 +104,7 @@ impl From<BatchConfigRaw> for BatchConfig {
             max_batch_lines: r.max_batch_lines,
             channel_capacity: r.channel_capacity,
             max_format_chunk: r.max_format_chunk,
-            transport_endpoint: r.transport_endpoint,
+            // transport_endpoint: r.transport_endpoint,
             max_transport_bytes: r.max_transport_bytes,
             transport_workers: r.transport_workers,
             pipeline_channel_capacity: r.pipeline_channel_capacity,
@@ -283,7 +283,7 @@ pub struct BatchConfig {
     /// TinyGo GC 在大批次時無法及時回收中間字串緩衝區，需分批呼叫。
     pub max_format_chunk: usize,
     /// Transport plugin 目標端點 URL（已由 endpoint map 取代，保留供相容）。
-    pub transport_endpoint: Option<String>,
+    // pub transport_endpoint: Option<String>,
     /// 每次呼叫 transport send() 的最大累積 byte 數（一次對應一個 HTTP POST）。
     /// WASI blocking-write-and-flush 單次寫入上限為 4096 B（sync/async 皆適用）；
     /// plugin 必須在內部分批寫入 HTTP body（每次 ≤ 4096 B）。
@@ -308,7 +308,7 @@ impl Default for BatchConfig {
             max_batch_lines: 50_000,
             channel_capacity: 150_000,
             max_format_chunk: 50_000,
-            transport_endpoint: None,
+            // transport_endpoint: None,
             max_transport_bytes: 128 * 1024,
             transport_workers: 5,
             pipeline_channel_capacity: 20_000,
@@ -392,6 +392,7 @@ impl BatchConfig {
         }
 
         // transport_endpoint（選填，路由改由 endpoint map 負責）
+        /* 
         if let Some(ep) = &self.transport_endpoint {
             if !ep.starts_with("http://") && !ep.starts_with("https://") {
                 return Err(format!(
@@ -400,6 +401,7 @@ impl BatchConfig {
                 ));
             }
         }
+        */
 
         // max_transport_bytes
         // used at: runtime.rs transport_worker → while acc_bytes + line_len <= max_transport_bytes
@@ -478,12 +480,14 @@ impl BatchConfig {
                 "format plugin 每次呼叫的最大 entry 數 (runtime.rs format_loop chunks)",
                 self.max_format_chunk == default.max_format_chunk,
             ),
+            /*
             (
                 "transport_endpoint",
                 self.transport_endpoint.clone().unwrap_or_else(|| "(via endpoint map)".to_string()),
                 "transport plugin init() 目標 URL（已由 endpoint map 取代）",
                 self.transport_endpoint == default.transport_endpoint,
             ),
+            */
             (
                 "max_transport_bytes",
                 format!("{} KB", self.max_transport_bytes / 1024),

@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 use std::fs::File;
+use std::future::Future;
 use std::io::Write;
+use std::net::{IpAddr, SocketAddr};
+use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender};
 use std::sync::{Arc, Mutex, RwLock};
@@ -8,6 +11,7 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use wasmtime::Store;
+use wasmtime_wasi::sockets::SocketAddrUse;
 use wasmtime_wasi::{ResourceTable, WasiCtxBuilder};
 use wasmtime_wasi_http::WasiHttpCtx;
 
@@ -26,7 +30,8 @@ use crate::config::{
     ParseStats, TransportStats,
 };
 use crate::output::{
-    print_filter_batch, print_flush_header, print_format_batch, print_parse_aggregate,
+    // [latency-bench] print_flush_header は呼び出し側でコメントアウト済みのため import も除外。
+    print_filter_batch, print_format_batch, print_parse_aggregate,
     print_parse_batch, print_pipeline_summary,
 };
 
@@ -360,12 +365,13 @@ pub fn run_pipeline(
             for i in 0..transport_workers {
                 let rx = Arc::clone(&rx_work_shared);
                 let sh = Arc::clone(&shared);
+                let cfg_w = Arc::clone(&cfg);
                 worker_handles.push(thread::spawn(move || {
                     tokio::runtime::Builder::new_current_thread()
                         .enable_all()
                         .build()
                         .unwrap()
-                        .block_on(transport_worker(rx, sh, mem_limit_bytes, max_transport_bytes, i, stage_timeout))
+                        .block_on(transport_worker(rx, sh, mem_limit_bytes, max_transport_bytes, i, stage_timeout, cfg_w))
                 }));
             }
 
@@ -789,7 +795,8 @@ fn do_parse_batch(
     batch: &mut Batch,
     seq: u64,
     mem_limit_bytes: usize,
-    reason: &FlushReason,
+    // [latency-bench] reason は print_flush_header でのみ使用、コメントアウト後は不要。
+    _reason: &FlushReason,
     stats: &mut ParseStats,
     deadline_ticks: u64,
 ) -> wasmtime::Result<Option<ParsedBatch>> {
@@ -801,7 +808,10 @@ fn do_parse_batch(
     let result = match inst.plugin.call_parse(&mut inst.store, &batch.lines) {
         Ok(Ok(parsed)) => {
             let elapsed = started.elapsed();
-            let component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
+            // [latency-bench] call_report_usage は WASM 呼び出しが 1 回余分に発生し延遲を汚染する。
+            //                 延遲分佈量測中は 0 で代替して余分なオーバーヘッドを排除する。
+            // let component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
+            let component_ns: u64 = 0;
             let diff = match noop_pool {
                 Some(pool) => match measure_noop_parse(pool, &batch.lines, component_ns, elapsed, deadline_ticks) {
                     Ok(diff) => Some(diff),
@@ -832,17 +842,19 @@ fn do_parse_batch(
                 })
                 .unzip();
 
-            if let Some(first) = entries.first() {
-                if !first.tags.is_empty() {
-                    let tag_str: Vec<String> = first
-                        .tags
-                        .iter()
-                        .map(|(k, v)| format!("{}={}", k, v))
-                        .collect();
-                    eprintln!("[parse][batch={}] tags: {}", seq, tag_str.join(" | "));
-                }
-            }
-            print_flush_header(seq, batch, reason);
+            // [latency-bench] tag debug print：毎批次で Vec 分配 + eprintln を発生させ p99 に影響するためコメントアウト。
+            // if let Some(first) = entries.first() {
+            //     if !first.tags.is_empty() {
+            //         let tag_str: Vec<String> = first
+            //             .tags
+            //             .iter()
+            //             .map(|(k, v)| format!("{}={}", k, v))
+            //             .collect();
+            //         eprintln!("[parse][batch={}] tags: {}", seq, tag_str.join(" | "));
+            //     }
+            // }
+            // [latency-bench] print_flush_header：毎 flush の eprintln は延遲測試に不要なためコメントアウト。
+            // print_flush_header(seq, batch, reason);
             print_parse_batch(
                 worker_id,
                 seq,
@@ -906,7 +918,8 @@ fn do_parse_batch(
         Err(e) => return Err(e),
     };
 
-    inst.store.data().limiter.print_max("parse");
+    // [latency-bench] print_max は no-op だが呼び出し自体のオーバーヘッドがあるためコメントアウト。
+    // inst.store.data().limiter.print_max("parse");
     batch.clear();
     Ok(result)
 }
@@ -928,7 +941,10 @@ fn measure_noop_parse(
 
     match call_result {
         Ok(Ok(_)) => {
-            let noop_component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
+            // [latency-bench] noop 側の report_usage も追加 WASM 呼び出しのためコメントアウト。
+            //                 parse_noop は通常 None（forwarder.yaml: parse_noop: ~）なので実行されないが念のため。
+            // let noop_component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
+            let noop_component_ns: u64 = 0;
             pool.release_without_reset(inst);
 
             let noop_elapsed_ns = duration_ns(noop_elapsed);
@@ -1102,7 +1118,9 @@ fn filter_loop(
                                 break 'retry;
                             }
 
-                            let component_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                            // [latency-bench] filter の report_usage は追加 WASM 呼び出しのためコメントアウト。
+                            // let component_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                            let component_ns: u64 = 0;
                             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
 
                             let keep_ids: std::collections::HashSet<u64> = filter_results
@@ -1247,7 +1265,9 @@ fn format_loop(
                                 store.set_epoch_deadline(deadline_ticks);
                                 match plugin.call_format(&mut store, chunk) {
                                     Ok(Ok(bytes)) => {
-                                        let logic_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                                        // [latency-bench] format の report_usage は追加 WASM 呼び出しのためコメントアウト。
+                                        // let logic_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
+                                        let logic_ns: u64 = 0;
                                         batch_logic_ns += logic_ns;
                                         let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
                                         if wasm_mem_peak > batch_wasm_peak {
@@ -1292,7 +1312,8 @@ fn format_loop(
                                         batch_ok = false;
                                     }
                                 }
-                                store.data().limiter.print_max("format");
+                                // [latency-bench] print_max は no-op だが呼び出しオーバーヘッドのためコメントアウト。
+                                // store.data().limiter.print_max("format");
                             }
                             Err(e) => {
                                 eprintln!(
@@ -1467,16 +1488,90 @@ fn transport_router(
 
 // ── Transport Worker (async) ──────────────────────────────────────────────────
 
+/// 從 `endpoint:` map 裡的 URL 字串（例如 "http://127.0.0.1:8080/ingest"）
+/// 解析出 (host, port)，僅供 socket 白名單比對使用。
+fn parse_endpoint_host_port(url: &str) -> Option<(String, u16)> {
+    let (default_port, rest) = if let Some(r) = url.strip_prefix("https://") {
+        (443u16, r)
+    } else if let Some(r) = url.strip_prefix("http://") {
+        (80u16, r)
+    } else {
+        return None;
+    };
+
+    let authority = rest.split('/').next().unwrap_or("");
+    if authority.is_empty() {
+        return None;
+    }
+
+    if let Some(idx) = authority.rfind(':') {
+        let host = &authority[..idx];
+        let port: u16 = authority[idx + 1..].parse().ok()?;
+        Some((host.to_string(), port))
+    } else {
+        Some((authority.to_string(), default_port))
+    }
+}
+
+/// 建立 transport plugin 專用的 socket 白名單檢查：只允許連到當下
+/// `forwarder.yaml` 的 `endpoint:` map 中列出的 host:port（TCP connect）。
+/// 其餘用途（bind / UDP）一律拒絕。plugin 可能用 wasi:sockets 直連（如 C
+/// 版），也可能透過 wasi:http（如 Rust 版），兩者最終都會經過這層檢查。
+///
+/// **安全考量**：因為 host:port 是從 config 動態讀取（支援熱重載），檢查在
+/// 每次 connect 時即時比對，而非在 store 建立時固定快照。
+fn build_endpoint_socket_check(
+    cfg: Arc<RwLock<AppConfig>>,
+) -> impl Fn(SocketAddr, SocketAddrUse) -> Pin<Box<dyn Future<Output = bool> + Send + Sync>> + Send + Sync + 'static
+{
+    move |addr: SocketAddr, use_: SocketAddrUse| {
+        let cfg = Arc::clone(&cfg);
+        Box::pin(async move {
+            if !matches!(use_, SocketAddrUse::TcpConnect) {
+                return false;
+            }
+            let endpoint_map = cfg.read().unwrap().endpoint.0.clone();
+            for url in endpoint_map.values() {
+                let Some((host, port)) = parse_endpoint_host_port(url) else {
+                    continue;
+                };
+                if port != addr.port() {
+                    continue;
+                }
+                if let Ok(ip) = host.parse::<IpAddr>() {
+                    if ip == addr.ip() {
+                        return true;
+                    }
+                } else if let Ok(mut resolved) = tokio::net::lookup_host((host.as_str(), port)).await {
+                    if resolved.any(|a| a.ip() == addr.ip()) {
+                        return true;
+                    }
+                }
+            }
+            eprintln!(
+                "[SECURITY][transport] 拒絕連線：{} 不在 forwarder.yaml 的 endpoint map 中",
+                addr
+            );
+            false
+        })
+    }
+}
+
 async fn build_transport_store(
     shared: &SharedPlugin,
     mem_limit_bytes: usize,
+    cfg: &Arc<RwLock<AppConfig>>,
 ) -> wasmtime::Result<(Store<MyState>, TransportPlugin)> {
     let (engine, component, linker) = {
         let slot = shared.read().unwrap();
         (slot.engine.clone(), slot.component.clone(), slot.linker.clone())
     };
     let state = MyState {
-        ctx: WasiCtxBuilder::new().inherit_stdio().build(),
+        ctx: WasiCtxBuilder::new()
+            .inherit_stdio()
+            .allow_ip_name_lookup(true)
+            .socket_addr_check(build_endpoint_socket_check(Arc::clone(cfg)))
+            .build(),
         table: ResourceTable::new(),
         limiter: MyLimiter::new(mem_limit_bytes),
         http: WasiHttpCtx::new(),
@@ -1495,6 +1590,7 @@ async fn transport_worker(
     max_chunk_bytes: usize,
     id: usize,
     stage_timeout: Duration,
+    cfg: Arc<RwLock<AppConfig>>,
 ) -> wasmtime::Result<TransportStats> {
     let make_config = |ep: &str| TransportConfig {
         endpoint: ep.to_string(),
@@ -1517,7 +1613,7 @@ async fn transport_worker(
         };
 
         // 每個 task 建立獨立 WASM 實例（stateless）
-        let (mut store, mut plugin) = match build_transport_store(&shared, mem_limit_bytes).await {
+        let (mut store, mut plugin) = match build_transport_store(&shared, mem_limit_bytes, &cfg).await {
             Ok(v) => v,
             Err(e) => {
                 eprintln!("[transport-{}] build store failed: {}", id, e);

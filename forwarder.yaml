@@ -9,13 +9,12 @@
 # Format:Default為組合成json。
 # Transport:Default傳遞
 
-
 plugins:
   # C# Parser
   #parse: "test-plugins/csharp-plugin/parse/parser_csharp.wasm"
-  parse: "test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm"
+  #parse: "test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm"
   # C  Parser
-  #parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
+  parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
   #parse: "test-plugins/c-plugin/parse_access/parser_c_access.wasm"
   #parse: "test-plugins/c-plugin/parse_bad/parser_c_bad.wasm"
   # GO Parser
@@ -24,21 +23,23 @@ plugins:
   #parse: "test-plugins/go-plugin/parse/parser_fmt.wasm"
   parse_noop: ~
 
+  # 缺少C的過濾
   filter: "test-plugins/csharp-plugin/filter/filter_csharp.wasm"
 
   format: "test-plugins/c-plugin/format/format_json-flat.wasm"
 
-  transport: "test-plugins/rust-plugin/transport/target/wasm32-unknown-unknown/release/transport_component.wasm"
+  # 缺少C的transport
+  #transport: "test-plugins/rust-plugin/transport/target/wasm32-unknown-unknown/release/transport_component.wasm"
 
 # Which pipeline stages to enable
 stages:
-  filter: false
-  format: false
-  transport: false
+  filter: true
+  format: true
+  transport: true
 
 # Input source — choose one mode
 input:
-  mode: tail       # "tcp" | "tail"
+  mode: tcp       # "tcp" | "tail"
   tcp:
     host: "0.0.0.0"
     port: 5140
@@ -49,11 +50,10 @@ input:
 batch:
   mem_limit_mb: 256
   safe_data_ratio: 0.5
-  max_wait_ms: 1000
-  max_batch_lines: 10000
+  max_wait_ms: 100
+  max_batch_lines: 100000
   channel_capacity: 150000
   max_format_chunk: 50000
-  transport_endpoint: "http://127.0.0.1:8080/ingest"
   max_transport_bytes: 131072
   transport_workers: 5
   # parse→filter / filter→format / format→transport 三條 pipeline channel 容量
