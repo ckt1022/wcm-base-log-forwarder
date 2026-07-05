@@ -89,7 +89,7 @@ def _percentile(sorted_data: list, p: float) -> float:
 def _write_latency_csv() -> list:
     out_dir  = "server_log"
     os.makedirs(out_dir, exist_ok=True)
-    csv_path = os.path.join(out_dir, "latency.csv")
+    csv_path = os.path.join(out_dir, "latency_2.csv")
 
     with _lock:
         buf = list(_latency_buffer)   # 取快照，避免鎖住太久

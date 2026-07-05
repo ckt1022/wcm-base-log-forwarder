@@ -116,11 +116,26 @@ typedef struct {
     header_list_t extra_headers;
 
     uint64_t bytes_sent;
+
+    // Persistent keep-alive connection (reused across send() calls)
+    bool has_conn;
+    wasi_sockets_tcp_own_tcp_socket_t conn_sock;
+    wasi_io_streams_own_input_stream_t conn_in;
+    wasi_io_streams_own_output_stream_t conn_out;
 } state_t;
 
 static state_t g_state = {0};
 
+// Forward declaration — defined in the TCP section below.
+static void cleanup_connection(wasi_sockets_tcp_own_tcp_socket_t sock,
+                                wasi_io_streams_own_input_stream_t in,
+                                wasi_io_streams_own_output_stream_t out);
+
 static void free_state(state_t *s) {
+    if (s->has_conn) {
+        cleanup_connection(s->conn_sock, s->conn_in, s->conn_out);
+        s->has_conn = false;
+    }
     free(s->host);
     free(s->path);
     free(s->auth.bearer_token);
@@ -463,7 +478,7 @@ static void build_request(byte_buf_t *req, const uint8_t *body, size_t body_len)
     char len_buf[32];
     snprintf(len_buf, sizeof(len_buf), "%zu", body_len);
     append_header(req, "Content-Length", len_buf);
-    append_header(req, "Connection", "close");
+    append_header(req, "Connection", "keep-alive");
 
     switch (g_state.auth.tag) {
         case LOCAL_LOG_PROCESS_TRANSPORT_TYPES_AUTH_METHOD_BEARER_TOKEN: {
@@ -500,111 +515,166 @@ static void build_request(byte_buf_t *req, const uint8_t *body, size_t body_len)
 }
 
 // ───────────────────────────────────────────────────────────
-// 送出一個 batch（一次連線，失敗不重試 — 重試由呼叫端負責）
+// HTTP/1.1 回應解析（支援 keep-alive：依 Content-Length 精確讀取）
 // ───────────────────────────────────────────────────────────
 
-static bool send_batch_once(const uint8_t *body, size_t body_len, transport_plugin_plugin_error_t *err) {
-    wasi_sockets_tcp_own_tcp_socket_t sock;
-    wasi_io_streams_own_input_stream_t in;
-    wasi_io_streams_own_output_stream_t out;
-    if (!tcp_connect(g_state.host, g_state.port, g_state.connect_timeout_ms, &sock, &in, &out, err)) {
-        return false;
-    }
+static bool read_http_response(wasi_io_streams_borrow_input_stream_t in_b,
+                                uint64_t deadline, int *out_status,
+                                transport_plugin_plugin_error_t *err) {
+    uint8_t hbuf[2048];
+    size_t hlen = 0;
+    size_t hdr_end = 0;  // offset past \r\n\r\n
 
-    wasi_io_streams_borrow_output_stream_t out_b = wasi_io_streams_borrow_output_stream(out);
-    wasi_io_streams_borrow_input_stream_t in_b = wasi_io_streams_borrow_input_stream(in);
-
-    uint64_t deadline = g_state.request_timeout_ms
-        ? monotonic_now() + (uint64_t)g_state.request_timeout_ms * 1000000ULL
-        : 0;
-
-    byte_buf_t req;
-    build_request(&req, body, body_len);
-
-    // WASI io/streams 的 blocking_write_and_flush 每次最多寫 4096 B，需分批寫入。
-    const size_t CHUNK = 4096;
-    size_t offset = 0;
-    bool write_ok = true;
-    while (offset < req.len) {
-        if (deadline && monotonic_now() >= deadline) {
-            set_err_processing(err, "request write timed out");
-            write_ok = false;
-            break;
-        }
-        size_t end = offset + CHUNK;
-        if (end > req.len) {
-            end = req.len;
-        }
-        transport_plugin_list_u8_t chunk = { .ptr = req.data + offset, .len = end - offset };
-        wasi_io_streams_stream_error_t serr;
-        if (!wasi_io_streams_method_output_stream_blocking_write_and_flush(out_b, &chunk, &serr)) {
-            set_err_processing_fmt(err, "write failed (stream error tag %u)", serr.tag);
-            write_ok = false;
-            break;
-        }
-        offset = end;
-    }
-    bb_free(&req);
-
-    if (!write_ok) {
-        cleanup_connection(sock, in, out);
-        return false;
-    }
-
-    // 讀取回應，僅解析狀態行；Connection: close 讓 server 主動關閉連線。
-    uint8_t resp_buf[4096];
-    size_t resp_len = 0;
-    bool got_status = false;
-    int status_code = 0;
-    bool read_error = false;
-
-    for (int iter = 0; iter < 64; iter++) {
+    // Phase 1: read until \r\n\r\n (end of headers)
+    for (int iter = 0; iter < 32; iter++) {
         if (deadline && monotonic_now() >= deadline) {
             set_err_processing(err, "response read timed out");
-            read_error = true;
-            break;
+            return false;
         }
+        size_t want = sizeof(hbuf) - hlen;
+        if (want == 0) { break; }  // buffer full — shouldn't happen for our small responses
+
         transport_plugin_list_u8_t data;
         wasi_io_streams_stream_error_t rerr;
-        bool ok = wasi_io_streams_method_input_stream_blocking_read(in_b, 4096, &data, &rerr);
+        bool ok = wasi_io_streams_method_input_stream_blocking_read(in_b, want, &data, &rerr);
         if (!ok) {
-            if (rerr.tag == WASI_IO_STREAMS_STREAM_ERROR_CLOSED) {
+            if (rerr.tag == WASI_IO_STREAMS_STREAM_ERROR_CLOSED) { break; }
+            set_err_processing_fmt(err, "response header read failed (tag %u)", rerr.tag);
+            return false;
+        }
+        size_t copy = data.len < want ? data.len : want;
+        memcpy(hbuf + hlen, data.ptr, copy);
+        hlen += copy;
+        transport_plugin_list_u8_free(&data);
+
+        for (size_t i = 0; i + 3 < hlen; i++) {
+            if (hbuf[i]=='\r' && hbuf[i+1]=='\n' && hbuf[i+2]=='\r' && hbuf[i+3]=='\n') {
+                hdr_end = i + 4;
                 break;
             }
-            set_err_processing_fmt(err, "read failed (stream error tag %u)", rerr.tag);
-            read_error = true;
-            break;
         }
-        if (data.len > 0 && !got_status) {
-            size_t copy_len = data.len;
-            if (resp_len + copy_len > sizeof(resp_buf) - 1) {
-                copy_len = sizeof(resp_buf) - 1 - resp_len;
-            }
-            memcpy(resp_buf + resp_len, data.ptr, copy_len);
-            resp_len += copy_len;
-            resp_buf[resp_len] = '\0';
-            int major, minor;
-            if (sscanf((char*)resp_buf, "HTTP/%d.%d %d", &major, &minor, &status_code) == 3) {
-                got_status = true;
-            }
-        }
-        transport_plugin_list_u8_free(&data);
+        if (hdr_end > 0) { break; }
     }
 
-    cleanup_connection(sock, in, out);
-
-    if (read_error) {
-        return false;
-    }
-    if (!got_status) {
+    // Parse status line
+    int major, minor, status = 0;
+    if (sscanf((char*)hbuf, "HTTP/%d.%d %d", &major, &minor, &status) != 3) {
         set_err_processing(err, "no HTTP status line received from server");
         return false;
     }
-    if (status_code < 200 || status_code >= 300) {
-        set_err_processing_fmt(err, "server returned HTTP %d", status_code);
-        return false;
+
+    // Parse Content-Length from headers (required for keep-alive)
+    int content_length = 0;
+    if (hdr_end > 0) {
+        char *p = (char*)hbuf;
+        char *end = (char*)hbuf + hdr_end;
+        while (p < end) {
+            if (strncasecmp(p, "content-length:", 15) == 0) {
+                p += 15;
+                while (p < end && *p == ' ') { p++; }
+                content_length = atoi(p);
+                break;
+            }
+            while (p < end && *p != '\n') { p++; }
+            if (p < end) { p++; }
+        }
     }
+
+    // Phase 2: drain any body bytes not yet consumed from the read buffer
+    size_t body_read = (hlen > hdr_end) ? (hlen - hdr_end) : 0;
+    while ((int)body_read < content_length) {
+        if (deadline && monotonic_now() >= deadline) {
+            set_err_processing(err, "response body read timed out");
+            return false;
+        }
+        transport_plugin_list_u8_t data;
+        wasi_io_streams_stream_error_t rerr;
+        size_t want = (size_t)(content_length - (int)body_read);
+        bool ok = wasi_io_streams_method_input_stream_blocking_read(in_b, want, &data, &rerr);
+        if (!ok) {
+            if (rerr.tag == WASI_IO_STREAMS_STREAM_ERROR_CLOSED) { break; }
+            set_err_processing_fmt(err, "response body read failed (tag %u)", rerr.tag);
+            return false;
+        }
+        body_read += data.len;
+        transport_plugin_list_u8_free(&data);
+    }
+
+    *out_status = status;
     return true;
+}
+
+// ───────────────────────────────────────────────────────────
+// 送出一個 batch（持久連線，失敗時自動重連一次）
+// ───────────────────────────────────────────────────────────
+
+static bool send_batch_once(const uint8_t *body, size_t body_len, transport_plugin_plugin_error_t *err) {
+    // Try existing connection first; reconnect once if it has gone stale.
+    for (int attempt = 0; attempt < 2; attempt++) {
+        if (!g_state.has_conn) {
+            if (!tcp_connect(g_state.host, g_state.port, g_state.connect_timeout_ms,
+                             &g_state.conn_sock, &g_state.conn_in, &g_state.conn_out, err)) {
+                return false;
+            }
+            g_state.has_conn = true;
+        }
+
+        wasi_io_streams_borrow_output_stream_t out_b = wasi_io_streams_borrow_output_stream(g_state.conn_out);
+        wasi_io_streams_borrow_input_stream_t in_b = wasi_io_streams_borrow_input_stream(g_state.conn_in);
+
+        uint64_t deadline = g_state.request_timeout_ms
+            ? monotonic_now() + (uint64_t)g_state.request_timeout_ms * 1000000ULL
+            : 0;
+
+        byte_buf_t req;
+        build_request(&req, body, body_len);
+
+        // WASI io/streams 的 blocking_write_and_flush 每次最多寫 4096 B，需分批寫入。
+        const size_t CHUNK = 4096;
+        size_t offset = 0;
+        bool write_ok = true;
+        while (offset < req.len) {
+            if (deadline && monotonic_now() >= deadline) {
+                set_err_processing(err, "request write timed out");
+                write_ok = false;
+                break;
+            }
+            size_t end = offset + CHUNK;
+            if (end > req.len) { end = req.len; }
+            transport_plugin_list_u8_t chunk = { .ptr = req.data + offset, .len = end - offset };
+            wasi_io_streams_stream_error_t serr;
+            if (!wasi_io_streams_method_output_stream_blocking_write_and_flush(out_b, &chunk, &serr)) {
+                set_err_processing_fmt(err, "write failed (stream error tag %u)", serr.tag);
+                write_ok = false;
+                break;
+            }
+            offset = end;
+        }
+        bb_free(&req);
+
+        if (!write_ok) {
+            cleanup_connection(g_state.conn_sock, g_state.conn_in, g_state.conn_out);
+            g_state.has_conn = false;
+            if (attempt == 0) { continue; }
+            return false;
+        }
+
+        int status_code = 0;
+        if (!read_http_response(in_b, deadline, &status_code, err)) {
+            cleanup_connection(g_state.conn_sock, g_state.conn_in, g_state.conn_out);
+            g_state.has_conn = false;
+            if (attempt == 0) { continue; }
+            return false;
+        }
+
+        if (status_code < 200 || status_code >= 300) {
+            set_err_processing_fmt(err, "server returned HTTP %d", status_code);
+            return false;
+        }
+
+        return true;  // success — connection stays open for next batch
+    }
+    return false;
 }
 
 static bool send_with_retry(const uint8_t *body, size_t len, transport_plugin_plugin_error_t *err) {

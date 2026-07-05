@@ -9,7 +9,7 @@ cd "$SCRIPT_DIR"
 
 LOG_DIR="$SCRIPT_DIR/server_log"
 YAML="$SCRIPT_DIR/forwarder.yaml"
-SERVER_PY="$REPO_ROOT/tools/test/server.py"
+SERVER_GO="$REPO_ROOT/tools/test/server.go"
 FORWARDER_BIN="$REPO_ROOT/target/release/wcm-base-log-forwarder"
 
 # ─── 清理函式 ────────────────────────────────────────────────────────────────
@@ -117,15 +117,21 @@ for key in $(printf '%s\n' "${!ENDPOINTS[@]}" | sort); do
 done
 echo "[test] forwarder TCP input：$TCP_HOST:$TCP_PORT"
 
-# ─── 步驟 1：啟動 HTTP servers ────────────────────────────────────────────────
+# ─── 步驟 1：編譯並啟動 HTTP servers ────────────────────────────────────────
 echo ""
-echo "[test] ══ 步驟 1：啟動 HTTP servers ══"
+echo "[test] ══ 步驟 1：編譯並啟動 HTTP servers ══"
+
+# 預先 build server binary（go run 不轉發 SIGTERM，必須直接執行 binary）
+SERVER_BIN="$LOG_DIR/server_bin"
+echo "[test] 編譯 server.go → $SERVER_BIN"
+go build -o "$SERVER_BIN" "$SERVER_GO"
+
 for key in $(printf '%s\n' "${!ENDPOINTS[@]}" | sort); do
     port="${ENDPOINTS[$key]}"
     logfile="$LOG_DIR/${key}.log"
     : > "$logfile"
-    # $! = python3 的 PID；輸出只寫檔，不顯示於終端
-    python3 "$SERVER_PY" "$port" >> "$logfile" 2>&1 &
+    # 直接執行 binary，SIGTERM 可正確觸發 shutdown + 寫出 CSV
+    "$SERVER_BIN" "$port" >> "$logfile" 2>&1 &
     SERVER_PIDS+=($!)
     echo "[test]   EP-$key  port=$port  pid=${SERVER_PIDS[-1]}  log=$logfile"
 done
@@ -159,8 +165,8 @@ echo "  完成！"
 # ─── 步驟 3：產生測試 log ─────────────────────────────────────────────────────
 echo ""
 echo "[test] ══ 步驟 3：產生測試 log ══"
-echo "[test]   rate=5000/s  duration=90s  traffic=flat  mode=json-simple  seed=42"
-echo "[test]   送入：$TCP_HOST:$TCP_PORT (nc)"
+echo "[test]   rate=500/s  duration=180s  traffic=flat  mode=json-fixed5  send-unit=line"
+echo "[test]   送入：$TCP_HOST:$TCP_PORT (直連 TCP，無 nc)"
 echo ""
 echo "[test] ─── 即時監控指令（在另一個終端執行）─────────────────────────────"
 echo "[test]   # 各別 server："
@@ -177,12 +183,13 @@ echo ""
 
 go run "$REPO_ROOT/tools/gen/main.go" \
     -rate 500 \
-    -duration 90 \
+    -duration 300 \
     -traffic flat \
-    -mode json-simple \
-    -flush-ms 10 \
-    -seed 42 \
-    | nc "$TCP_HOST" "$TCP_PORT"
+    -mode json-fixed5 \
+    -output tcp \
+    -send-unit line \
+    -tcp-addr "$TCP_HOST:$TCP_PORT" \
+    -log-file "$LOG_DIR/gen.log"
 
 echo ""
 echo "[test] Log 產生完畢，等待 forwarder 處理剩餘批次（10 秒）..."

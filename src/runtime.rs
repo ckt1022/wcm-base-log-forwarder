@@ -360,7 +360,7 @@ pub fn run_pipeline(
                 transport_router(rx_formatted, tx_work, cfg_for_router, max_transport_bytes);
             });
 
-            // N transport workers：搶 SendTask，每次建立新 WASM 實例發送。
+            // N transport workers：搶 SendTask，每 task 建立新 WASM 實例。
             let mut worker_handles = Vec::new();
             for i in 0..transport_workers {
                 let rx = Arc::clone(&rx_work_shared);
@@ -371,7 +371,9 @@ pub fn run_pipeline(
                         .enable_all()
                         .build()
                         .unwrap()
-                        .block_on(transport_worker(rx, sh, mem_limit_bytes, max_transport_bytes, i, stage_timeout, cfg_w))
+                        .block_on(async move {
+                            transport_worker(rx, sh, mem_limit_bytes, max_transport_bytes, i, stage_timeout, cfg_w).await
+                        })
                 }));
             }
 

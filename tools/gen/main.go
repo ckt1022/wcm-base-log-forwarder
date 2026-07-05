@@ -9,6 +9,7 @@
 //	json-simple    - 固定格式 JSON，少量 att 欄位（基本效能測試）
 //	json-complex   - JSON 含多個 att 欄位與較長訊息（壓力測試）
 //	json-mixed     - json-simple + json-complex 混合（接近真實情況）
+//	json-fixed5    - 5 條固定內容循環（ts 每次更新；_slot=1~5 標識種類，用於排查特定 log 造成的延遲）
 //	invalid        - 混入無法解析的行（測試 parser 錯誤處理；valid line 為 json-simple）
 //	logfmt-simple  - 扁平 key=value 格式，基本效能測試
 //	logfmt-complex - logfmt 含較多欄位與較長訊息
@@ -30,6 +31,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -55,6 +57,12 @@ var (
 
 	// Output flags
 	logFile = flag.String("log-file", "gen.log", "write generator diagnostics to this file; use '-' for stderr")
+
+	// TCP output flags
+	outputDest = flag.String("output", "stdout", "output destination: stdout | tcp")
+	tcpAddr    = flag.String("tcp-addr", "127.0.0.1:5140", "forwarder TCP address when output=tcp")
+	sendUnit   = flag.String("send-unit", "line", "send granularity when output=tcp: line (每產生一條立即送出) | batch (累積 N 行再送)")
+	batchLines = flag.Int("batch-lines", 100, "lines per batch when send-unit=batch")
 )
 
 // -----------------------------------------------------------------
@@ -136,6 +144,39 @@ func buildComplexJSONLine(dst []byte, ts, level, svc, code, region, traceID stri
 	dst = append(dst, `","trace_id":"`...)
 	dst = append(dst, traceID...)
 	dst = fmt.Appendf(dst, `","latency_ms":"%d","host":"worker-%02d","env":"production"}}`, latencyMs, rand.Intn(32))
+	return dst
+}
+
+// -----------------------------------------------------------------
+// json-fixed5: 5 條固定內容循環（ts 每次刷新，_slot 標識種類）
+// -----------------------------------------------------------------
+
+// fixed5Tpl 每個元素對應一條固定 log 的靜態部分（不含 ts）。
+// 格式：{"ts":"<ts>","level":"<level>","msg":"<msg>","att":{"service":"<svc>","code":"<code>"},"_slot":"<N>"}
+var fixed5Tpl = [5]struct{ level, msg, svc, code string }{
+	{"info", "Request completed successfully", "api-gateway", "200"},
+	{"warn", "Upstream timeout after 30s waiting for response", "payment-svc", "503"},
+	{"error", "Token validation failed: signature mismatch", "auth-service", "401"},
+	{"debug", "Health check passed", "notify-svc", "200"},
+	{"info", "Database query executed in 3ms", "order-svc", "200"},
+}
+
+func buildFixed5Line(dst []byte, ts string, slot int) []byte {
+	t := fixed5Tpl[slot]
+	dst = dst[:0]
+	dst = append(dst, `{"ts":"`...)
+	dst = append(dst, ts...)
+	dst = append(dst, `","level":"`...)
+	dst = append(dst, t.level...)
+	dst = append(dst, `","msg":"`...)
+	dst = append(dst, t.msg...)
+	dst = append(dst, `","att":{"service":"`...)
+	dst = append(dst, t.svc...)
+	dst = append(dst, `","code":"`...)
+	dst = append(dst, t.code...)
+	dst = append(dst, `"},"_slot":"`...)
+	dst = append(dst, byte('1'+slot))
+	dst = append(dst, '"', '}')
 	return dst
 }
 
@@ -343,6 +384,113 @@ func pickInvalidLine() []byte {
 }
 
 // -----------------------------------------------------------------
+// lineOut — 輸出目標抽象
+//
+//   writeLine(b)  寫一行（不含換行，內部自行補 \n）
+//   flush()       強制排清（用於 LOOP trigger 後的即時發送）
+//   tick(now)     週期性排清檢查（每個外層迴圈迭代呼叫一次）
+//   close()       最終排清並關閉
+// -----------------------------------------------------------------
+
+type lineOut interface {
+	writeLine(b []byte) error
+	flush() error
+	tick(now time.Time) error
+	close() error
+}
+
+// ── stdoutOut：原有行為（buffered stdout + 週期排清）────────────────────────
+
+type stdoutOut struct {
+	w          *bufio.Writer
+	flushEvery time.Duration
+	lastFlush  time.Time
+}
+
+func (s *stdoutOut) writeLine(b []byte) error {
+	if _, err := s.w.Write(b); err != nil {
+		return err
+	}
+	return s.w.WriteByte('\n')
+}
+
+func (s *stdoutOut) flush() error { return s.w.Flush() }
+
+func (s *stdoutOut) tick(now time.Time) error {
+	if now.Sub(s.lastFlush) >= s.flushEvery {
+		s.lastFlush = now
+		return s.w.Flush()
+	}
+	return nil
+}
+
+func (s *stdoutOut) close() error { return s.w.Flush() }
+
+// ── tcpLineOut：每產生一行立刻送出（send-unit=line）─────────────────────────
+
+type tcpLineOut struct {
+	conn net.Conn
+	buf  []byte
+}
+
+func (t *tcpLineOut) writeLine(b []byte) error {
+	t.buf = append(t.buf[:0], b...)
+	t.buf = append(t.buf, '\n')
+	_, err := t.conn.Write(t.buf)
+	return err
+}
+
+func (t *tcpLineOut) flush() error               { return nil }
+func (t *tcpLineOut) tick(_ time.Time) error      { return nil }
+func (t *tcpLineOut) close() error                { return t.conn.Close() }
+
+// ── tcpBatchOut：累積 N 行再送出（send-unit=batch）──────────────────────────
+
+type tcpBatchOut struct {
+	conn       net.Conn
+	w          *bufio.Writer
+	batchLines int
+	count      int
+	flushEvery time.Duration
+	lastFlush  time.Time
+}
+
+func (t *tcpBatchOut) writeLine(b []byte) error {
+	if _, err := t.w.Write(b); err != nil {
+		return err
+	}
+	if err := t.w.WriteByte('\n'); err != nil {
+		return err
+	}
+	t.count++
+	if t.count >= t.batchLines {
+		t.count = 0
+		return t.w.Flush()
+	}
+	return nil
+}
+
+func (t *tcpBatchOut) flush() error {
+	t.count = 0
+	return t.w.Flush()
+}
+
+func (t *tcpBatchOut) tick(now time.Time) error {
+	if now.Sub(t.lastFlush) >= t.flushEvery {
+		t.lastFlush = now
+		return t.flush()
+	}
+	return nil
+}
+
+func (t *tcpBatchOut) close() error {
+	if err := t.w.Flush(); err != nil {
+		return err
+	}
+	return t.conn.Close()
+}
+
+// -----------------------------------------------------------------
 // Main loop
 // -----------------------------------------------------------------
 
@@ -378,6 +526,7 @@ func main() {
 		"json-simple":    true,
 		"json-complex":   true,
 		"json-mixed":     true,
+		"json-fixed5":    true,
 		"invalid":        true,
 		"logfmt-simple":  true,
 		"logfmt-complex": true,
@@ -399,12 +548,40 @@ func main() {
 		os.Exit(1)
 	}
 
-	w := bufio.NewWriterSize(os.Stdout, *bufferSize)
-	defer w.Flush()
-
 	start := time.Now()
-	lastFlush := start
 	lastReport := start
+
+	// ── 建立輸出目標 ───────────────────────────────────────────────────────────
+	var out lineOut
+	switch *outputDest {
+	case "tcp":
+		conn, err := net.Dial("tcp", *tcpAddr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "[gen] cannot connect to %s: %v\n", *tcpAddr, err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(logOut, "[gen] output=tcp  addr=%s  send-unit=%s", *tcpAddr, *sendUnit)
+		if *sendUnit == "batch" {
+			fmt.Fprintf(logOut, "  batch-lines=%d", *batchLines)
+			out = &tcpBatchOut{
+				conn:       conn,
+				w:          bufio.NewWriterSize(conn, *bufferSize),
+				batchLines: *batchLines,
+				flushEvery: time.Duration(*flushEvery) * time.Millisecond,
+				lastFlush:  start,
+			}
+		} else {
+			out = &tcpLineOut{conn: conn}
+		}
+		fmt.Fprintln(logOut)
+	default: // stdout
+		fmt.Fprintf(logOut, "[gen] output=stdout\n")
+		out = &stdoutOut{
+			w:          bufio.NewWriterSize(os.Stdout, *bufferSize),
+			flushEvery: time.Duration(*flushEvery) * time.Millisecond,
+			lastFlush:  start,
+		}
+	}
 
 	var total, reportBase uint64
 	lineBuf := make([]byte, 0, 512)
@@ -485,21 +662,17 @@ func main() {
 
 		shouldHaveSent := uint64(cumTarget)
 
-		// 在第 20 秒時先在 stdout 印出訊號，再注入一筆含 "LOOP" 的觸發 log
+		// 在第 15 秒時注入一筆含 "LOOP" 的觸發 log；訊號寫到 logOut，不污染資料流
 		if !loopSent && now.Sub(start) >= 15*time.Second {
 			loopSent = true
-			if err := w.Flush(); err != nil {
-				fmt.Fprintf(logOut, "flush error: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Fprintln(os.Stdout, "[gen-signal] t=20s: about to emit LOOP trigger log")
+			fmt.Fprintln(logOut, "[gen-signal] t=15s: about to emit LOOP trigger log")
 			ts := now.Format(time.RFC3339Nano)
 			loopLog := fmt.Sprintf(`{"ts":"%s","level":"warn","msg":"LOOP trigger","loop":"true"}`, ts)
-			if _, err := fmt.Fprintln(w, loopLog); err != nil {
+			if err := out.writeLine([]byte(loopLog)); err != nil {
 				fmt.Fprintf(logOut, "write error: %v\n", err)
 				os.Exit(1)
 			}
-			if err := w.Flush(); err != nil {
+			if err := out.flush(); err != nil {
 				fmt.Fprintf(logOut, "flush error: %v\n", err)
 				os.Exit(1)
 			}
@@ -516,6 +689,9 @@ func main() {
 			switch *mode {
 			case "json-simple":
 				lineBuf = buildSimpleJSONLine(lineBuf, ts, level, svc, code)
+
+			case "json-fixed5":
+				lineBuf = buildFixed5Line(lineBuf, ts, int(total%5))
 
 			case "json-complex":
 				region := regions[rand.Intn(len(regions))]
@@ -580,11 +756,7 @@ func main() {
 				}
 			}
 
-			if _, err := w.Write(lineBuf); err != nil {
-				fmt.Fprintf(logOut, "write error: %v\n", err)
-				os.Exit(1)
-			}
-			if err := w.WriteByte('\n'); err != nil {
+			if err := out.writeLine(lineBuf); err != nil {
 				fmt.Fprintf(logOut, "write error: %v\n", err)
 				os.Exit(1)
 			}
@@ -593,12 +765,9 @@ func main() {
 			produced++
 		}
 
-		if now.Sub(lastFlush) >= time.Duration(*flushEvery)*time.Millisecond {
-			if err := w.Flush(); err != nil {
-				fmt.Fprintf(logOut, "flush error: %v\n", err)
-				os.Exit(1)
-			}
-			lastFlush = now
+		if err := out.tick(now); err != nil {
+			fmt.Fprintf(logOut, "flush error: %v\n", err)
+			os.Exit(1)
 		}
 
 		if now.Sub(lastReport) >= time.Second {
@@ -625,8 +794,8 @@ func main() {
 		}
 	}
 
-	if err := w.Flush(); err != nil {
-		fmt.Fprintf(logOut, "flush error: %v\n", err)
+	if err := out.close(); err != nil {
+		fmt.Fprintf(logOut, "close error: %v\n", err)
 		os.Exit(1)
 	}
 

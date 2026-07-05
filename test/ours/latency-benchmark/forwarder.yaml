@@ -6,7 +6,7 @@ plugins:
   parse_noop: ~
   filter: "latency_c_filter.wasm"
   format: "latency_c_format.wasm"
-  transport: "latency_c_transport.wasm"
+  transport: "transport_http.wasm"
 
 # Which pipeline stages to enable
 stages:
@@ -33,7 +33,7 @@ batch:
   max_format_chunk: 50000
   #transport_endpoint: "http://127.0.0.1:8080/ingest"
   max_transport_bytes: 131072
-  transport_workers: 1
+  transport_workers: 2
   # parse→filter / filter→format / format→transport 三條 pipeline channel 容量
   pipeline_channel_capacity: 20000
   # 每個階段 WASM 呼叫超時上限（ms）；超過後重試最多 2 次，均失敗寫入 error.txt

@@ -1,12 +1,12 @@
 # Latency Benchmark — 實驗設定文件
 
-> 更新日期：2026-07-04
+> 更新日期：2026-07-05
 
 ---
 
 ## 1. 實驗目標
 
-量測 WCM Log Forwarder 的 **E2E 延遲分佈（p50 / p95 / p99 / p999）**，
+量測 WCM Log Forwarder 的 **E2E 延遲分佈（p50 / p95 / p99 / max）**，
 並建立可與 Fluent Bit、Vector 等工具公平比較的基準。
 
 ---
@@ -17,19 +17,12 @@
 latency = server_receive_time − log_ts（log 產生時間戳）
 ```
 
-- **起點**：log generator 寫入每筆 log 時嵌入的 `ts` 欄位（RFC3339Nano，微秒精度）
-- **終點**：HTTP server 接收到包含該筆 log 的 POST request 的時間
+- **起點**：log generator 寫入每筆 log 時嵌入的 `ts` 欄位（RFC3339Nano）
+- **終點**：HTTP server（`tools/test/server.go`）接收到包含該筆 log 的 POST request 的 Unix nanosecond 時間
+- **精度**：generator 與 server 均使用 `time.Now().UnixNano()` / `time.RFC3339Nano`，無 float64 精度損失
 - **粒度**：batch 層級——同一批次內所有行共用相同 `server_receive_time`；
   批次最前面的行延遲最高，最後面的行延遲最低，反映的是完整管線等待成本（正確行為）
 - **時鐘**：generator 與 server 同機器，無 clock skew 問題
-
-### ⚠️ 前提（待辦）
-
-- Transport stage 必須啟用，server 才能收到資料
-- **`tools/test/server.py` 需要修改**，加入：
-  - 解析每筆 JSON 的 `ts` 欄位
-  - 記錄 request 抵達的 wall-clock time
-  - 輸出每筆的 `(receive_time − ts)` latency，寫入 CSV
 
 ---
 
@@ -39,18 +32,22 @@ latency = server_receive_time − log_ts（log 產生時間戳）
 
 | 項目 | 設定值 | 說明 |
 |------|--------|------|
-| Log format | `json-simple` | 每行固定 **172 bytes**（`_p` padding 欄位補齊，已實作）|
+| Log format | `json-fixed5` | 5 條固定內容循環（`_slot=1~5`），排除內容差異對延遲的影響 |
 | Traffic pattern | `flat` | 固定速率，不用 wave/bursty（避免突發排隊汙染 p99） |
-| Generator flush | `-flush-ms 10` | 平滑 TCP 輸入，避免 100ms burst |
-| Random seed | `-seed 42` | 固定 seed，確保各工具收到相同內容分佈 |
+| 傳送方式 | `-output tcp -send-unit line` | 每條 log 產生後立即送出（直連 TCP，無 nc 中介緩衝） |
+
+> **json-fixed5 設計說明**：5 種模板（info/warn/error/debug/info）循環輸出，`_slot` 欄位標識種類。
+> Filter plugin 只放行 `warn`（slot 2）和 `error`（slot 3），60% 的 log 在 filter stage 被丟棄，
+> 實際進入 transport 的吞吐量為送入量的 40%。
 
 ### 3.2 輸入模式
 
 | 項目 | 設定值 | 說明 |
 |------|--------|------|
-| 模式 | **TCP** | 排除 tail polling 50ms 不確定性地板 |
+| 模式 | **TCP** | 排除 tail polling 不確定性 |
 | 端口 | `5140` | WCM TCP input |
-| 比較工具 | 各工具同樣從 TCP 讀入，或寫到同一個 log file 再 tail | 需確認 |
+| 傳送 | 直連 TCP（`-output tcp`） | 避免 nc 中介緩衝在 backpressure 下累積舊時間戳記的 log |
+| 比較工具 | 各工具同樣從 TCP 讀入 | 需確認 |
 
 ### 3.3 批次參數（**所有比較工具必須對齊**）
 
@@ -59,6 +56,9 @@ latency = server_receive_time − log_ts（log 產生時間戳）
 | Batch timeout | `max_wait_ms: 100` | `Flush 0.1` | `batch.timeout_secs: 0.1` |
 | Batch max lines | `max_batch_lines: 1000` | chunk line limit | `batch.max_events: 1000` |
 | Transport chunk | `max_transport_bytes: 131072` | `storage.Chunk_Size_Limit 128k` | `batch.max_bytes: 131072` |
+
+> `max_wait_ms=100ms` 直接疊加在 p50 上（約佔 p50 的 40%），比較時各工具必須設定相同值，
+> 否則 p50 差異反映的是 batch timeout 而非 pipeline 處理速度。
 
 ### 3.4 速率策略
 
@@ -69,26 +69,27 @@ latency = server_receive_time − log_ts（log 產生時間戳）
 2. 對各比較工具做相同的爬坡
 3. 延遲實驗在 **30% / 50% / 80%** 飽和點各跑一次
 
-初始低流量測試（第一步）：**500 lines/s**
-- 100ms window × 500/s = ~50 lines/batch，遠低於 max_batch_lines
-- 系統接近 idle，p50 ≈ 50ms（純 batch timeout cost）
+現階段低流量測試：**500 lines/s**（filter 後實際 ~200 lines/s 進入 transport）
 
 ### 3.5 環境與系統
 
 | 項目 | 設定 |
 |------|------|
-| Build mode | `cargo build --release`（非 debug！）；`FORWARDER_BIN` 路徑改為 `target/release/`；`test.sh` 目前使用 debug build，需同步修改 |
-| WASM 插件 | 全部 C 語言，使用 `-O2` + `wasm-opt -O2` |
+| Build mode | `cargo build --release` |
+| WASM 插件 | 全部 C 語言，使用 `-O2` 編譯 |
+| Transport plugin | C plugin 使用 `wasi:http/outgoing-handler`（HTTP POST）|
 | config_reload_secs | `3600`（避免 watcher 干擾量測） |
-| parse_noop | **停用**（`parse_noop: ~`），否則每批多跑一次 WASM call |
+| parse_noop | **停用**（`parse_noop: ~`） |
+| transport_workers | `2` |
 | 系統背景程序 | 量測期間關閉無關程序 |
-| Warm-up | 前 15 秒資料丟棄，不計入分佈 |
-| 量測窗口 | warm-up 後取 **60 秒** 穩態資料 |
+| Warm-up | 前 **30 秒**資料丟棄，不計入分佈（前 30s spike rate 明顯偏高）|
+| 量測窗口 | warm-up 後取穩態資料（duration=180s，有效量測窗口 T=30~180s）|
 
 ### 3.6 Transport sink
 
-- 使用 `tools/test/server.py`（localhost），不使用外部 endpoint
-- 單一 endpoint，targettag = `A`（不使用 fan-out）
+- 使用 `tools/test/server.go`（編譯後直接執行 binary，SIGTERM 觸發 shutdown 並寫出 CSV）
+- 單一 endpoint，tag = `A`（不使用 fan-out）
+- CSV 格式：`ts, receive_unix, latency_ms`（`receive_unix` 為 nanosecond 精度的 Unix 時間轉 float64）
 
 ---
 
@@ -96,16 +97,15 @@ latency = server_receive_time − log_ts（log 產生時間戳）
 
 ```yaml
 plugins:
-  parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
+  parse:      "latency_c_parser.wasm"
   parse_noop: ~                          # 停用 noop diff
-
-  filter: "test-plugins/c-plugin/filter/filter_c.wasm"          # ← 待辦：C filter plugin 尚未實作
-  format: "test-plugins/c-plugin/format/format_json-flat.wasm"
-  transport: "test-plugins/c-plugin/transport/transport_c.wasm"  # ← 待辦：C transport plugin 尚未實作
+  filter:     "latency_c_filter.wasm"    # level >= warn 通過，丟棄 info/debug（約 60%）
+  format:     "latency_c_format.wasm"    # JSON flat 格式輸出
+  transport:  "transport_http.wasm"      # wasi:http/outgoing-handler HTTP POST
 
 stages:
-  filter: true     # 全開
-  format: true
+  filter:    true
+  format:    true
   transport: true
 
 input:
@@ -115,21 +115,21 @@ input:
     port: 5140
 
 batch:
-  mem_limit_mb: 256
-  safe_data_ratio: 0.5
-  max_wait_ms: 100           # ← 關鍵：從 1000 改為 100
-  max_batch_lines: 1000      # ← 關鍵：從 10000 改為 1000
-  channel_capacity: 150000
-  max_format_chunk: 50000
-  max_transport_bytes: 131072
-  transport_workers: 1       # 低流量測試用單 worker
-  pipeline_channel_capacity: 20000
-  stage_timeout_ms: 5000
+  mem_limit_mb:               256
+  safe_data_ratio:            0.5
+  max_wait_ms:                100       # 決定 p50 基線的關鍵參數，比較時需對齊
+  max_batch_lines:            1000
+  channel_capacity:           150000
+  max_format_chunk:           50000
+  max_transport_bytes:        131072    # 128 KB
+  transport_workers:          2
+  pipeline_channel_capacity:  20000
+  stage_timeout_ms:           5000
 
 endpoint:
   A: "http://127.0.0.1:8080/ingest"
 
-config_reload_secs: 3600     # ← 避免熱重載干擾
+config_reload_secs: 3600
 ```
 
 ---
@@ -138,13 +138,14 @@ config_reload_secs: 3600     # ← 避免熱重載干擾
 
 ### 低流量（目前階段）
 
-WCM 在 500 lines/s 下實際活躍 thread：
+WCM 在 500 lines/s（filter 後 ~200/s）下實際活躍 thread：
 - Input reader: 1 thread（block on TCP read）
-- Parse dispatcher: 1 thread（block on recv_timeout 大部分時間）
-- Parse worker: 1 thread（PARSE_WORKERS=1，hardcoded in runtime.rs:55）
+- Parse dispatcher: 1 thread
+- Parse worker: 1 thread（PARSE_WORKERS hardcoded）
+- Transport workers: 2 threads（`transport_workers: 2`）
 
 **低流量時各 thread 幾乎全在等待，多執行緒帶來的吞吐優勢未被啟動。**
-延遲差異主要由批次 timeout 與 WASM 處理時間決定，非執行緒架構。
+延遲差異主要由批次 timeout（100ms）與 WASM 處理時間決定。
 
 ### 高吞吐比較（未來）
 
@@ -175,51 +176,74 @@ stages: `filter=false, format=false, transport=false`
 
 ---
 
-## 7. Log Generator 指令
+## 7. 執行指令
 
-### 初始低流量測試（500 lines/s）
+### 低流量測試（500 lines/s，180s）
+
+使用 `latency.sh` 一鍵執行（編譯 server binary、啟動 server、編譯並啟動 forwarder、執行 gen）：
+
+```bash
+cd test/ours/latency-benchmark
+./latency.sh
+```
+
+手動執行 generator（供調試）：
 
 ```bash
 go run tools/gen/main.go \
   -rate 500 \
-  -duration 90 \
+  -duration 180 \
   -traffic flat \
-  -mode json-simple \
-  -flush-ms 10 \
-  -seed 42 \
-  | nc 127.0.0.1 5140
+  -mode json-fixed5 \
+  -output tcp \
+  -send-unit line \
+  -tcp-addr 127.0.0.1:5140 \
+  -log-file /tmp/gen.log
 ```
 
-duration=90：前 15s warm-up + 60s 量測 + 15s 緩衝
-
-### 飽和點爬坡測試
+### 飽和點爬坡測試（未來）
 
 ```bash
 for rate in 1000 2000 5000 10000 20000 50000; do
   go run tools/gen/main.go -rate $rate -duration 30 -traffic flat \
-    -mode json-simple -flush-ms 10 -seed 42 | nc 127.0.0.1 5140
+    -mode json-fixed5 -output tcp -send-unit line -tcp-addr 127.0.0.1:5140
   sleep 5
 done
 ```
 
 ---
 
-## 8. 待辦事項（實作前需完成）
+## 8. 目前測試結果（供參考）
 
-- [ ] **撰寫 C filter plugin**（`test-plugins/c-plugin/filter/`）：實作 level-based filter，保留 `level >= Warn`（丟棄 debug / info，保留約 33%）；邏輯參考 `csharp-plugin/filter/Filters.cs`，對照 WIT 介面 `reduction-plugin` world
-- [ ] **撰寫 C transport plugin**（`test-plugins/c-plugin/transport/`）：使用 WASI HTTP C bindings（`wasi:http/outgoing-handler`）實作 HTTP POST；注意此為 async Component，編譯需搭配 `wasm-tools component` 和 async lift/lower；複雜度高於 filter，建議先完成 filter 再處理
-- [x] **修改 `tools/gen/main.go`**：`json-simple` 每行固定 172 bytes，在 JSON 結尾加入 `"_p":"..."` padding 欄位補齊
-- [ ] **修改 `test.sh`**：`cargo build` 改為 `cargo build --release`；`FORWARDER_BIN` 路徑改為 `target/release/wcm-base-log-forwarder`
-- [ ] **修改 `tools/test/server.py`**：解析每行 `ts` 欄位，記錄 receive timestamp，輸出 latency CSV
-- [ ] **確認 C 插件是否經過 wasm-opt**：檢查 Makefile 或 build script
-- [ ] **確認 transport WASM 路徑**：forwarder.yaml 中的 transport 路徑需要指向已編譯的 `.wasm`
-- [ ] **讓 PARSE_WORKERS 可由 YAML 控制**（目前 hardcoded runtime.rs:55）
-- [ ] **Fluent Bit / Vector 的批次設定對齊**：確認 Fluent Bit `Flush` 和 Vector `batch.timeout_secs` 設為 0.1s
-- [ ] **output.rs per-batch eprintln 靜音**：高吞吐測試時，`print_parse_batch` 等函式的 stderr 輸出會增加 p99，需要提供關閉選項
+測試條件：500 lines/s，flat，json-fixed5，duration=300s
+
+| 指標 | 全量 | 穩態（T≥30s） |
+|------|------|--------------|
+| n | 60,001 | ~54,000 |
+| p50 | 242.7ms | 241.4ms |
+| p95 | 568.8ms | 561.3ms |
+| p99 | 815.9ms | 818.3ms |
+| max | 2304.8ms | 2304.8ms |
+| >800ms | 1.07% | 1.08% |
+| 負值 | 0 | 0 |
+
+**max 說明**：全部 >2000ms（61 筆）集中在 T+264.8s 的 1.7ms 內，為單次 batch hold 事件（非網路問題、非系統性問題）。
+
+**Filter 行為**：只有 `warn`（slot 2）和 `error`（slot 3）通過 filter，`info`/`debug`（slot 1/4/5）被丟棄。兩種通過的 log 延遲幾乎相同（p50 差 < 0.2ms），確認 log 內容不是延遲差異來源。
 
 ---
 
-## 9. 已排除的變因（不需控制原因）
+## 9. 待辦事項
+
+- [ ] **Fluent Bit / Vector 的批次設定對齊**：確認 `Flush 0.1` / `batch.timeout_secs: 0.1` 設為 100ms
+- [ ] **確認 C 插件是否經過 wasm-opt**：檢查 Makefile，補上 `wasm-opt -O2` 步驟
+- [ ] **讓 PARSE_WORKERS 可由 YAML 控制**（目前 hardcoded in runtime.rs）
+- [ ] **output.rs per-batch eprintln 靜音**：高吞吐測試時 stderr 輸出會增加 p99，需提供關閉選項
+- [ ] **飽和點爬坡測試**：找出各工具的飽和吞吐量轉折點，作為比較基準的速率選擇依據
+
+---
+
+## 10. 已排除的變因（不需控制原因）
 
 | 排除項目 | 原因 |
 |----------|------|
@@ -228,3 +252,5 @@ done
 | parse_noop（diff measurement） | 啟用時每批多跑一次 WASM，使吞吐量減半 |
 | Fan-out（多 endpoint） | 造成額外 clone 分配，不是通用基準 |
 | Go / C# 插件 | GC jitter 汙染延遲分佈，用於語言相容性驗證，非效能基準 |
+| nc 管線傳送 | backpressure 下會在 pipe buffer 累積舊時間戳記的 log，造成假性大延遲 |
+| float64 時間戳記 | float64 在 Unix 秒數（~1.7×10⁹）下有精度損失，改用 int64 nanoseconds |
