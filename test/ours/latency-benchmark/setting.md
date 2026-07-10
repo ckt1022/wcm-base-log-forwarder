@@ -55,7 +55,7 @@ latency = server_receive_time − log_ts（log 產生時間戳）
 |------|----------|-----------------|-------------|
 | Batch timeout | `max_wait_ms: 100` | `Flush 0.1` | `batch.timeout_secs: 0.1` |
 | Batch max lines | `max_batch_lines: 1000` | chunk line limit | `batch.max_events: 1000` |
-| Transport chunk | `max_transport_bytes: 131072` | `storage.Chunk_Size_Limit 128k` | `batch.max_bytes: 131072` |
+| Transport chunk | `max_transport_bytes: 4096` | `storage.Chunk_Size_Limit 128k` | `batch.max_bytes: 131072` |
 
 > `max_wait_ms=100ms` 直接疊加在 p50 上（約佔 p50 的 40%），比較時各工具必須設定相同值，
 > 否則 p50 差異反映的是 batch timeout 而非 pipeline 處理速度。

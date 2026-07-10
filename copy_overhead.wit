@@ -141,19 +141,92 @@ interface transport-types {
 }
 
 // ─────────────────────────────────────────────
+// parser-plugin
+// 回傳 parsed-entry（無 id），host 統一分配 id 後轉為 log-entry
+// ─────────────────────────────────────────────
+world parser-plugin {
+    use pipeline-process.{parsed-entry, parse-error};
+
+    // Minimal WASI for C/Go/Rust libc runtime (via wasip1 reactor adapter).
+    // Intentionally excludes wasi:filesystem and wasi:sockets – parser plugins
+    // must not access the file system or open network connections.
+    // If a plugin binary imports either of these, instantiation will fail at
+    // link time, making unauthorized capability use visible in the host log.
+    import wasi:clocks/monotonic-clock@0.2.0;
+    import wasi:clocks/wall-clock@0.2.0;
+    import wasi:io/error@0.2.0;
+    import wasi:io/poll@0.2.0;
+    import wasi:io/streams@0.2.0;
+    import wasi:cli/environment@0.2.0;
+    import wasi:cli/exit@0.2.0;
+    import wasi:cli/stdin@0.2.0;
+    import wasi:cli/stdout@0.2.0;
+    import wasi:cli/stderr@0.2.0;
+    import wasi:cli/terminal-input@0.2.0;
+    import wasi:cli/terminal-output@0.2.0;
+    import wasi:cli/terminal-stdin@0.2.0;
+    import wasi:cli/terminal-stdout@0.2.0;
+    import wasi:cli/terminal-stderr@0.2.0;
+    import wasi:random/random@0.2.0;
+    import wasi:random/insecure@0.2.0;
+    import wasi:random/insecure-seed@0.2.0;
+
+    import time-sign: func();
+    export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
+    export report-usage: func() -> u64;
+}
+
+
+// ─────────────────────────────────────────────
+// reduction-plugin
+// 回傳 filter-result，host 依 id 決定是否將該條 log 移出後續流程
+// ─────────────────────────────────────────────
+world reduction-plugin {
+    use pipeline-process.{log-entry, filter-result, plugin-error};
+    include wasi:cli/imports@0.2.0;
+
+    import time-sign: func();
+    export filter: func(
+        struct-data: list<log-entry>
+    ) -> result<list<filter-result>, plugin-error>;
+
+    export report-usage: func() -> u64;
+}
+
+// ─────────────────────────────────────────────
+// format-plugin
+// ─────────────────────────────────────────────
+world format-plugin {
+    use pipeline-process.{log-entry, plugin-error};
+    include wasi:cli/imports@0.2.0;
+
+    import time-sign: func();
+    export format: func(
+        struct-data: list<log-entry>
+    ) -> result<list<u8>, plugin-error>;
+    export report-usage: func() -> u64;
+}
+
+// ─────────────────────────────────────────────
 // transport-plugin
 // ─────────────────────────────────────────────
 world transport-plugin {
     use pipeline-process.{plugin-error};
     use transport-types.{transport-config};
 
+    // ── 共用基礎（stdio / env / clock / random 等）─────────────────────────
     include wasi:cli/imports@0.2.0;
+
+    
+    // ── 路徑 A：wasi:http（高層，host 管理 TCP/TLS/connection pool）──────────
+    // 插件只需建立 OutgoingRequest 並呼叫 outgoing-handler.handle()。
+    // 無 4096 B 寫入限制，body 大小不受限。
     import wasi:http/outgoing-handler@0.2.0;
     import wasi:http/types@0.2.0;
-    //import wasi:io/streams@0.2.0;
-    //import wasi:io/poll@0.2.0;
-    //import wasi:clocks/monotonic-clock@0.2.0;
 
+    // ── 路徑 B：wasi:sockets（低層，插件自行實作 HTTP/1.1）────────────────────
+    // 可精確控制連線生命週期，但需自行組 request bytes 與解析 response。
+    // blocking_write_and_flush 單次上限 4096 B，需在迴圈中分批寫入。
     import wasi:sockets/network@0.2.0;
     import wasi:sockets/instance-network@0.2.0;
     import wasi:sockets/udp@0.2.0;
@@ -162,11 +235,7 @@ world transport-plugin {
     import wasi:sockets/tcp-create-socket@0.2.0;
     import wasi:sockets/ip-name-lookup@0.2.0;
 
-    // TinyGo 插件請改用：
-    // include wasi:cli/imports@0.2.0;
-    // import wasi:http/outgoing-handler@0.2.0;
-    // import wasi:http/types@0.2.0;
-
+    import time-sign: func();
     /// 插件初始化，必須在 send 之前呼叫一次
     /// 重複呼叫視為重新設定（不累加舊設定）
     export init: func(config: transport-config) -> result<_, plugin-error>;

@@ -4,11 +4,13 @@ use std::future::Future;
 use std::io::Write;
 use std::net::{IpAddr, SocketAddr};
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+// [latency-bench] AtomicBool 只有已註解的採樣 thread 使用。
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, RecvTimeoutError, SyncSender};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+// [latency-bench] SystemTime / UNIX_EPOCH 只有 throughput 採樣 thread 使用，已隨採樣一併註解。
+use std::time::{Duration, Instant};
 
 use wasmtime::Store;
 use wasmtime_wasi::sockets::SocketAddrUse;
@@ -25,8 +27,9 @@ use crate::app::{
         local::log_process::transport_types::{AuthMethod, TransportConfig},
     },
 };
+// [latency-bench] ParseDiffTiming は measure_noop_parse 註解後不再使用，import 一併移除。
 use crate::config::{
-    AppConfig, Batch, BatchConfig, FilterStats, FlushReason, FormatStats, ParseDiffTiming,
+    AppConfig, Batch, BatchConfig, FilterStats, FlushReason, FormatStats,
     ParseStats, TransportStats,
 };
 use crate::output::{
@@ -290,7 +293,8 @@ pub fn run_pipeline(
 
     let cfg_for_parse = Arc::clone(&cfg);
 
-    let wall_start = Instant::now();
+    // [latency-bench] wall-clock 時間擷取已註解，避免干擾延遲量測。
+    // let wall_start = Instant::now();
 
     // ── Parse thread（dispatcher + N workers）────────────────────────────────
     let parse_handle = if let Some(shared) = parse {
@@ -417,7 +421,8 @@ pub fn run_pipeline(
         .map(|h| h.join().expect("transport thread panicked"))
         .transpose()?;
 
-    let wall_elapsed = wall_start.elapsed();
+    // [latency-bench] wall-clock 時間擷取已註解，summary 不再輸出時間相關欄位。
+    // let wall_elapsed = wall_start.elapsed();
 
     if let Some(ps) = &parse_stats {
         print_pipeline_summary(
@@ -425,7 +430,7 @@ pub fn run_pipeline(
             filter_stats.as_ref(),
             format_stats.as_ref(),
             transport_stats.as_ref(),
-            wall_elapsed,
+            // [latency-bench] wall_elapsed 參數已移除
             mem_limit_bytes,
         );
     }
@@ -452,40 +457,44 @@ fn parse_loop(
     mem_limit_bytes: usize,
     deadline_ticks: u64,
 ) -> wasmtime::Result<ParseStats> {
-    let wall_start = Instant::now();
+    // [latency-bench] wall-clock 時間擷取已註解，避免干擾延遲量測。
+    // let wall_start = Instant::now();
 
     let (tx_work, rx_work) = std::sync::mpsc::sync_channel::<WorkBatch>(64);
     let rx_work = Arc::new(Mutex::new(rx_work));
 
     // 共用計數器：parse workers 累積已處理的 input lines
     let total_parsed_lines = Arc::new(AtomicU64::new(0));
-    let sampler_stop = Arc::new(AtomicBool::new(false));
 
-    // 每秒採樣 thread：寫入 parse_throughput.csv
-    let sampler_total = Arc::clone(&total_parsed_lines);
-    let sampler_flag = Arc::clone(&sampler_stop);
-    let sampler_handle = thread::spawn(move || {
-        let mut csv = match File::create("parse_throughput.csv") {
-            Ok(f) => f,
-            Err(e) => {
-                eprintln!("[sampler] 無法建立 parse_throughput.csv: {}", e);
-                return;
-            }
-        };
-        let _ = writeln!(csv, "ts,total_line");
-        loop {
-            thread::sleep(Duration::from_secs(1));
-            if sampler_flag.load(Ordering::Relaxed) {
-                break;
-            }
-            let ts = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_secs();
-            let total = sampler_total.load(Ordering::Relaxed);
-            let _ = writeln!(csv, "{},{}", ts, total);
-        }
-    });
+    // [latency-bench] 每秒採樣 thread（SystemTime::now + csv 檔案寫入）屬於時間擷取與
+    //                 週期性 I/O，會干擾延遲量測，整段註解。需要吞吐量統計時再打開。
+    // let sampler_stop = Arc::new(AtomicBool::new(false));
+    //
+    // // 每秒採樣 thread：寫入 parse_throughput.csv
+    // let sampler_total = Arc::clone(&total_parsed_lines);
+    // let sampler_flag = Arc::clone(&sampler_stop);
+    // let sampler_handle = thread::spawn(move || {
+    //     let mut csv = match File::create("parse_throughput.csv") {
+    //         Ok(f) => f,
+    //         Err(e) => {
+    //             eprintln!("[sampler] 無法建立 parse_throughput.csv: {}", e);
+    //             return;
+    //         }
+    //     };
+    //     let _ = writeln!(csv, "ts,total_line");
+    //     loop {
+    //         thread::sleep(Duration::from_secs(1));
+    //         if sampler_flag.load(Ordering::Relaxed) {
+    //             break;
+    //         }
+    //         let ts = SystemTime::now()
+    //             .duration_since(UNIX_EPOCH)
+    //             .unwrap_or_default()
+    //             .as_secs();
+    //         let total = sampler_total.load(Ordering::Relaxed);
+    //         let _ = writeln!(csv, "{},{}", ts, total);
+    //     }
+    // });
 
     // 啟動 PARSE_WORKERS 個 worker thread
     let mut worker_handles = Vec::new();
@@ -504,7 +513,8 @@ fn parse_loop(
     parse_dispatcher(rx, tx_work, cfg);
 
     // 彙總 workers 的統計
-    let wall_elapsed = wall_start.elapsed();
+    // [latency-bench] wall-clock 時間擷取已註解。
+    // let wall_elapsed = wall_start.elapsed();
     let mut combined = ParseStats::default();
     let mut total_errors: u32 = 0;
 
@@ -537,11 +547,12 @@ fn parse_loop(
         }
     }
 
-    // 所有 workers 已完成，停止採樣 thread
-    sampler_stop.store(true, Ordering::Relaxed);
-    let _ = sampler_handle.join();
+    // [latency-bench] 採樣 thread 已註解，停止/join 一併註解。
+    // sampler_stop.store(true, Ordering::Relaxed);
+    // let _ = sampler_handle.join();
 
-    print_parse_aggregate(&combined, PARSE_WORKERS, wall_elapsed, total_errors);
+    // [latency-bench] wall_elapsed 參數已移除，aggregate 不再輸出時間相關欄位。
+    print_parse_aggregate(&combined, PARSE_WORKERS, total_errors);
     Ok(combined)
 }
 
@@ -793,10 +804,12 @@ fn worker_flush_batch(
 fn do_parse_batch(
     worker_id: usize,
     inst: &mut ParseInstance,
-    noop_pool: Option<&mut ParsePool>,
+    // [latency-bench] noop 差分量測已註解，noop_pool 暫不使用。
+    _noop_pool: Option<&mut ParsePool>,
     batch: &mut Batch,
     seq: u64,
-    mem_limit_bytes: usize,
+    // [latency-bench] mem_limit_bytes 原本只供 print_parse_batch 的 Mem% 使用，已不需要。
+    _mem_limit_bytes: usize,
     // [latency-bench] reason は print_flush_header でのみ使用、コメントアウト後は不要。
     _reason: &FlushReason,
     stats: &mut ParseStats,
@@ -804,26 +817,37 @@ fn do_parse_batch(
 ) -> wasmtime::Result<Option<ParsedBatch>> {
     let input_lines = batch.len();
     let input_bytes = batch.bytes;
-    let started = Instant::now();
+    // [latency-bench] host 端時間擷取已註解，避免干擾延遲量測。
+    // let started = Instant::now();
 
     inst.store.set_epoch_deadline(deadline_ticks);
+
+    // ======================================== //
+    // 這裡請插入時間擷取，並將當下的時間寫入檔案   //
+    // 時間使用奈秒，並記錄當下的輪次是第幾個，避免
+    // 錯亂。
+    // 範例輸出:
+    // [parse-copy-in-1] time
+    // [paser-copy-in-2] time 
     let result = match inst.plugin.call_parse(&mut inst.store, &batch.lines) {
         Ok(Ok(parsed)) => {
-            let elapsed = started.elapsed();
+            // [latency-bench] host 端時間擷取（elapsed）已註解。
+            // let elapsed = started.elapsed();
             // [latency-bench] call_report_usage は WASM 呼び出しが 1 回余分に発生し延遲を汚染する。
             //                 延遲分佈量測中は 0 で代替して余分なオーバーヘッドを排除する。
             // let component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
-            let component_ns: u64 = 0;
-            let diff = match noop_pool {
-                Some(pool) => match measure_noop_parse(pool, &batch.lines, component_ns, elapsed, deadline_ticks) {
-                    Ok(diff) => Some(diff),
-                    Err(e) => {
-                        eprintln!("[worker{}][diff-warn] batch={} {}", worker_id, seq, e);
-                        None
-                    }
-                },
-                None => None,
-            };
+            // let component_ns: u64 = 0;
+            // [latency-bench] noop 差分量測（copy-in/out 估算）本身就是時間擷取，整段註解。
+            // let diff = match noop_pool {
+            //     Some(pool) => match measure_noop_parse(pool, &batch.lines, component_ns, elapsed, deadline_ticks) {
+            //         Ok(diff) => Some(diff),
+            //         Err(e) => {
+            //             eprintln!("[worker{}][diff-warn] batch={} {}", worker_id, seq, e);
+            //             None
+            //         }
+            //     },
+            //     None => None,
+            // };
             let wasm_mem_peak = inst.store.data().limiter.wasm_mem_peak;
             let grow_count = inst.store.data().limiter.grow_count;
             let grow_delta_bytes = inst.store.data().limiter.grow_total_delta_bytes;
@@ -857,19 +881,14 @@ fn do_parse_batch(
             // }
             // [latency-bench] print_flush_header：毎 flush の eprintln は延遲測試に不要なためコメントアウト。
             // print_flush_header(seq, batch, reason);
+            // [latency-bench] 時間相關參數（component_ns/elapsed/diff）與資源參數已自
+            //                 print_parse_batch 簽名移除，僅保留批次數量資訊。
             print_parse_batch(
                 worker_id,
                 seq,
                 input_lines,
                 input_bytes,
                 entries.len(),
-                component_ns,
-                wasm_mem_peak,
-                mem_limit_bytes,
-                elapsed,
-                grow_count,
-                grow_delta_bytes,
-                diff,
             );
             /*
             if let Some(sample) = entries.get(0) {
@@ -893,20 +912,21 @@ fn do_parse_batch(
             stats.total_input_lines += input_lines as u64;
             stats.total_input_bytes += input_bytes as u64;
             stats.total_output_entries += entries.len() as u64;
-            stats.total_elapsed += elapsed;
-            stats.total_component_ns += component_ns;
-            if let Some(d) = diff {
-                stats.total_diff_batches += 1;
-                stats.total_noop_elapsed_ns += d.noop_elapsed_ns;
-                stats.total_noop_component_ns += d.noop_component_ns;
-                stats.total_copy_in_ns += d.copy_in_ns;
-                stats.total_copy_out_ns += d.copy_out_ns;
-            }
+            // [latency-bench] 時間相關統計（elapsed/component_ns/diff）已隨時間擷取一併註解。
+            // stats.total_elapsed += elapsed;
+            // stats.total_component_ns += component_ns;
+            // if let Some(d) = diff {
+            //     stats.total_diff_batches += 1;
+            //     stats.total_noop_elapsed_ns += d.noop_elapsed_ns;
+            //     stats.total_noop_component_ns += d.noop_component_ns;
+            //     stats.total_copy_in_ns += d.copy_in_ns;
+            //     stats.total_copy_out_ns += d.copy_out_ns;
+            // }
             stats.total_grow_count += grow_count;
             stats.total_grow_delta_bytes += grow_delta_bytes;
-            if component_ns > stats.go_heap_peak_max {
-                stats.go_heap_peak_max = component_ns;
-            }
+            // if component_ns > stats.go_heap_peak_max {
+            //     stats.go_heap_peak_max = component_ns;
+            // }
             if wasm_mem_peak > stats.wasm_mem_peak_max {
                 stats.wasm_mem_peak_max = wasm_mem_peak;
             }
@@ -926,61 +946,63 @@ fn do_parse_batch(
     Ok(result)
 }
 
-fn measure_noop_parse(
-    pool: &mut ParsePool,
-    lines: &[String],
-    guest_ns: u64,
-    real_elapsed: Duration,
-    deadline_ticks: u64,
-) -> wasmtime::Result<ParseDiffTiming> {
-    let mut inst = pool.acquire()?;
-    inst.store.data_mut().limiter.reset_batch_stats();
-
-    let started = Instant::now();
-    inst.store.set_epoch_deadline(deadline_ticks);
-    let call_result = inst.plugin.call_parse(&mut inst.store, lines);
-    let noop_elapsed = started.elapsed();
-
-    match call_result {
-        Ok(Ok(_)) => {
-            // [latency-bench] noop 側の report_usage も追加 WASM 呼び出しのためコメントアウト。
-            //                 parse_noop は通常 None（forwarder.yaml: parse_noop: ~）なので実行されないが念のため。
-            // let noop_component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
-            let noop_component_ns: u64 = 0;
-            pool.release_without_reset(inst);
-
-            let noop_elapsed_ns = duration_ns(noop_elapsed);
-            let real_elapsed_ns = duration_ns(real_elapsed);
-            let copy_in_ns = noop_elapsed_ns.saturating_sub(noop_component_ns);
-            let copy_out_ns = real_elapsed_ns
-                .saturating_sub(guest_ns)
-                .saturating_sub(copy_in_ns);
-
-            Ok(ParseDiffTiming {
-                noop_elapsed_ns,
-                noop_component_ns,
-                copy_in_ns,
-                guest_ns,
-                copy_out_ns,
-            })
-        }
-        Ok(Err(e)) => {
-            pool.release_without_reset(inst);
-            Err(wasmtime::Error::msg(format!(
-                "noop parse returned error: {:?}",
-                e
-            )))
-        }
-        Err(e) => {
-            pool.discard_and_replenish(inst);
-            Err(e)
-        }
-    }
-}
-
-fn duration_ns(duration: Duration) -> u64 {
-    duration.as_nanos().min(u64::MAX as u128) as u64
-}
+// [latency-bench] measure_noop_parse / duration_ns 整段為時間擷取（noop 差分量測），
+//                 回傳 ParseDiffTiming 的路徑已全部註解，避免干擾延遲量測。
+// fn measure_noop_parse(
+//     pool: &mut ParsePool,
+//     lines: &[String],
+//     guest_ns: u64,
+//     real_elapsed: Duration,
+//     deadline_ticks: u64,
+// ) -> wasmtime::Result<ParseDiffTiming> {
+//     let mut inst = pool.acquire()?;
+//     inst.store.data_mut().limiter.reset_batch_stats();
+//
+//     let started = Instant::now();
+//     inst.store.set_epoch_deadline(deadline_ticks);
+//     let call_result = inst.plugin.call_parse(&mut inst.store, lines);
+//     let noop_elapsed = started.elapsed();
+//
+//     match call_result {
+//         Ok(Ok(_)) => {
+//             // [latency-bench] noop 側の report_usage も追加 WASM 呼び出しのためコメントアウト。
+//             //                 parse_noop は通常 None（forwarder.yaml: parse_noop: ~）なので実行されないが念のため。
+//             // let noop_component_ns = inst.plugin.call_report_usage(&mut inst.store).unwrap_or(0);
+//             let noop_component_ns: u64 = 0;
+//             pool.release_without_reset(inst);
+//
+//             let noop_elapsed_ns = duration_ns(noop_elapsed);
+//             let real_elapsed_ns = duration_ns(real_elapsed);
+//             let copy_in_ns = noop_elapsed_ns.saturating_sub(noop_component_ns);
+//             let copy_out_ns = real_elapsed_ns
+//                 .saturating_sub(guest_ns)
+//                 .saturating_sub(copy_in_ns);
+//
+//             Ok(ParseDiffTiming {
+//                 noop_elapsed_ns,
+//                 noop_component_ns,
+//                 copy_in_ns,
+//                 guest_ns,
+//                 copy_out_ns,
+//             })
+//         }
+//         Ok(Err(e)) => {
+//             pool.release_without_reset(inst);
+//             Err(wasmtime::Error::msg(format!(
+//                 "noop parse returned error: {:?}",
+//                 e
+//             )))
+//         }
+//         Err(e) => {
+//             pool.discard_and_replenish(inst);
+//             Err(e)
+//         }
+//     }
+// }
+//
+// fn duration_ns(duration: Duration) -> u64 {
+//     duration.as_nanos().min(u64::MAX as u128) as u64
+// }
 
 fn write_error_file(header: &str, lines: &[String]) {
     match File::create("error.txt") {
@@ -1098,31 +1120,34 @@ fn filter_loop(
                         }
                     }
 
-                    let started = Instant::now();
+                    // [latency-bench] host 端時間擷取（started/elapsed）已註解。
+                    //                 elapsed > stage_timeout 的軟性超時檢查隨之停用；
+                    //                 卡死的 plugin 仍由 epoch deadline（set_epoch_deadline）以 trap 攔截。
+                    // let started = Instant::now();
                     store.set_epoch_deadline(deadline_ticks);
                     match plugin.call_filter(&mut store, &entries) {
                         Ok(Ok(filter_results)) => {
-                            let elapsed = started.elapsed();
-
-                            if elapsed > stage_timeout {
-                                eprintln!(
-                                    "[filter] batch={} 超時 {}ms > {}ms 嘗試 {}/{}",
-                                    seq, elapsed.as_millis(), stage_timeout.as_millis(),
-                                    attempt + 1, MAX_RETRIES + 1
-                                );
-                                if attempt < MAX_RETRIES {
-                                    continue 'retry;
-                                }
-                                write_entry_error_file(
-                                    &format!("filter超時失敗 batch={}", seq),
-                                    &entries,
-                                );
-                                break 'retry;
-                            }
+                            // let elapsed = started.elapsed();
+                            //
+                            // if elapsed > stage_timeout {
+                            //     eprintln!(
+                            //         "[filter] batch={} 超時 {}ms > {}ms 嘗試 {}/{}",
+                            //         seq, elapsed.as_millis(), stage_timeout.as_millis(),
+                            //         attempt + 1, MAX_RETRIES + 1
+                            //     );
+                            //     if attempt < MAX_RETRIES {
+                            //         continue 'retry;
+                            //     }
+                            //     write_entry_error_file(
+                            //         &format!("filter超時失敗 batch={}", seq),
+                            //         &entries,
+                            //     );
+                            //     break 'retry;
+                            // }
 
                             // [latency-bench] filter の report_usage は追加 WASM 呼び出しのためコメントアウト。
                             // let component_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
-                            let component_ns: u64 = 0;
+                            // let component_ns: u64 = 0;
                             let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
 
                             let keep_ids: std::collections::HashSet<u64> = filter_results
@@ -1144,23 +1169,21 @@ fn filter_loop(
                             let kept = filtered.len();
                             let dropped = input_count - kept;
 
+                            // [latency-bench] 時間相關參數已自 print_filter_batch 簽名移除。
                             print_filter_batch(
                                 seq,
                                 input_count,
                                 kept,
                                 dropped,
-                                wasm_mem_peak,
-                                mem_limit_bytes,
-                                elapsed,
-                                component_ns,
                             );
 
                             stats.total_batches += 1;
                             stats.total_input_entries += input_count as u64;
                             stats.total_kept_entries += kept as u64;
                             stats.total_dropped_entries += dropped as u64;
-                            stats.total_elapsed += elapsed;
-                            stats.total_component_ns += component_ns;
+                            // [latency-bench] 時間相關統計已隨時間擷取一併註解。
+                            // stats.total_elapsed += elapsed;
+                            // stats.total_component_ns += component_ns;
                             if wasm_mem_peak > stats.wasm_mem_peak_max {
                                 stats.wasm_mem_peak_max = wasm_mem_peak;
                             }
@@ -1245,10 +1268,11 @@ fn format_loop(
                         (slot.engine.clone(), slot.component.clone(), slot.linker.clone())
                     };
 
-                    let batch_started = Instant::now();
+                    // [latency-bench] host 端時間擷取（batch_started/elapsed/logic_ns）已註解。
+                    // let batch_started = Instant::now();
                     let mut all_lines: Vec<Vec<u8>> = Vec::new();
                     let mut batch_wasm_peak: usize = 0;
-                    let mut batch_logic_ns: u64 = 0;
+                    // let mut batch_logic_ns: u64 = 0;
                     let mut batch_ok = true;
 
                     for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
@@ -1269,8 +1293,8 @@ fn format_loop(
                                     Ok(Ok(bytes)) => {
                                         // [latency-bench] format の report_usage は追加 WASM 呼び出しのためコメントアウト。
                                         // let logic_ns = plugin.call_report_usage(&mut store).unwrap_or(0);
-                                        let logic_ns: u64 = 0;
-                                        batch_logic_ns += logic_ns;
+                                        // let logic_ns: u64 = 0;
+                                        // batch_logic_ns += logic_ns;
                                         let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
                                         if wasm_mem_peak > batch_wasm_peak {
                                             batch_wasm_peak = wasm_mem_peak;
@@ -1331,43 +1355,44 @@ fn format_loop(
                         }
                     }
 
-                    let elapsed = batch_started.elapsed();
+                    // [latency-bench] host 端時間擷取（elapsed）已註解。
+                    //                 elapsed > stage_timeout 的軟性超時檢查隨之停用；
+                    //                 卡死的 plugin 仍由 epoch deadline 以 trap 攔截。
+                    // let elapsed = batch_started.elapsed();
 
                     if batch_ok && !all_lines.is_empty() {
-                        if elapsed > stage_timeout {
-                            eprintln!(
-                                "[format] batch={} 超時 {}ms > {}ms 嘗試 {}/{}",
-                                seq, elapsed.as_millis(), stage_timeout.as_millis(),
-                                attempt + 1, MAX_RETRIES + 1
-                            );
-                            if attempt < MAX_RETRIES {
-                                continue 'retry;
-                            }
-                            write_entry_error_file(
-                                &format!("format超時失敗 batch={}", seq),
-                                &pb.entries,
-                            );
-                            break 'retry;
-                        }
+                        // if elapsed > stage_timeout {
+                        //     eprintln!(
+                        //         "[format] batch={} 超時 {}ms > {}ms 嘗試 {}/{}",
+                        //         seq, elapsed.as_millis(), stage_timeout.as_millis(),
+                        //         attempt + 1, MAX_RETRIES + 1
+                        //     );
+                        //     if attempt < MAX_RETRIES {
+                        //         continue 'retry;
+                        //     }
+                        //     write_entry_error_file(
+                        //         &format!("format超時失敗 batch={}", seq),
+                        //         &pb.entries,
+                        //     );
+                        //     break 'retry;
+                        // }
 
                         let output_lines = all_lines.len();
                         let total_bytes: usize = all_lines.iter().map(|l| l.len()).sum();
 
+                        // [latency-bench] 時間相關參數已自 print_format_batch 簽名移除。
                         print_format_batch(
                             seq,
                             entry_count,
                             output_lines,
-                            batch_wasm_peak,
-                            mem_limit_bytes,
-                            elapsed,
-                            batch_logic_ns,
                         );
 
                         stats.total_batches += 1;
                         stats.total_input_entries += entry_count as u64;
                         stats.total_output_lines += output_lines as u64;
-                        stats.total_elapsed += elapsed;
-                        stats.total_component_ns += batch_logic_ns;
+                        // [latency-bench] 時間相關統計已隨時間擷取一併註解。
+                        // stats.total_elapsed += elapsed;
+                        // stats.total_component_ns += batch_logic_ns;
                         if batch_wasm_peak > stats.wasm_mem_peak_max {
                             stats.wasm_mem_peak_max = batch_wasm_peak;
                         }
@@ -1636,7 +1661,8 @@ async fn transport_worker(
             }
         }
 
-        let batch_started = Instant::now();
+        // [latency-bench] host 端時間擷取（batch_started/elapsed）已註解。
+        // let batch_started = Instant::now();
         let mut batch_ok = true;
         let mut lines_sent: usize = 0;
         let mut bytes_sent: usize = 0;
@@ -1661,26 +1687,29 @@ async fn transport_worker(
             let mut chunk_ok = false;
 
             for attempt in 0..=MAX_RETRIES {
-                let chunk_started = Instant::now();
+                // [latency-bench] host 端時間擷取（chunk_started/elapsed）已註解。
+                //                 elapsed > stage_timeout 的軟性超時檢查隨之停用；
+                //                 卡死的 plugin 仍由 epoch deadline 以 trap 攔截。
+                // let chunk_started = Instant::now();
                 store.set_epoch_deadline(deadline_ticks);
                 match plugin.call_send(&mut store, chunk).await {
                     Ok(Ok(())) => {
-                        let elapsed = chunk_started.elapsed();
-                        if elapsed > stage_timeout {
-                            eprintln!(
-                                "[transport-{}] send 超時 {}ms url={} 嘗試 {}/{}",
-                                id, elapsed.as_millis(), task.url,
-                                attempt + 1, MAX_RETRIES + 1
-                            );
-                            if attempt < MAX_RETRIES {
-                                continue;
-                            }
-                            write_bytes_error_file(
-                                &format!("transport超時 url={}", task.url),
-                                chunk,
-                            );
-                            break;
-                        }
+                        // let elapsed = chunk_started.elapsed();
+                        // if elapsed > stage_timeout {
+                        //     eprintln!(
+                        //         "[transport-{}] send 超時 {}ms url={} 嘗試 {}/{}",
+                        //         id, elapsed.as_millis(), task.url,
+                        //         attempt + 1, MAX_RETRIES + 1
+                        //     );
+                        //     if attempt < MAX_RETRIES {
+                        //         continue;
+                        //     }
+                        //     write_bytes_error_file(
+                        //         &format!("transport超時 url={}", task.url),
+                        //         chunk,
+                        //     );
+                        //     break;
+                        // }
                         let peak = store.data().limiter.wasm_mem_peak;
                         if peak > wasm_peak { wasm_peak = peak; }
                         lines_sent += chunk.len();
@@ -1723,7 +1752,8 @@ async fn transport_worker(
         }
 
         if batch_ok && lines_sent > 0 {
-            let elapsed = batch_started.elapsed();
+            // [latency-bench] 時間擷取與時間相關統計已註解。
+            // let elapsed = batch_started.elapsed();
             //eprintln!(
             //    "[transport-{}] url={} lines={} bytes={} elapsed={:.1}ms",
             //    id, task.url, lines_sent, bytes_sent, elapsed.as_secs_f64() * 1000.0
@@ -1731,7 +1761,7 @@ async fn transport_worker(
             stats.total_batches += 1;
             stats.total_input_lines += lines_sent as u64;
             stats.total_input_bytes += bytes_sent as u64;
-            stats.total_elapsed += elapsed;
+            // stats.total_elapsed += elapsed;
             if wasm_peak > stats.wasm_mem_peak_max {
                 stats.wasm_mem_peak_max = wasm_peak;
             }

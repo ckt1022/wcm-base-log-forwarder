@@ -1,8 +1,10 @@
-use std::time::Duration;
+// [latency-bench] Duration / Batch / FlushReason / ParseDiffTiming 只有時間相關輸出使用，
+//                 隨時間輸出一併註解後不再需要。
+// use std::time::Duration;
 
 use crate::config::{
     PipelineStages,
-    Batch, BatchConfig, FilterStats, FlushReason, FormatStats, ParseDiffTiming, ParseStats,
+    BatchConfig, FilterStats, FormatStats, ParseStats,
     TransportStats,
 };
 
@@ -51,33 +53,29 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
 //   pct            {:>5.1}  up to 100.0 %
 //   tput           {:>7.0}  up to ~9 999 999 /s
 
-pub fn print_flush_header(seq: u64, batch: &Batch, reason: &FlushReason) {
-    let why = if reason.eof             { "eof  " }
-              else if reason.size       { "size " }
-              else if reason.line_count { "lines" }
-              else                      { "time " };
-    eprintln!(
-        "\n--- Flush #{:>4} [{}] | {:>6} lines / {:>7.0}KB / age={:>5}ms ---",
-        seq, why,
-        batch.len(),
-        batch.bytes as f64 / 1024.0,
-        batch.elapsed().as_millis(),
-    );
-}
+// [latency-bench] print_flush_header 輸出 batch age（時間相關）且已無呼叫端，整個函數註解。
+// pub fn print_flush_header(seq: u64, batch: &Batch, reason: &FlushReason) {
+//     let why = if reason.eof             { "eof  " }
+//               else if reason.size       { "size " }
+//               else if reason.line_count { "lines" }
+//               else                      { "time " };
+//     eprintln!(
+//         "\n--- Flush #{:>4} [{}] | {:>6} lines / {:>7.0}KB / age={:>5}ms ---",
+//         seq, why,
+//         batch.len(),
+//         batch.bytes as f64 / 1024.0,
+//         batch.elapsed().as_millis(),
+//     );
+// }
 
+// [latency-bench] 時間相關參數（component_ns/elapsed/diff）與資源參數
+//                 （wasm_mem_peak/mem_limit_bytes/grow_*）已自簽名移除，僅保留批次數量資訊。
 pub fn print_parse_batch(
     worker_id: usize,
     seq: u64,
     input_lines: usize,
     input_bytes: usize,
     output_entries: usize,
-    component_ns: u64,
-    wasm_mem_peak: usize,
-    mem_limit_bytes: usize,
-    elapsed: Duration,
-    grow_count: u64,
-    grow_delta_bytes: u64,
-    diff: Option<ParseDiffTiming>,
 ) {
     // [latency-bench] Mem%・comp/abi 分解・Grow 統計は延遲測試に不要。
     //                 毎バッチの format! + eprintln は stderr syscall コストにより p99 に影響する。
@@ -107,28 +105,24 @@ pub fn print_parse_batch(
     //     );
     // }
 
-    // 延遲測試簡化版：僅輸出吞吐量與批次資訊，移除資源使用量
-    let _ = (component_ns, wasm_mem_peak, mem_limit_bytes, grow_count, grow_delta_bytes, diff);
-    let tput       = output_entries as f64 / elapsed.as_secs_f64().max(1e-9);
-    let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
+    // 延遲測試簡化版：僅輸出批次數量資訊。
+    // [latency-bench] Time / tput 為時間相關輸出，已註解：
+    // let tput       = output_entries as f64 / elapsed.as_secs_f64().max(1e-9);
+    // let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
     eprintln!(
-        "[parse-w{} #{:>4}]  In={:>6}/{:>7.0}KB  Time={:>7.1}ms  {:>7.0}/s  Out={:>6}",
+        "[parse-w{} #{:>4}]  In={:>6}/{:>7.0}KB  Out={:>6}",
         worker_id, seq,
         input_lines, input_bytes as f64 / 1024.0,
-        elapsed_ms, tput,
         output_entries,
     );
 }
 
+// [latency-bench] 時間相關參數（elapsed/logic_ns）與資源參數已自簽名移除。
 pub fn print_filter_batch(
     seq: u64,
     input_entries: usize,
     kept: usize,
     dropped: usize,
-    wasm_mem_peak: usize,
-    mem_limit_bytes: usize,
-    elapsed: Duration,
-    logic_ns: u64,
 ) {
     // [latency-bench] Mem%・logic_ms は延遲測試に不要。毎バッチの eprintln は p99 に影響する。
     //                 原始詳細版を保留：
@@ -147,24 +141,21 @@ pub fn print_filter_batch(
     //     kept, dropped, drop_pct, logic_ms,
     // );
 
-    // 延遲測試簡化版：僅輸出 keep/drop 資訊與吞吐量
-    let _ = (wasm_mem_peak, mem_limit_bytes, logic_ns);
-    let tput     = input_entries as f64 / elapsed.as_secs_f64().max(1e-9);
+    // 延遲測試簡化版：僅輸出 keep/drop 資訊。
+    // [latency-bench] Time / tput 為時間相關輸出，已註解：
+    // let tput     = input_entries as f64 / elapsed.as_secs_f64().max(1e-9);
     let drop_pct = dropped as f64 / input_entries.max(1) as f64 * 100.0;
     eprintln!(
-        "[filter  #{:>4}]  In={:>6}  kept={:>6}  drop={:>5.1}%  Time={:>7.1}ms  {:>7.0}/s",
-        seq, input_entries, kept, drop_pct, elapsed.as_secs_f64() * 1000.0, tput,
+        "[filter  #{:>4}]  In={:>6}  kept={:>6}  drop={:>5.1}%",
+        seq, input_entries, kept, drop_pct,
     );
 }
 
+// [latency-bench] 時間相關參數（elapsed/logic_ns）與資源參數已自簽名移除。
 pub fn print_format_batch(
     seq: u64,
     input_entries: usize,
     output_lines: usize,
-    wasm_mem_peak: usize,
-    mem_limit_bytes: usize,
-    elapsed: Duration,
-    logic_ns: u64,
 ) {
     // [latency-bench] Mem%・logic/copyin 分解は延遲測試に不要。毎バッチの eprintln は p99 に影響する。
     //                 原始詳細版を保留：
@@ -182,39 +173,41 @@ pub fn print_format_batch(
     //     output_lines, logic_ms, copyin_ms,
     // );
 
-    // 延遲測試簡化版：僅輸出吞吐量與批次資訊
-    let _ = (wasm_mem_peak, mem_limit_bytes, logic_ns);
-    let tput = output_lines as f64 / elapsed.as_secs_f64().max(1e-9);
+    // 延遲測試簡化版：僅輸出批次數量資訊。
+    // [latency-bench] Time / tput 為時間相關輸出，已註解：
+    // let tput = output_lines as f64 / elapsed.as_secs_f64().max(1e-9);
     eprintln!(
-        "[format  #{:>4}]  In={:>6}  Out={:>6}  Time={:>7.1}ms  {:>7.0}/s",
-        seq, input_entries, output_lines, elapsed.as_secs_f64() * 1000.0, tput,
+        "[format  #{:>4}]  In={:>6}  Out={:>6}",
+        seq, input_entries, output_lines,
     );
 }
 
-pub fn print_transport_batch(
-    seq: u64,
-    input_lines: usize,
-    input_bytes: usize,
-    wasm_mem_peak: usize,
-    mem_limit_bytes: usize,
-    elapsed: Duration,
-) {
-    let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
-    let tput  = input_lines as f64 / elapsed.as_secs_f64().max(1e-9);
-
-    eprintln!(
-        "[{:<9} #{:>4}]  In={:>6}/{:>7.0}KB  Mem={:>7.0}KB({:>5.1}%)  Time={:>7.1}ms  {:>7.0}/s",
-        "transport", seq,
-        input_lines, input_bytes as f64 / 1024.0,
-        wasm_mem_peak as f64 / 1024.0, ratio,
-        elapsed.as_secs_f64() * 1000.0, tput,
-    );
-}
+// [latency-bench] print_transport_batch 含時間相關輸出（Time/tput）且目前無呼叫端，整個函數註解。
+// pub fn print_transport_batch(
+//     seq: u64,
+//     input_lines: usize,
+//     input_bytes: usize,
+//     wasm_mem_peak: usize,
+//     mem_limit_bytes: usize,
+//     elapsed: Duration,
+// ) {
+//     let ratio = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
+//     let tput  = input_lines as f64 / elapsed.as_secs_f64().max(1e-9);
+//
+//     eprintln!(
+//         "[{:<9} #{:>4}]  In={:>6}/{:>7.0}KB  Mem={:>7.0}KB({:>5.1}%)  Time={:>7.1}ms  {:>7.0}/s",
+//         "transport", seq,
+//         input_lines, input_bytes as f64 / 1024.0,
+//         wasm_mem_peak as f64 / 1024.0, ratio,
+//         elapsed.as_secs_f64() * 1000.0, tput,
+//     );
+// }
 
 // ── Aggregate / summary output ────────────────────────────────────────────────
 
-pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, wall: Duration, errors: u32) {
-    let wall_tput = stats.total_output_entries as f64 / wall.as_secs_f64().max(1e-9);
+// [latency-bench] wall 參數（時間相關）已自簽名移除，wall/throughput 輸出一併註解。
+pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, errors: u32) {
+    // let wall_tput = stats.total_output_entries as f64 / wall.as_secs_f64().max(1e-9);
     // [latency-bench] sum_worker_tput は延遲測試に不要、原始計算を保留：
     // let sum_worker_tput =
     //     stats.total_output_entries as f64 / stats.total_elapsed.as_secs_f64().max(1e-9);
@@ -222,11 +215,12 @@ pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, wall: Duration,
         "\n[parse-aggregate] workers={workers}  batches={}  entries={}  errors={errors}",
         stats.total_batches, stats.total_output_entries,
     );
-    eprintln!(
-        "                  wall={:.3}s  throughput={:.0} entries/s",
-        wall.as_secs_f64(),
-        wall_tput,
-    );
+    // [latency-bench] wall/throughput 為時間相關輸出，已註解：
+    // eprintln!(
+    //     "                  wall={:.3}s  throughput={:.0} entries/s",
+    //     wall.as_secs_f64(),
+    //     wall_tput,
+    // );
     // [latency-bench] sum-worker 詳細時間と diff copy-in/out 分解は延遲測試に不要。原始版を保留：
     // eprintln!(
     //     "                  sum-worker-elapsed={:.0}ms  avg-worker-throughput={:.0} entries/s",
@@ -249,7 +243,7 @@ pub fn print_pipeline_summary(
     fi: Option<&FilterStats>,
     f: Option<&FormatStats>,
     t: Option<&TransportStats>,
-    wall: Duration,
+    // [latency-bench] wall 參數（時間相關）已自簽名移除。
     // [latency-bench] mem_limit_bytes は WasmMem% 計算でのみ使用、コメントアウト後は不要。
     _mem_limit_bytes: usize,
 ) {
@@ -260,11 +254,12 @@ pub fn print_pipeline_summary(
     //     0.0
     // };
 
-    let e2e_tput = if wall.as_secs_f64() > 0.0 {
-        p.total_input_lines as f64 / wall.as_secs_f64()
-    } else {
-        0.0
-    };
+    // [latency-bench] e2e_tput 依賴 wall（時間相關），已註解：
+    // let e2e_tput = if wall.as_secs_f64() > 0.0 {
+    //     p.total_input_lines as f64 / wall.as_secs_f64()
+    // } else {
+    //     0.0
+    // };
 
     let output_lines = f.map_or(p.total_output_entries, |fs| fs.total_output_lines);
 
@@ -316,11 +311,12 @@ pub fn print_pipeline_summary(
     eprintln!("╠══════════════════════════════════════════════════════════╣");
     match fi {
         Some(fs) => {
-            let fi_tput = if fs.total_elapsed.as_secs_f64() > 0.0 {
-                fs.total_input_entries as f64 / fs.total_elapsed.as_secs_f64()
-            } else {
-                0.0
-            };
+            // [latency-bench] fi_tput 與 elapsed/throughput 為時間相關輸出，已註解：
+            // let fi_tput = if fs.total_elapsed.as_secs_f64() > 0.0 {
+            //     fs.total_input_entries as f64 / fs.total_elapsed.as_secs_f64()
+            // } else {
+            //     0.0
+            // };
             let drop_pct = fs.total_dropped_entries as f64
                 / fs.total_input_entries.max(1) as f64
                 * 100.0;
@@ -332,11 +328,11 @@ pub fn print_pipeline_summary(
                 fs.total_dropped_entries,
                 drop_pct,
             );
-            eprintln!(
-                "║        │ elapsed={:.2}ms  throughput={:.0} entries/s",
-                fs.total_elapsed.as_secs_f64() * 1000.0,
-                fi_tput,
-            );
+            // eprintln!(
+            //     "║        │ elapsed={:.2}ms  throughput={:.0} entries/s",
+            //     fs.total_elapsed.as_secs_f64() * 1000.0,
+            //     fi_tput,
+            // );
             // [latency-bench] WasmMem% は資源使用量で延遲測試に不要。原始版を保留：
             // eprintln!(
             //     "║        │ WasmMem(peak)={:.0}KB ({:.1}%)",
@@ -351,11 +347,12 @@ pub fn print_pipeline_summary(
     eprintln!("╠══════════════════════════════════════════════════════════╣");
     match f {
         Some(fs) => {
-            let f_tput = if fs.total_elapsed.as_secs_f64() > 0.0 {
-                fs.total_input_entries as f64 / fs.total_elapsed.as_secs_f64()
-            } else {
-                0.0
-            };
+            // [latency-bench] f_tput 與 elapsed/throughput 為時間相關輸出，已註解：
+            // let f_tput = if fs.total_elapsed.as_secs_f64() > 0.0 {
+            //     fs.total_input_entries as f64 / fs.total_elapsed.as_secs_f64()
+            // } else {
+            //     0.0
+            // };
             // [latency-bench] total_logic_ms・total_copy_in_ms は logic/copyin 分解出力でのみ使用、延遲測試に不要。
             // let total_logic_ms = fs.total_component_ns as f64 / 1_000_000.0;
             // let total_copy_in_ms =
@@ -364,11 +361,11 @@ pub fn print_pipeline_summary(
                 "║ Format │ batches={:<6} entries={:<10} lines={:<10}",
                 fs.total_batches, fs.total_input_entries, fs.total_output_lines
             );
-            eprintln!(
-                "║        │ elapsed={:.2}ms  throughput={:.0} entries/s",
-                fs.total_elapsed.as_secs_f64() * 1000.0,
-                f_tput
-            );
+            // eprintln!(
+            //     "║        │ elapsed={:.2}ms  throughput={:.0} entries/s",
+            //     fs.total_elapsed.as_secs_f64() * 1000.0,
+            //     f_tput
+            // );
             // [latency-bench] logic/copyin 分解と WasmMem% は資源使用量で延遲測試に不要。原始版を保留：
             // eprintln!(
             //     "║        │ logic={:.0}ms  copy-in={:.0}ms",
@@ -387,20 +384,21 @@ pub fn print_pipeline_summary(
     eprintln!("╠══════════════════════════════════════════════════════════╣");
     match t {
         Some(ts) => {
-            let t_tput = if ts.total_elapsed.as_secs_f64() > 0.0 {
-                ts.total_input_lines as f64 / ts.total_elapsed.as_secs_f64()
-            } else {
-                0.0
-            };
+            // [latency-bench] t_tput 與 elapsed/throughput 為時間相關輸出，已註解：
+            // let t_tput = if ts.total_elapsed.as_secs_f64() > 0.0 {
+            //     ts.total_input_lines as f64 / ts.total_elapsed.as_secs_f64()
+            // } else {
+            //     0.0
+            // };
             eprintln!(
                 "║ Trans  │ batches={:<6} lines={:<10} bytes={:<12}",
                 ts.total_batches, ts.total_input_lines, ts.total_input_bytes
             );
-            eprintln!(
-                "║        │ elapsed={:.2}ms  throughput={:.0} lines/s",
-                ts.total_elapsed.as_secs_f64() * 1000.0,
-                t_tput
-            );
+            // eprintln!(
+            //     "║        │ elapsed={:.2}ms  throughput={:.0} lines/s",
+            //     ts.total_elapsed.as_secs_f64() * 1000.0,
+            //     t_tput
+            // );
             // [latency-bench] plugin-reported と WasmMem% は資源使用量で延遲測試に不要。原始版を保留：
             // eprintln!(
             //     "║        │ plugin-reported={} B  WasmMem(peak)={:.0}KB ({:.1}%)",
@@ -418,10 +416,11 @@ pub fn print_pipeline_summary(
         "║ E2E    │ input={} lines → output={} lines",
         p.total_input_lines, output_lines
     );
-    eprintln!(
-        "║        │ wall={:.2}ms  throughput={:.0} lines/s (all stages parallel)",
-        wall.as_secs_f64() * 1000.0,
-        e2e_tput
-    );
+    // [latency-bench] wall / throughput 為時間相關輸出，已註解：
+    // eprintln!(
+    //     "║        │ wall={:.2}ms  throughput={:.0} lines/s (all stages parallel)",
+    //     wall.as_secs_f64() * 1000.0,
+    //     e2e_tput
+    // );
     eprintln!("╚══════════════════════════════════════════════════════════╝");
 }

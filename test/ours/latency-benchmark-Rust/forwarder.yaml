@@ -2,11 +2,11 @@
 # 這個檔案是延遲測量的設定檔案
 
 plugins:
-  parse: "latency_c_parser.wasm"
+  parse: "latency_rust_parser.wasm"
   parse_noop: ~
-  filter: "latency_c_filter.wasm"
-  format: "latency_c_format.wasm"
-  transport: "latency_c_transport.wasm"
+  filter: "latency_rust_filter.wasm"
+  format: "latency_rust_format.wasm"
+  transport: "latency_rust_transport.wasm"
 
 # Which pipeline stages to enable
 stages:
@@ -20,8 +20,8 @@ input:
   tcp:
     host: "0.0.0.0"
     port: 5140
-  tail:
-    path: "/tmp/test-logs.log"
+  #tail:
+  #  path: "/tmp/test-logs.log"
 
 # Batch processing parameters (hot-reloadable at runtime)
 batch:
