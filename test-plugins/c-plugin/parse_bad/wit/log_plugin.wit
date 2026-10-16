@@ -1,0 +1,91 @@
+package local:log-process@0.3.0;
+
+// ─────────────────────────────────────────────
+// 核心共享型別（與其他插件相同）
+// ─────────────────────────────────────────────
+interface pipeline-process {
+    record parsed-entry {
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+        targettag: string,
+    }
+
+    record log-entry {
+        id: u64,
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+    }
+
+    enum log-level {
+        debug, info, warn, error, crit, alert, emerg,
+    }
+
+    variant parse-error {
+        invalid-format(string),
+        unsupported-version(u16),
+        corrupted-data,
+    }
+
+    variant plugin-error {
+        invalid-input(string),
+        processing-failed(string),
+        config-error(string),
+        unknown-id(u64),
+        internal-error,
+    }
+
+    record filter-result { id: u64, keep: bool, }
+    record enrich-result { id: u64, additional-tags: list<tuple<string, string>>, }
+    record route-result  { id: u64, urls: list<string>, }
+}
+
+// ─────────────────────────────────────────────
+// 惡意插件故意宣告的自定義非 WASI 介面
+// 任何合法的 host linker 都不會提供這個介面。
+// 目的：示範「import 不在 linker 中」時的實例化失敗錯誤。
+// ─────────────────────────────────────────────
+interface forbidden-capability {
+    // 假裝要存取 host 的任意路徑
+    probe-host-files: func(path: string) -> list<string>;
+    // 假裝要建立任意網路連線
+    connect-to-host: func(addr: string, port: u16) -> bool;
+}
+
+world parser-plugin {
+    use pipeline-process.{parsed-entry, parse-error};
+
+    // WASI for C libc runtime. filesystem/* and cli/environment are declared
+    // but the host provides no preopened dirs and no env vars.
+    // wasi:sockets is intentionally omitted.
+    import wasi:clocks/monotonic-clock@0.2.0;
+    import wasi:clocks/wall-clock@0.2.0;
+    import wasi:filesystem/types@0.2.0;
+    import wasi:filesystem/preopens@0.2.0;
+    import wasi:io/error@0.2.0;
+    import wasi:io/poll@0.2.0;
+    import wasi:io/streams@0.2.0;
+    import wasi:cli/environment@0.2.0;
+    import wasi:cli/exit@0.2.0;
+    import wasi:cli/stdin@0.2.0;
+    import wasi:cli/stdout@0.2.0;
+    import wasi:cli/stderr@0.2.0;
+    import wasi:cli/terminal-input@0.2.0;
+    import wasi:cli/terminal-output@0.2.0;
+    import wasi:cli/terminal-stdin@0.2.0;
+    import wasi:cli/terminal-stdout@0.2.0;
+    import wasi:cli/terminal-stderr@0.2.0;
+    import wasi:random/random@0.2.0;
+    import wasi:random/insecure@0.2.0;
+    import wasi:random/insecure-seed@0.2.0;
+
+    // ← 關鍵：這個自定義介面根本不在任何 host linker 裡
+    //   host 嘗試實例化此插件時，wasmtime 會立即報錯。
+    import forbidden-capability;
+
+    export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
+    export report-usage: func() -> u64;
+}

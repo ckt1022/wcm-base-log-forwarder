@@ -1,0 +1,16 @@
+[correctness] ===== C3 rep=1 rate=2500 count=30000 malformed=true =====
+[correctgen] phase=flat sent=2498/30000 lag=0.928ms
+[correctgen] phase=flat sent=4999/30000 lag=0.856ms
+[correctgen] phase=flat sent=7500/30000 lag=0.723ms
+[correctgen] phase=flat sent=10002/30000 lag=0.901ms
+[correctgen] phase=flat sent=12502/30000 lag=1.016ms
+[correctgen] phase=flat sent=15005/30000 lag=0.746ms
+[correctgen] phase=flat sent=17507/30000 lag=0.877ms
+[correctgen] phase=flat sent=20009/30000 lag=0.805ms
+[correctgen] phase=flat sent=22510/30000 lag=1.075ms
+[correctgen] phase=flat sent=25013/30000 lag=0.706ms
+[correctgen] phase=flat sent=27513/30000 lag=1.059ms
+[correctgen] done count=30000 malformed=310 elapsed=12.001s avg=2500/s lag_p99=1.119ms
+[correctness] generator done; drain 10s
+PASS expected=11881 received=11881 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2499.9 lag_p99=1.119ms oom=false
+[correctness] completed run root: /home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_suite/runs_smoke/correctness/p1_stream_mr1

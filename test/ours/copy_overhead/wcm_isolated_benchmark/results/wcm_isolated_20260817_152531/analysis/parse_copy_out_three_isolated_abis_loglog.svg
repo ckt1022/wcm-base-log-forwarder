@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="790" viewBox="0 0 1280 790" role="img" aria-labelledby="title desc">
+<title id="title">Isolated Parse Copy-out: Three ABIs</title>
+<desc id="desc">Isolated Parse boundary latency for WCM Canonical ABI, Core JSON ABI, and Core Direct Memory ABI. Both axes are logarithmic. Lines are medians of 300 samples and bands span p5 to p95.</desc>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<style>
+    text { font-family: Inter, "DejaVu Sans", Arial, sans-serif; fill: #1f2937; }
+    .title { font-size: 29px; font-weight: 700; }
+    .subtitle { font-size: 15px; fill: #59636e; }
+    .axis-label { font-size: 18px; font-weight: 600; }
+    .tick { font-size: 13px; fill: #4b5563; }
+    .legend { font-size: 15px; font-weight: 600; }
+    .grid { stroke: #dfe5eb; stroke-width: 1; }
+    .axis { stroke: #26313d; stroke-width: 1.5; }
+  </style>
+<text class="title" x="120" y="43">Isolated Parse Copy-out: Three ABIs</text>
+<text class="subtitle" x="120" y="70">Rust host + Rust guest · isolated fresh instance · median and p5–p95 of 300 samples</text>
+<text class="subtitle" x="120" y="91">Logical input: 1024 B per log · both axes logarithmic</text>
+<line class="grid" x1="120" y1="636.6744186046511" x2="1225" y2="636.6744186046511" opacity="1"/>
+<text class="tick" x="106" y="641.6744186046511" text-anchor="end">0.01</text>
+<line class="grid" x1="120" y1="605.3462969628763" x2="1225" y2="605.3462969628763" opacity="0.45"/>
+<text class="tick" x="106" y="610.3462969628763" text-anchor="end">0.02</text>
+<line class="grid" x1="120" y1="563.9327728045655" x2="1225" y2="563.9327728045655" opacity="0.45"/>
+<text class="tick" x="106" y="568.9327728045655" text-anchor="end">0.05</text>
+<line class="grid" x1="120" y1="532.6046511627907" x2="1225" y2="532.6046511627907" opacity="1"/>
+<text class="tick" x="106" y="537.6046511627907" text-anchor="end">0.1</text>
+<line class="grid" x1="120" y1="501.2765295210159" x2="1225" y2="501.2765295210159" opacity="0.45"/>
+<text class="tick" x="106" y="506.2765295210159" text-anchor="end">0.2</text>
+<line class="grid" x1="120" y1="459.86300536270505" x2="1225" y2="459.86300536270505" opacity="0.45"/>
+<text class="tick" x="106" y="464.86300536270505" text-anchor="end">0.5</text>
+<line class="grid" x1="120" y1="428.5348837209302" x2="1225" y2="428.5348837209302" opacity="1"/>
+<text class="tick" x="106" y="433.5348837209302" text-anchor="end">1</text>
+<line class="grid" x1="120" y1="397.20676207915545" x2="1225" y2="397.20676207915545" opacity="0.45"/>
+<text class="tick" x="106" y="402.20676207915545" text-anchor="end">2</text>
+<line class="grid" x1="120" y1="355.7932379208446" x2="1225" y2="355.7932379208446" opacity="0.45"/>
+<text class="tick" x="106" y="360.7932379208446" text-anchor="end">5</text>
+<line class="grid" x1="120" y1="324.4651162790698" x2="1225" y2="324.4651162790698" opacity="1"/>
+<text class="tick" x="106" y="329.4651162790698" text-anchor="end">10</text>
+<line class="grid" x1="120" y1="293.13699463729495" x2="1225" y2="293.13699463729495" opacity="0.45"/>
+<text class="tick" x="106" y="298.13699463729495" text-anchor="end">20</text>
+<line class="grid" x1="120" y1="251.7234704789841" x2="1225" y2="251.7234704789841" opacity="0.45"/>
+<text class="tick" x="106" y="256.7234704789841" text-anchor="end">50</text>
+<line class="grid" x1="120" y1="220.39534883720933" x2="1225" y2="220.39534883720933" opacity="1"/>
+<text class="tick" x="106" y="225.39534883720933" text-anchor="end">100</text>
+<line class="grid" x1="120" y1="189.0672271954345" x2="1225" y2="189.0672271954345" opacity="0.45"/>
+<text class="tick" x="106" y="194.0672271954345" text-anchor="end">200</text>
+<line class="grid" x1="120" y1="147.65370303712365" x2="1225" y2="147.65370303712365" opacity="0.45"/>
+<text class="tick" x="106" y="152.65370303712365" text-anchor="end">500</text>
+<line class="grid" x1="120" y1="116.32558139534885" x2="1225" y2="116.32558139534885" opacity="1"/>
+<text class="tick" x="106" y="121.32558139534885" text-anchor="end">1000</text>
+<line class="grid" x1="120" y1="108" x2="120" y2="645" opacity="0.5"/>
+<text class="tick" x="120" y="674" text-anchor="middle">64 KiB</text>
+<line class="grid" x1="242.77777777777777" y1="108" x2="242.77777777777777" y2="645" opacity="0.5"/>
+<text class="tick" x="242.77777777777777" y="674" text-anchor="middle">128 KiB</text>
+<line class="grid" x1="365.55555555555554" y1="108" x2="365.55555555555554" y2="645" opacity="0.5"/>
+<text class="tick" x="365.55555555555554" y="674" text-anchor="middle">256 KiB</text>
+<line class="grid" x1="488.3333333333333" y1="108" x2="488.3333333333333" y2="645" opacity="0.5"/>
+<text class="tick" x="488.3333333333333" y="674" text-anchor="middle">512 KiB</text>
+<line class="grid" x1="611.1111111111111" y1="108" x2="611.1111111111111" y2="645" opacity="0.5"/>
+<text class="tick" x="611.1111111111111" y="674" text-anchor="middle">1 MiB</text>
+<line class="grid" x1="733.8888888888889" y1="108" x2="733.8888888888889" y2="645" opacity="0.5"/>
+<text class="tick" x="733.8888888888889" y="674" text-anchor="middle">2 MiB</text>
+<line class="grid" x1="856.6666666666666" y1="108" x2="856.6666666666666" y2="645" opacity="0.5"/>
+<text class="tick" x="856.6666666666666" y="674" text-anchor="middle">4 MiB</text>
+<line class="grid" x1="979.4444444444445" y1="108" x2="979.4444444444445" y2="645" opacity="0.5"/>
+<text class="tick" x="979.4444444444445" y="674" text-anchor="middle">8 MiB</text>
+<line class="grid" x1="1102.2222222222222" y1="108" x2="1102.2222222222222" y2="645" opacity="0.5"/>
+<text class="tick" x="1102.2222222222222" y="674" text-anchor="middle">16 MiB</text>
+<line class="grid" x1="1225" y1="108" x2="1225" y2="645" opacity="0.5"/>
+<text class="tick" x="1225" y="674" text-anchor="middle">32 MiB</text>
+<line class="axis" x1="120" y1="645" x2="1225" y2="645"/>
+<line class="axis" x1="120" y1="108" x2="120" y2="645"/>
+<text class="axis-label" x="672.5" y="728" text-anchor="middle">Logical input size (log₂ scale)</text>
+<text class="axis-label" transform="translate(31 376.5) rotate(-90)" text-anchor="middle">Boundary latency (ms, log₁₀ scale)</text>
+<polygon points="120,561.6373038001419 242.77777777777777,534.0629281902304 365.55555555555554,498.29254733114794 488.3333333333333,441.3483995295818 611.1111111111111,403.7669677929132 733.8888888888889,369.5473199639714 856.6666666666666,338.68025292390905 979.4444444444445,305.5848271347627 1102.2222222222222,272.02138449189897 1225,239.51458459366492 1225,246.86742165978356 1102.2222222222222,279.9973263012664 979.4444444444445,313.1639106139464 856.6666666666666,347.75515085069236 733.8888888888889,382.9603906704919 611.1111111111111,417.9659389246801 488.3333333333333,493.5294124385891 365.55555555555554,524.704531799176 242.77777777777777,555.3173185681442 120,584.3869450713876" fill="#0072B2" opacity="0.09"/>
+<polyline points="120,583.1947149858223 242.77777777777777,554.1375602141815 365.55555555555554,523.4323489084891 488.3333333333333,451.67539203042395 611.1111111111111,414.4435242719158 733.8888888888889,378.79821557148756 856.6666666666666,344.1554456732156 979.4444444444445,310.14272174138864 1102.2222222222222,278.22812000652425 1225,245.3592936469154" fill="none" stroke="#0072B2" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="120" cy="583.1947149858223" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="242.77777777777777" cy="554.1375602141815" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="365.55555555555554" cy="523.4323489084891" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="488.3333333333333" cy="451.67539203042395" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="611.1111111111111" cy="414.4435242719158" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="733.8888888888889" cy="378.79821557148756" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="856.6666666666666" cy="344.1554456732156" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="979.4444444444445" cy="310.14272174138864" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="1102.2222222222222" cy="278.22812000652425" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<circle cx="1225" cy="245.3592936469154" r="4.5" fill="#ffffff" stroke="#0072B2" stroke-width="2.7"/>
+<polygon points="120,470.6768322121526 242.77777777777777,447.220158695175 365.55555555555554,416.0102432938636 488.3333333333333,382.52366077884676 611.1111111111111,348.9318952269615 733.8888888888889,315.8860022766006 856.6666666666666,284.33493963437644 979.4444444444445,248.74067800040234 1102.2222222222222,211.01208926874494 1225,179.95475584265537 1225,189.84238500817725 1102.2222222222222,221.6309669655949 979.4444444444445,255.18158337506551 856.6666666666666,288.83130358372875 733.8888888888889,321.92108521258655 611.1111111111111,355.35685085449677 488.3333333333333,388.74986827176974 365.55555555555554,421.6902026006061 242.77777777777777,457.3926035341838 120,488.1669688270813" fill="#D55E00" opacity="0.09"/>
+<polyline points="120,481.2070791612469 242.77777777777777,455.94316622910407 365.55555555555554,419.91009224127095 488.3333333333333,386.60366719369614 611.1111111111111,353.8133261636607 733.8888888888889,320.3401874987641 856.6666666666666,287.53291106676033 979.4444444444445,254.36639857414906 1102.2222222222222,220.97592715079213 1225,189.33498218504096" fill="none" stroke="#D55E00" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="12 7"/>
+<circle cx="120" cy="481.2070791612469" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="242.77777777777777" cy="455.94316622910407" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="365.55555555555554" cy="419.91009224127095" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="488.3333333333333" cy="386.60366719369614" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="611.1111111111111" cy="353.8133261636607" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="733.8888888888889" cy="320.3401874987641" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="856.6666666666666" cy="287.53291106676033" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="979.4444444444445" cy="254.36639857414906" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="1102.2222222222222" cy="220.97592715079213" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<circle cx="1225" cy="189.33498218504096" r="4.5" fill="#ffffff" stroke="#D55E00" stroke-width="2.7"/>
+<polygon points="120,540.7141436265322 242.77777777777777,506.97979399979687 365.55555555555554,480.3683729444964 488.3333333333333,450.47868339179894 611.1111111111111,415.097304043919 733.8888888888889,375.643395073422 856.6666666666666,343.1953860820902 979.4444444444445,310.76516213497445 1102.2222222222222,281.9669081702194 1225,243.94513286747357 1225,259.44864945353345 1102.2222222222222,291.77517845015865 979.4444444444445,323.37965396751633 856.6666666666666,359.8084908448908 733.8888888888889,397.0323001176604 611.1111111111111,434.6996726583185 488.3333333333333,466.47052853427425 365.55555555555554,498.11310002540756 242.77777777777777,529.2540687401195 120,559.5429440729828" fill="#009E73" opacity="0.09"/>
+<polyline points="120,552.4237273722599 242.77777777777777,520.6077390349615 365.55555555555554,494.76363697634076 488.3333333333333,462.5443340474133 611.1111111111111,429.52185828280614 733.8888888888889,391.21931812655293 856.6666666666666,354.25805430282855 979.4444444444445,319.4775884184379 1102.2222222222222,289.0417717318545 1225,257.2498196726914" fill="none" stroke="#009E73" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 6"/>
+<circle cx="120" cy="552.4237273722599" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="242.77777777777777" cy="520.6077390349615" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="365.55555555555554" cy="494.76363697634076" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="488.3333333333333" cy="462.5443340474133" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="611.1111111111111" cy="429.52185828280614" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="733.8888888888889" cy="391.21931812655293" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="856.6666666666666" cy="354.25805430282855" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="979.4444444444445" cy="319.4775884184379" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="1102.2222222222222" cy="289.0417717318545" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<circle cx="1225" cy="257.2498196726914" r="4.5" fill="#ffffff" stroke="#009E73" stroke-width="2.7"/>
+<line x1="120" y1="763" x2="168" y2="763" stroke="#0072B2" stroke-width="4"/>
+<circle cx="144" cy="763" r="4" fill="#ffffff" stroke="#0072B2" stroke-width="2.5"/>
+<text class="legend" x="180" y="768">WCM Canonical ABI</text>
+<line x1="460" y1="763" x2="508" y2="763" stroke="#D55E00" stroke-width="4" stroke-dasharray="12 7"/>
+<circle cx="484" cy="763" r="4" fill="#ffffff" stroke="#D55E00" stroke-width="2.5"/>
+<text class="legend" x="520" y="768">Core JSON ABI</text>
+<line x1="765" y1="763" x2="813" y2="763" stroke="#009E73" stroke-width="4" stroke-dasharray="3 6"/>
+<circle cx="789" cy="763" r="4" fill="#ffffff" stroke="#009E73" stroke-width="2.5"/>
+<text class="legend" x="825" y="768">Core Direct Memory ABI</text>
+</svg>

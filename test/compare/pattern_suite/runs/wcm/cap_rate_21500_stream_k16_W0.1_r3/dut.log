@@ -1,0 +1,15 @@
+[config] processing_mode=streaming：輸入端 micro-batch（16 筆 或 第一筆後 5 ms 即送 parse）；輸出端 router 每 max_wait_ms=100 ms 週期 flush（同 Fluent Bit 全域 Flush），或 endpoint buffer 達 max_transport_bytes=134217728 B 時立即送出
+=== WCM Log Forwarder ===
+Memory Limit : 256 MB
+Buffer Size  : 128 MB
+Stages       : parse → filter → format → transport
+========================
+[config] epoch_interruption=true
+Stage impl   : parse=wcm filter=wcm format=wcm transport=wcm
+[mem-guard] enabled: limit=512MB high=70% low=55% current=11MB
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:44028
+[tcp-input] 127.0.0.1:44028 disconnected
+[tcp-input] accepted 127.0.0.1:44040
+[tcp-input] 127.0.0.1:44040 disconnected

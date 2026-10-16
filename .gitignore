@@ -1,3 +1,29 @@
 target/
 
 tools/results
+
+test/compare/fluentd/test-logs.log
+test/compare/fluentbit/test-logs.log
+test/compare/vector/test-logs.log
+test/ours/latency-benchmark-C/server_*
+test/ours/latency-benchmark-Rust/Rust_*
+test/compare/fluentbit/latency/fluentbit_*
+test/compare/fluentd/latency/fluentd_*
+test/compare/vector/latency/vector_time
+test/tools/venv
+log
+server_log/
+gen.log
+error.txt
+
+# --- 2026-10 補充 ---
+# 原始逐筆延遲樣本（單檔數百 MB，可用腳本重新產生）
+latency_worker_*.csv
+# Python 環境與快取
+test/tools/venv/
+__pycache__/
+# 編譯產物、暫存與標記檔
+**/target/
+.claude/worktrees/
+STOP
+*.pid

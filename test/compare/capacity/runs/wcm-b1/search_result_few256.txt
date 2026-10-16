@@ -1,0 +1,10 @@
+trial rate=80000 PASS
+trial rate=160000 FAIL
+trial rate=120000 PASS
+trial rate=140000 FAIL
+trial rate=130000 PASS
+trial rate=135000 FAIL
+trial rate=130000 FAIL
+CAPACITY dut=wcm-b1 eps=130000 first_fail=135000 confirmed=NO(重跑失敗,需人工檢視)
+trial rate=120000 PASS (fallback confirmation)
+CAPACITY dut=wcm-b1 eps=120000 first_unstable=130000 confirmed=yes

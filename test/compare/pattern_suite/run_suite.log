@@ -1,0 +1,425 @@
+[2026-10-14T23:03:08+08:00] run_suite.sh start pid=146521 image=wcm-base-log-forwarder:suite runs=/home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_suite/runs dryrun=0 smoke=0
+[2026-10-14T23:03:09+08:00] ===== PHASE 0: capacity check (W=0.1) + BEST_K decision =====
+[2026-10-14T23:03:09+08:00] search wcm batch_W0.1 start=24750 conf=wcm_batch_W0.1.yaml 
+[2026-10-14T23:09:38+08:00]   -> CAPACITY dut=wcm tag=batch_W0.1 eps=21750 first_fail=22500
+[2026-10-14T23:09:38+08:00] search wcm stream_k64_W0.1 start=22000 conf=wcm_stream_k64_W0.1.yaml 
+[2026-10-14T23:16:05+08:00]   -> CAPACITY dut=wcm tag=stream_k64_W0.1 eps=21500 first_fail=22000
+[2026-10-14T23:16:05+08:00] search wcm stream_k256_W0.1 start=22000 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-14T23:24:07+08:00]   -> CAPACITY dut=wcm tag=stream_k256_W0.1 eps=25000 first_fail=25500
+[2026-10-14T23:24:07+08:00] lat wcm 5000 stream_k64_W0.5_r1 conf=wcm_stream_k64_W0.5.yaml 
+[2026-10-14T23:27:44+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 514.634 ms | cpu_mean=28.692%
+[2026-10-14T23:27:44+08:00] lat wcm 5000 stream_k64_W1_r1 conf=wcm_stream_k64_W1.yaml 
+[2026-10-14T23:31:21+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1010.589 ms | cpu_mean=28.416%
+[2026-10-14T23:31:21+08:00] lat wcm 5000 stream_k256_W0.5_r1 conf=wcm_stream_k256_W0.5.yaml 
+[2026-10-14T23:34:58+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 521.037 ms | cpu_mean=25.787%
+[2026-10-14T23:34:58+08:00] lat wcm 5000 stream_k256_W1_r1 conf=wcm_stream_k256_W1.yaml 
+[2026-10-14T23:38:35+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1014.911 ms | cpu_mean=25.544%
+[2026-10-14T23:38:35+08:00] PHASE0 SUMMARY: BEST_K=256 cap batch=21750 k64=21500 k256=25000 ratio=1.149 (>=0.95: YES); lat5000 p99 k64 W0.5/W1=514.634/1010.589 k256=521.037/1014.911 ms
+[2026-10-14T23:38:35+08:00] ===== PHASE 1: pattern experiments (WCM-stream = k256) =====
+[2026-10-14T23:38:35+08:00] correctness batch malformed=0% rep1 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:39:52+08:00]   -> PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=0
+[2026-10-14T23:39:52+08:00] correctness stream malformed=0% rep1 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:41:08+08:00]   -> PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=0
+[2026-10-14T23:41:08+08:00] correctness batch malformed=0.1% rep1 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:42:24+08:00]   -> PASS expected=39955 received=39955 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=104
+[2026-10-14T23:42:24+08:00] correctness stream malformed=0.1% rep1 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:43:41+08:00]   -> PASS expected=39955 received=39955 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=118
+[2026-10-14T23:43:41+08:00] correctness batch malformed=1% rep1 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:44:57+08:00]   -> PASS expected=39581 received=39581 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=373
+[2026-10-14T23:44:57+08:00] correctness stream malformed=1% rep1 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:46:13+08:00]   -> PASS expected=39581 received=39581 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=816
+[2026-10-14T23:46:13+08:00] correctness batch malformed=5% rep1 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:47:30+08:00]   -> PASS expected=37894 received=37894 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=400
+[2026-10-14T23:47:30+08:00] correctness stream malformed=5% rep1 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:48:46+08:00]   -> PASS expected=37894 received=37894 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=1807
+[2026-10-14T23:48:46+08:00] correctness batch malformed=20% rep1 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:50:02+08:00]   -> PASS expected=31964 received=31964 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=401
+[2026-10-14T23:50:02+08:00] correctness stream malformed=20% rep1 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:51:18+08:00]   -> PASS expected=31964 received=31964 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=1937
+[2026-10-14T23:51:18+08:00] correctness batch malformed=0% rep2 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:52:35+08:00]   -> PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=0
+[2026-10-14T23:52:35+08:00] correctness stream malformed=0% rep2 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:53:51+08:00]   -> PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=0
+[2026-10-14T23:53:51+08:00] correctness batch malformed=0.1% rep2 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:55:07+08:00]   -> PASS expected=39955 received=39955 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=105
+[2026-10-14T23:55:07+08:00] correctness stream malformed=0.1% rep2 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:56:24+08:00]   -> PASS expected=39955 received=39955 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=119
+[2026-10-14T23:56:24+08:00] correctness batch malformed=1% rep2 conf=wcm_batch_W0.1.yaml
+[2026-10-14T23:57:40+08:00]   -> PASS expected=39581 received=39581 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=371
+[2026-10-14T23:57:40+08:00] correctness stream malformed=1% rep2 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-14T23:58:56+08:00]   -> PASS expected=39581 received=39581 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=822
+[2026-10-14T23:58:56+08:00] correctness batch malformed=5% rep2 conf=wcm_batch_W0.1.yaml
+[2026-10-15T00:00:13+08:00]   -> PASS expected=37894 received=37894 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=400
+[2026-10-15T00:00:13+08:00] correctness stream malformed=5% rep2 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-15T00:01:29+08:00]   -> PASS expected=37894 received=37894 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=1798
+[2026-10-15T00:01:29+08:00] correctness batch malformed=20% rep2 conf=wcm_batch_W0.1.yaml
+[2026-10-15T00:02:45+08:00]   -> PASS expected=31964 received=31964 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=401
+[2026-10-15T00:02:45+08:00] correctness stream malformed=20% rep2 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-15T00:04:02+08:00]   -> PASS expected=31964 received=31964 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=1933
+[2026-10-15T00:04:02+08:00] correctness batch malformed=0% rep3 conf=wcm_batch_W0.1.yaml
+[2026-10-15T00:05:18+08:00]   -> PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=0
+[2026-10-15T00:05:18+08:00] correctness stream malformed=0% rep3 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-15T00:06:34+08:00]   -> PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=0
+[2026-10-15T00:06:34+08:00] correctness batch malformed=0.1% rep3 conf=wcm_batch_W0.1.yaml
+[2026-10-15T00:07:51+08:00]   -> PASS expected=39955 received=39955 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=105
+[2026-10-15T00:07:51+08:00] correctness stream malformed=0.1% rep3 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-15T00:09:07+08:00]   -> PASS expected=39955 received=39955 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=116
+[2026-10-15T00:09:07+08:00] correctness batch malformed=1% rep3 conf=wcm_batch_W0.1.yaml
+[2026-10-15T00:10:23+08:00]   -> PASS expected=39581 received=39581 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=369
+[2026-10-15T00:10:23+08:00] correctness stream malformed=1% rep3 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-15T00:11:40+08:00]   -> PASS expected=39581 received=39581 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=817
+[2026-10-15T00:11:40+08:00] correctness batch malformed=5% rep3 conf=wcm_batch_W0.1.yaml
+[2026-10-15T00:12:56+08:00]   -> PASS expected=37894 received=37894 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=400
+[2026-10-15T00:12:56+08:00] correctness stream malformed=5% rep3 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-15T00:14:12+08:00]   -> PASS expected=37894 received=37894 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=1814
+[2026-10-15T00:14:12+08:00] correctness batch malformed=20% rep3 conf=wcm_batch_W0.1.yaml
+[2026-10-15T00:15:29+08:00]   -> PASS expected=31964 received=31964 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=401
+[2026-10-15T00:15:29+08:00] correctness stream malformed=20% rep3 conf=wcm_stream_k256_W0.1.yaml
+[2026-10-15T00:16:45+08:00]   -> PASS expected=31964 received=31964 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0  | isolate_lines=1936
+[2026-10-15T00:16:46+08:00] fault p1_timeout/loop_t1000_r1 marker=FAULT_LOOP conf=fault_stream_k256_t1000.yaml SECS=50 GEN_TIMEOUT=200
+[2026-10-15T00:17:48+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:17:48+08:00] fault p1_timeout/loop_t5000_r1 marker=FAULT_LOOP conf=fault_stream_k256_t5000.yaml SECS=70 GEN_TIMEOUT=220
+[2026-10-15T00:19:09+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:19:09+08:00] fault p1_timeout/loop_t30000_r1 marker=FAULT_LOOP conf=fault_stream_k256_t30000.yaml SECS=200 GEN_TIMEOUT=350
+[2026-10-15T00:22:41+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:22:41+08:00] fault p1_timeout/loop_t1000_r2 marker=FAULT_LOOP conf=fault_stream_k256_t1000.yaml SECS=50 GEN_TIMEOUT=200
+[2026-10-15T00:23:43+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:23:43+08:00] fault p1_timeout/loop_t5000_r2 marker=FAULT_LOOP conf=fault_stream_k256_t5000.yaml SECS=70 GEN_TIMEOUT=220
+[2026-10-15T00:25:05+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:25:05+08:00] fault p1_timeout/loop_t30000_r2 marker=FAULT_LOOP conf=fault_stream_k256_t30000.yaml SECS=200 GEN_TIMEOUT=350
+[2026-10-15T00:28:36+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:28:36+08:00] fault p1_timeout/loop_t1000_r3 marker=FAULT_LOOP conf=fault_stream_k256_t1000.yaml SECS=50 GEN_TIMEOUT=200
+[2026-10-15T00:29:38+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:29:38+08:00] fault p1_timeout/loop_t5000_r3 marker=FAULT_LOOP conf=fault_stream_k256_t5000.yaml SECS=70 GEN_TIMEOUT=220
+[2026-10-15T00:31:00+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:31:00+08:00] fault p1_timeout/loop_t30000_r3 marker=FAULT_LOOP conf=fault_stream_k256_t30000.yaml SECS=200 GEN_TIMEOUT=350
+[2026-10-15T00:34:32+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T00:34:33+08:00] PHASE1-P1 SUMMARY: P1a: batch@0%=3/3 batch@0.1%=3/3 batch@1%=3/3 batch@5%=3/3 batch@20%=3/3 stream@0%=3/3 stream@0.1%=3/3 stream@1%=3/3 stream@5%=3/3 stream@20%=3/3 | timeout runs host: t1000=alive t5000=alive t30000=alive 
+[2026-10-15T00:34:33+08:00] search wcm stream_k1_W0.1 start=16125 conf=wcm_stream_k1_W0.1.yaml 
+[2026-10-15T00:53:56+08:00]   -> CAPACITY dut=wcm tag=stream_k1_W0.1 eps=unbracketed last_pass=0 first_fail=4500
+[2026-10-15T00:53:56+08:00] search wcm stream_k16_W0.1 start=21500 conf=wcm_stream_k16_W0.1.yaml 
+[2026-10-15T01:03:39+08:00]   -> CAPACITY dut=wcm tag=stream_k16_W0.1 eps=15750 first_fail=16250
+[2026-10-15T01:03:39+08:00] search wcm stream_k1_W0.1_r2 start=16125 conf=wcm_stream_k1_W0.1.yaml 
+[2026-10-15T01:22:34+08:00]   -> CAPACITY dut=wcm tag=stream_k1_W0.1_r2 eps=unbracketed last_pass=0 first_fail=4500
+[2026-10-15T01:22:34+08:00] search wcm stream_k16_W0.1_r2 start=21500 conf=wcm_stream_k16_W0.1.yaml 
+[2026-10-15T01:30:39+08:00]   -> CAPACITY dut=wcm tag=stream_k16_W0.1_r2 eps=17500 first_fail=18000
+[2026-10-15T01:30:39+08:00] search wcm stream_k64_W0.1_r2 start=21500 conf=wcm_stream_k64_W0.1.yaml 
+[2026-10-15T01:37:06+08:00]   -> CAPACITY dut=wcm tag=stream_k64_W0.1_r2 eps=21500 first_fail=22250
+[2026-10-15T01:37:06+08:00] search wcm stream_k256_W0.1_r2 start=25000 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T01:41:55+08:00]   -> CAPACITY dut=wcm tag=stream_k256_W0.1_r2 eps=25000 first_fail=26250
+[2026-10-15T01:41:55+08:00] search wcm stream_k1_W0.1_r3 start=16125 conf=wcm_stream_k1_W0.1.yaml 
+[2026-10-15T02:00:56+08:00]   -> CAPACITY dut=wcm tag=stream_k1_W0.1_r3 eps=unbracketed last_pass=0 first_fail=4500
+[2026-10-15T02:00:56+08:00] search wcm stream_k16_W0.1_r3 start=21500 conf=wcm_stream_k16_W0.1.yaml 
+[2026-10-15T02:10:45+08:00]   -> CAPACITY dut=wcm tag=stream_k16_W0.1_r3 eps=14750 first_fail=15250
+[2026-10-15T02:10:45+08:00] search wcm stream_k64_W0.1_r3 start=21500 conf=wcm_stream_k64_W0.1.yaml 
+[2026-10-15T02:18:49+08:00]   -> CAPACITY dut=wcm tag=stream_k64_W0.1_r3 eps=18500 first_fail=19000
+[2026-10-15T02:18:49+08:00] search wcm stream_k256_W0.1_r3 start=25000 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T02:26:56+08:00]   -> CAPACITY dut=wcm tag=stream_k256_W0.1_r3 eps=20000 first_fail=20750
+[2026-10-15T02:26:56+08:00] lat wcm 5000 stream_k1_W0.1_r1 conf=wcm_stream_k1_W0.1.yaml 
+[2026-10-15T02:30:34+08:00]   -> FAIL rate=5000 gen_avg=3136/s gen_mb_s=3.214 lag_p99=59778ms | p99 = 64445.538 ms | cpu_mean=99.907%
+[2026-10-15T02:30:34+08:00] lat wcm 5000 stream_k16_W0.1_r1 conf=wcm_stream_k16_W0.1.yaml 
+[2026-10-15T02:34:12+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 126.891 ms | cpu_mean=46.428%
+[2026-10-15T02:34:12+08:00] lat wcm 5000 stream_k64_W0.1_r1 conf=wcm_stream_k64_W0.1.yaml 
+[2026-10-15T02:37:49+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 132.738 ms | cpu_mean=40.346%
+[2026-10-15T02:37:49+08:00] lat wcm 5000 stream_k256_W0.1_r1 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T02:41:26+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 140.931 ms | cpu_mean=36.010%
+[2026-10-15T02:41:27+08:00] PHASE1-P2 SUMMARY: P2: k1 cap=0/0/0 p99@5k=64445.538ms; k16 cap=15750/17500/14750 p99@5k=126.891ms; k64 cap=21500/21500/18500 p99@5k=132.738ms; k256 cap=25000/25000/20000 p99@5k=140.931ms;
+[2026-10-15T02:41:27+08:00] lat wcm 15000 stream_k256_W0.1_r1 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T02:45:04+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 181.162 ms | cpu_mean=83.838%
+[2026-10-15T02:45:04+08:00] lat wcm 15000 stream_k256_W0.1_noepoch_r1 conf=wcm_stream_k256_W0.1_noepoch.yaml 
+[2026-10-15T02:48:42+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 155.790 ms | cpu_mean=77.006%
+[2026-10-15T02:48:42+08:00] lat wcm 15000 stream_k256_W0.1_noreuse_r1 conf=wcm_stream_k256_W0.1_noreuse.yaml 
+[2026-10-15T02:52:20+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 166.708 ms | cpu_mean=90.244%
+[2026-10-15T02:52:20+08:00] lat wcm 15000 stream_k256_W0.1_r2 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T02:55:58+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 173.292 ms | cpu_mean=84.271%
+[2026-10-15T02:55:58+08:00] lat wcm 15000 stream_k256_W0.1_noepoch_r2 conf=wcm_stream_k256_W0.1_noepoch.yaml 
+[2026-10-15T02:59:36+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 172.083 ms | cpu_mean=76.785%
+[2026-10-15T02:59:36+08:00] lat wcm 15000 stream_k256_W0.1_noreuse_r2 conf=wcm_stream_k256_W0.1_noreuse.yaml 
+[2026-10-15T03:03:14+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 198.797 ms | cpu_mean=91.263%
+[2026-10-15T03:03:14+08:00] lat wcm 15000 stream_k256_W0.1_r3 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T03:06:52+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 166.330 ms | cpu_mean=83.864%
+[2026-10-15T03:06:52+08:00] lat wcm 15000 stream_k256_W0.1_noepoch_r3 conf=wcm_stream_k256_W0.1_noepoch.yaml 
+[2026-10-15T03:10:30+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 160.607 ms | cpu_mean=78.426%
+[2026-10-15T03:10:30+08:00] lat wcm 15000 stream_k256_W0.1_noreuse_r3 conf=wcm_stream_k256_W0.1_noreuse.yaml 
+[2026-10-15T03:14:08+08:00]   -> PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms  | p99 = 193.060 ms | cpu_mean=90.590%
+[2026-10-15T03:14:08+08:00] fault p4_watchdog/loop_noepoch_r1 marker=FAULT_LOOP conf=fault_stream_k256_noepoch.yaml SECS=75 GEN_TIMEOUT=75
+[2026-10-15T03:15:35+08:00]   -> host=alive  isolate= probe=
+[2026-10-15T03:15:35+08:00] fault p4_watchdog/loop_t2000_r1 marker=FAULT_LOOP conf=fault_stream_k256_t2000.yaml 
+[2026-10-15T03:16:27+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T03:16:27+08:00] fault p4_reuse/loop_noreuse_r1 marker=FAULT_LOOP conf=fault_stream_k256_noreuse.yaml 
+[2026-10-15T03:17:19+08:00]   -> host=alive  isolate=[parse-isolate] batch=751 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T03:17:19+08:00] fault p4_watchdog/loop_t2000_r2 marker=FAULT_LOOP conf=fault_stream_k256_t2000.yaml 
+[2026-10-15T03:18:10+08:00]   -> host=alive  isolate=[parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T03:18:10+08:00] fault p4_reuse/loop_noreuse_r2 marker=FAULT_LOOP conf=fault_stream_k256_noreuse.yaml 
+[2026-10-15T03:19:02+08:00]   -> host=alive  isolate=[parse-isolate] batch=752 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T03:19:02+08:00] fault p4_watchdog/loop_t2000_r3 marker=FAULT_LOOP conf=fault_stream_k256_t2000.yaml 
+[2026-10-15T03:19:54+08:00]   -> host=alive  isolate=[parse-isolate] batch=752 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T03:19:54+08:00] fault p4_reuse/loop_noreuse_r3 marker=FAULT_LOOP conf=fault_stream_k256_noreuse.yaml 
+[2026-10-15T03:20:46+08:00]   -> host=alive  isolate=[parse-isolate] batch=756 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget probe=
+[2026-10-15T03:20:46+08:00] fault p4_mem/baseline_batch_r1 marker=none conf=forwarder_fault.yaml 
+[2026-10-15T03:21:38+08:00]   -> host=alive  isolate= probe=
+[2026-10-15T03:21:38+08:00] fault p4_mem/mem_batch_r1 marker=FAULT_MEM conf=forwarder_fault.yaml 
+[2026-10-15T03:22:30+08:00]   -> host=alive  isolate=[parse-isolate] batch=74 reason=trap lines=1025 salvaged=1024 rejected=1 calls=20 trap_calls=20 budg probe=
+[2026-10-15T03:22:30+08:00] fault p4_mem/mem_batch_r2 marker=FAULT_MEM conf=forwarder_fault.yaml 
+[2026-10-15T03:23:21+08:00]   -> host=alive  isolate=[parse-isolate] batch=74 reason=trap lines=1025 salvaged=1024 rejected=1 calls=20 trap_calls=20 budg probe=
+[2026-10-15T03:23:21+08:00] fault p4_mem/mem_batch_r3 marker=FAULT_MEM conf=forwarder_fault.yaml 
+[2026-10-15T03:24:13+08:00]   -> host=alive  isolate=[parse-isolate] batch=74 reason=trap lines=1025 salvaged=1024 rejected=1 calls=20 trap_calls=20 budg probe=
+[2026-10-15T03:24:15+08:00] PHASE1-P4 SUMMARY: P4: cpu@15k epoch_on=83.838/84.271/83.864/ epoch_off=77.006/76.785/78.426/ reuse_off=90.244/91.263/90.590/ p99 on/off=181.162/155.790ms | noepoch loop host=alive
+[2026-10-15T03:24:15+08:00] fault p5_cap/net_sockdeny_r1 marker=FAULT_NET conf=fault_stream_k256_sockdeny.yaml MODE=refusal
+[2026-10-15T03:24:16+08:00]   -> host= exit_code=1 elapsed_s=0.289 outcome=REFUSED_AT_LOAD  isolate= probe=
+[2026-10-15T03:24:16+08:00] fault p5_cap/fileenv_capdeny_r1 marker=FAULT_FILE conf=fault_stream_k256_capdeny.yaml MODE=refusal
+[2026-10-15T03:24:16+08:00]   -> host= exit_code=1 elapsed_s=0.256 outcome=REFUSED_AT_LOAD  isolate= probe=
+[2026-10-15T03:24:16+08:00] fault p5_cap/net_inert_r1 marker=FAULT_NET conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:24:58+08:00]   -> host=alive  isolate= probe=PROBE net target=127.0.0.1:8080 outcome=DENIED detail=FAULT_NET blocked: connect 127.0.0.1:8080 failed: kind=PermissionD
+[2026-10-15T03:24:58+08:00] fault p5_cap/file_inert_r1 marker=FAULT_FILE conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:25:40+08:00]   -> host=alive  isolate= probe=PROBE file path=/etc/passwd outcome=DENIED detail=FAULT_FILE blocked: kind=Uncategorized err=failed to find a pre-opened
+[2026-10-15T03:25:40+08:00] fault p5_cap/env_inert_r1 marker=FAULT_ENV conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:26:21+08:00]   -> host=alive  isolate= probe=PROBE env vars=0 bytes=0 outcome=DENIED(empty)
+[2026-10-15T03:26:21+08:00] loadcheck rep1
+[2026-10-15T03:26:56+08:00] fault p5_cap/net_sockdeny_r2 marker=FAULT_NET conf=fault_stream_k256_sockdeny.yaml MODE=refusal
+[2026-10-15T03:26:56+08:00]   -> host= exit_code=1 elapsed_s=0.263 outcome=REFUSED_AT_LOAD  isolate= probe=
+[2026-10-15T03:26:56+08:00] fault p5_cap/fileenv_capdeny_r2 marker=FAULT_FILE conf=fault_stream_k256_capdeny.yaml MODE=refusal
+[2026-10-15T03:26:56+08:00]   -> host= exit_code=1 elapsed_s=0.258 outcome=REFUSED_AT_LOAD  isolate= probe=
+[2026-10-15T03:26:56+08:00] fault p5_cap/net_inert_r2 marker=FAULT_NET conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:27:38+08:00]   -> host=alive  isolate= probe=PROBE net target=127.0.0.1:8080 outcome=DENIED detail=FAULT_NET blocked: connect 127.0.0.1:8080 failed: kind=PermissionD
+[2026-10-15T03:27:38+08:00] fault p5_cap/file_inert_r2 marker=FAULT_FILE conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:28:20+08:00]   -> host=alive  isolate= probe=PROBE file path=/etc/passwd outcome=DENIED detail=FAULT_FILE blocked: kind=Uncategorized err=failed to find a pre-opened
+[2026-10-15T03:28:20+08:00] fault p5_cap/env_inert_r2 marker=FAULT_ENV conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:29:02+08:00]   -> host=alive  isolate= probe=PROBE env vars=0 bytes=0 outcome=DENIED(empty)
+[2026-10-15T03:29:02+08:00] loadcheck rep2
+[2026-10-15T03:29:35+08:00] fault p5_cap/net_sockdeny_r3 marker=FAULT_NET conf=fault_stream_k256_sockdeny.yaml MODE=refusal
+[2026-10-15T03:29:36+08:00]   -> host= exit_code=1 elapsed_s=0.317 outcome=REFUSED_AT_LOAD  isolate= probe=
+[2026-10-15T03:29:36+08:00] fault p5_cap/fileenv_capdeny_r3 marker=FAULT_FILE conf=fault_stream_k256_capdeny.yaml MODE=refusal
+[2026-10-15T03:29:36+08:00]   -> host= exit_code=1 elapsed_s=0.263 outcome=REFUSED_AT_LOAD  isolate= probe=
+[2026-10-15T03:29:36+08:00] fault p5_cap/net_inert_r3 marker=FAULT_NET conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:30:18+08:00]   -> host=alive  isolate= probe=PROBE net target=127.0.0.1:8080 outcome=DENIED detail=FAULT_NET blocked: connect 127.0.0.1:8080 failed: kind=PermissionD
+[2026-10-15T03:30:18+08:00] fault p5_cap/file_inert_r3 marker=FAULT_FILE conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:31:00+08:00]   -> host=alive  isolate= probe=PROBE file path=/etc/passwd outcome=DENIED detail=FAULT_FILE blocked: kind=Uncategorized err=failed to find a pre-opened
+[2026-10-15T03:31:00+08:00] fault p5_cap/env_inert_r3 marker=FAULT_ENV conf=fault_stream_k256_t2000.yaml SECS=30
+[2026-10-15T03:31:41+08:00]   -> host=alive  isolate= probe=PROBE env vars=0 bytes=0 outcome=DENIED(empty)
+[2026-10-15T03:31:41+08:00] loadcheck rep3
+[2026-10-15T03:32:16+08:00] PHASE1-P5 SUMMARY: net_sockdeny=outcome=REFUSED_AT_LOAD capdeny=outcome=REFUSED_AT_LOAD | net_inert: PROBE net target=127.0.0.1:8080 outcome=DENIED | file: PROBE file path=/etc/passwd outcome=DENIED | env: PROBE env vars=0 bytes=0 outcome=DENIED(empty) | loadcheck rows=52
+[2026-10-15T03:32:16+08:00] ===== PHASE 2: five-product method 3 (WCM-stream = k256) =====
+[2026-10-15T03:32:16+08:00] lat fbit-lua 5000 m3_W0.01_r1 conf=fbit_lua_flush_0.01.conf 
+[2026-10-15T03:35:43+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 31.481 ms | cpu_mean=15.446%
+[2026-10-15T03:35:43+08:00] lat fluentd 5000 m3_W0.01_r1 conf=fluentd_m3_W0.01.conf 
+[2026-10-15T03:39:22+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 57.840 ms | cpu_mean=33.384%
+[2026-10-15T03:39:22+08:00] lat vector 5000 m3_W0.01_r1 conf=vector_align.yaml FLUSH_INTERVAL=0.01
+[2026-10-15T03:42:56+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 85.734 ms | cpu_mean=44.537%
+[2026-10-15T03:42:56+08:00] lat fbit-wasm 5000 m3_W0.01_r1 conf=fbit_wasm_flush_0.01.conf 
+[2026-10-15T03:46:41+08:00]   -> FAIL rate=5000 gen_avg=4415/s gen_mb_s=4.525 lag_p99=20756ms | p99 = 17702.030 ms | cpu_mean=99.924%
+[2026-10-15T03:46:41+08:00] lat wcm 5000 batch_W0.01_r1 conf=wcm_batch_W0.01.yaml 
+[2026-10-15T03:50:18+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 48.432 ms | cpu_mean=45.038%
+[2026-10-15T03:50:18+08:00] lat wcm 5000 stream_k256_W0.01_r1 conf=wcm_stream_k256_W0.01.yaml 
+[2026-10-15T03:53:56+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 56.368 ms | cpu_mean=39.639%
+[2026-10-15T03:53:56+08:00] lat fbit-lua 5000 m3_W0.1_r1 conf=fbit_lua_flush_0.1.conf 
+[2026-10-15T03:57:22+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 117.452 ms | cpu_mean=12.702%
+[2026-10-15T03:57:22+08:00] lat fluentd 5000 m3_W0.1_r1 conf=fluentd_m3_W0.1.conf 
+[2026-10-15T04:00:59+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 128.103 ms | cpu_mean=20.472%
+[2026-10-15T04:00:59+08:00] lat vector 5000 m3_W0.1_r1 conf=vector_align.yaml FLUSH_INTERVAL=0.1
+[2026-10-15T04:04:33+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 163.449 ms | cpu_mean=44.106%
+[2026-10-15T04:04:33+08:00] lat fbit-wasm 5000 m3_W0.1_r1 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T04:08:11+08:00]   -> FAIL rate=5000 gen_avg=4572/s gen_mb_s=4.686 lag_p99=14702ms | p99 = 13161.679 ms | cpu_mean=99.831%
+[2026-10-15T04:08:11+08:00] lat wcm 5000 batch_W0.1_r1 conf=wcm_batch_W0.1.yaml 
+[2026-10-15T04:11:51+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 168.510 ms | cpu_mean=29.579%
+[2026-10-15T04:11:51+08:00] lat fbit-lua 5000 m3_W0.5_r1 conf=fbit_lua_flush_0.5.conf 
+[2026-10-15T04:15:17+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 741.754 ms | cpu_mean=12.004%
+[2026-10-15T04:15:17+08:00] lat fluentd 5000 m3_W0.5_r1 conf=fluentd_m3_W0.5.conf 
+[2026-10-15T04:18:52+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 524.634 ms | cpu_mean=19.020%
+[2026-10-15T04:18:52+08:00] lat vector 5000 m3_W0.5_r1 conf=vector_align.yaml FLUSH_INTERVAL=0.5
+[2026-10-15T04:22:26+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 557.238 ms | cpu_mean=43.931%
+[2026-10-15T04:22:26+08:00] lat fbit-wasm 5000 m3_W0.5_r1 conf=fbit_wasm_flush_0.5.conf 
+[2026-10-15T04:26:12+08:00]   -> FAIL rate=5000 gen_avg=4632/s gen_mb_s=4.747 lag_p99=13165ms | p99 = 11771.421 ms | cpu_mean=99.664%
+[2026-10-15T04:26:12+08:00] lat wcm 5000 batch_W0.5_r1 conf=wcm_batch_W0.5.yaml 
+[2026-10-15T04:29:49+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 653.933 ms | cpu_mean=27.542%
+[2026-10-15T04:29:49+08:00] lat fbit-lua 5000 m3_W1_r1 conf=fbit_lua_flush_1.conf 
+[2026-10-15T04:33:15+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1021.497 ms | cpu_mean=12.166%
+[2026-10-15T04:33:15+08:00] lat fluentd 5000 m3_W1_r1 conf=fluentd_m3_W1.conf 
+[2026-10-15T04:36:48+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1383.761 ms | cpu_mean=19.196%
+[2026-10-15T04:36:48+08:00] lat vector 5000 m3_W1_r1 conf=vector_align.yaml FLUSH_INTERVAL=1
+[2026-10-15T04:40:19+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1130.029 ms | cpu_mean=44.552%
+[2026-10-15T04:40:19+08:00] lat fbit-wasm 5000 m3_W1_r1 conf=fbit_wasm_flush_1.conf 
+[2026-10-15T04:43:56+08:00]   -> FAIL rate=5000 gen_avg=4607/s gen_mb_s=4.722 lag_p99=13878ms | p99 = 12773.028 ms | cpu_mean=99.087%
+[2026-10-15T04:43:56+08:00] lat wcm 5000 batch_W1_r1 conf=wcm_batch_W1.yaml 
+[2026-10-15T04:47:31+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 735.933 ms | cpu_mean=27.580%
+[2026-10-15T04:47:31+08:00] lat fbit-lua 5000 m3_W0.01_r2 conf=fbit_lua_flush_0.01.conf 
+[2026-10-15T04:50:58+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 34.575 ms | cpu_mean=15.591%
+[2026-10-15T04:50:58+08:00] lat fluentd 5000 m3_W0.01_r2 conf=fluentd_m3_W0.01.conf 
+[2026-10-15T04:54:33+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 62.059 ms | cpu_mean=31.787%
+[2026-10-15T04:54:33+08:00] lat vector 5000 m3_W0.01_r2 conf=vector_align.yaml FLUSH_INTERVAL=0.01
+[2026-10-15T04:58:04+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 618.408 ms | cpu_mean=44.323%
+[2026-10-15T04:58:04+08:00] lat fbit-wasm 5000 m3_W0.01_r2 conf=fbit_wasm_flush_0.01.conf 
+[2026-10-15T05:01:42+08:00]   -> FAIL rate=5000 gen_avg=4351/s gen_mb_s=4.460 lag_p99=22758ms | p99 = 19688.443 ms | cpu_mean=100.020%
+[2026-10-15T05:01:42+08:00] lat wcm 5000 batch_W0.01_r2 conf=wcm_batch_W0.01.yaml 
+[2026-10-15T05:05:15+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 640.975 ms | cpu_mean=43.447%
+[2026-10-15T05:05:15+08:00] lat wcm 5000 stream_k256_W0.01_r2 conf=wcm_stream_k256_W0.01.yaml 
+[2026-10-15T05:08:50+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 737.057 ms | cpu_mean=38.765%
+[2026-10-15T05:08:50+08:00] lat fbit-lua 5000 m3_W0.1_r2 conf=fbit_lua_flush_0.1.conf 
+[2026-10-15T05:12:15+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 545.130 ms | cpu_mean=12.707%
+[2026-10-15T05:12:15+08:00] lat fluentd 5000 m3_W0.1_r2 conf=fluentd_m3_W0.1.conf 
+[2026-10-15T05:15:47+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 659.982 ms | cpu_mean=21.515%
+[2026-10-15T05:15:47+08:00] lat vector 5000 m3_W0.1_r2 conf=vector_align.yaml FLUSH_INTERVAL=0.1
+[2026-10-15T05:19:17+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 715.423 ms | cpu_mean=43.824%
+[2026-10-15T05:19:17+08:00] lat fbit-wasm 5000 m3_W0.1_r2 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T05:22:51+08:00]   -> FAIL rate=5000 gen_avg=4611/s gen_mb_s=4.727 lag_p99=13321ms | p99 = 11865.870 ms | cpu_mean=99.565%
+[2026-10-15T05:22:51+08:00] lat wcm 5000 batch_W0.1_r2 conf=wcm_batch_W0.1.yaml 
+[2026-10-15T05:26:29+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 648.872 ms | cpu_mean=29.679%
+[2026-10-15T05:26:29+08:00] lat wcm 5000 stream_k256_W0.1_r2 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T05:30:03+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 653.523 ms | cpu_mean=35.859%
+[2026-10-15T05:30:03+08:00] lat fbit-lua 5000 m3_W0.5_r2 conf=fbit_lua_flush_0.5.conf 
+[2026-10-15T05:33:27+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 693.754 ms | cpu_mean=11.957%
+[2026-10-15T05:33:27+08:00] lat fluentd 5000 m3_W0.5_r2 conf=fluentd_m3_W0.5.conf 
+[2026-10-15T05:37:00+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 822.311 ms | cpu_mean=18.241%
+[2026-10-15T05:37:00+08:00] lat vector 5000 m3_W0.5_r2 conf=vector_align.yaml FLUSH_INTERVAL=0.5
+[2026-10-15T05:40:29+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1104.295 ms | cpu_mean=43.824%
+[2026-10-15T05:40:29+08:00] lat fbit-wasm 5000 m3_W0.5_r2 conf=fbit_wasm_flush_0.5.conf 
+[2026-10-15T05:44:08+08:00]   -> FAIL rate=5000 gen_avg=4623/s gen_mb_s=4.739 lag_p99=13241ms | p99 = 11839.630 ms | cpu_mean=98.811%
+[2026-10-15T05:44:08+08:00] lat wcm 5000 batch_W0.5_r2 conf=wcm_batch_W0.5.yaml 
+[2026-10-15T05:47:41+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1058.977 ms | cpu_mean=28.085%
+[2026-10-15T05:47:41+08:00] lat wcm 5000 stream_k256_W0.5_r2 conf=wcm_stream_k256_W0.5.yaml 
+[2026-10-15T05:51:12+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1155.343 ms | cpu_mean=35.050%
+[2026-10-15T05:51:12+08:00] lat fbit-lua 5000 m3_W1_r2 conf=fbit_lua_flush_1.conf 
+[2026-10-15T05:54:35+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1542.587 ms | cpu_mean=11.770%
+[2026-10-15T05:54:35+08:00] lat fluentd 5000 m3_W1_r2 conf=fluentd_m3_W1.conf 
+[2026-10-15T05:58:06+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1658.145 ms | cpu_mean=18.500%
+[2026-10-15T05:58:06+08:00] lat vector 5000 m3_W1_r2 conf=vector_align.yaml FLUSH_INTERVAL=1
+[2026-10-15T06:01:35+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1452.561 ms | cpu_mean=43.837%
+[2026-10-15T06:01:35+08:00] lat fbit-wasm 5000 m3_W1_r2 conf=fbit_wasm_flush_1.conf 
+[2026-10-15T06:05:15+08:00]   -> FAIL rate=5000 gen_avg=4484/s gen_mb_s=4.597 lag_p99=18655ms | p99 = 16297.658 ms | cpu_mean=98.145%
+[2026-10-15T06:05:15+08:00] lat wcm 5000 batch_W1_r2 conf=wcm_batch_W1.yaml 
+[2026-10-15T06:08:47+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1501.257 ms | cpu_mean=27.951%
+[2026-10-15T06:08:47+08:00] lat wcm 5000 stream_k256_W1_r2 conf=wcm_stream_k256_W1.yaml 
+[2026-10-15T06:12:18+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 713.456 ms | cpu_mean=34.479%
+[2026-10-15T06:12:18+08:00] lat fbit-lua 5000 m3_W0.01_r3 conf=fbit_lua_flush_0.01.conf 
+[2026-10-15T06:15:41+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 915.286 ms | cpu_mean=15.648%
+[2026-10-15T06:15:41+08:00] lat fluentd 5000 m3_W0.01_r3 conf=fluentd_m3_W0.01.conf 
+[2026-10-15T09:26:53+08:00]   -> PASS rate=5000 gen_avg=4994/s gen_mb_s=5.119 lag_p99=5ms lag | p99 = 926.131 ms | cpu_mean=30.254%
+[2026-10-15T09:26:53+08:00] lat vector 5000 m3_W0.01_r3 conf=vector_align.yaml FLUSH_INTERVAL=0.01
+[2026-10-15T09:30:20+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1275.776 ms | cpu_mean=52.343%
+[2026-10-15T09:30:20+08:00] lat fbit-wasm 5000 m3_W0.01_r3 conf=fbit_wasm_flush_0.01.conf 
+[2026-10-15T09:33:58+08:00]   -> FAIL rate=5000 gen_avg=4241/s gen_mb_s=4.347 lag_p99=26968ms | p99 = 23053.206 ms | cpu_mean=99.094%
+[2026-10-15T09:33:58+08:00] lat wcm 5000 batch_W0.01_r3 conf=wcm_batch_W0.01.yaml 
+[2026-10-15T09:37:26+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1547.990 ms | cpu_mean=48.948%
+[2026-10-15T09:37:26+08:00] lat wcm 5000 stream_k256_W0.01_r3 conf=wcm_stream_k256_W0.01.yaml 
+[2026-10-15T09:40:57+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1588.286 ms | cpu_mean=44.754%
+[2026-10-15T09:40:57+08:00] lat fbit-lua 5000 m3_W0.1_r3 conf=fbit_lua_flush_0.1.conf 
+[2026-10-15T09:44:14+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1552.590 ms | cpu_mean=14.603%
+[2026-10-15T09:44:14+08:00] lat fluentd 5000 m3_W0.1_r3 conf=fluentd_m3_W0.1.conf 
+[2026-10-15T09:47:42+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1602.465 ms | cpu_mean=22.252%
+[2026-10-15T09:47:42+08:00] lat vector 5000 m3_W0.1_r3 conf=vector_align.yaml FLUSH_INTERVAL=0.1
+[2026-10-15T09:51:07+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1609.512 ms | cpu_mean=53.582%
+[2026-10-15T09:51:07+08:00] lat fbit-wasm 5000 m3_W0.1_r3 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T09:54:38+08:00]   -> FAIL rate=5000 gen_avg=4417/s gen_mb_s=4.528 lag_p99=19991ms | p99 = 17514.778 ms | cpu_mean=96.811%
+[2026-10-15T09:54:39+08:00] lat wcm 5000 batch_W0.1_r3 conf=wcm_batch_W0.1.yaml 
+[2026-10-15T09:58:06+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1905.054 ms | cpu_mean=39.839%
+[2026-10-15T09:58:06+08:00] lat wcm 5000 stream_k256_W0.1_r3 conf=wcm_stream_k256_W0.1.yaml 
+[2026-10-15T10:01:33+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 1787.774 ms | cpu_mean=42.654%
+[2026-10-15T10:01:33+08:00] lat fbit-lua 5000 m3_W0.5_r3 conf=fbit_lua_flush_0.5.conf 
+[2026-10-15T10:04:51+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2094.125 ms | cpu_mean=14.174%
+[2026-10-15T10:04:51+08:00] lat fluentd 5000 m3_W0.5_r3 conf=fluentd_m3_W0.5.conf 
+[2026-10-15T10:08:20+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2068.428 ms | cpu_mean=20.672%
+[2026-10-15T10:08:20+08:00] lat vector 5000 m3_W0.5_r3 conf=vector_align.yaml FLUSH_INTERVAL=0.5
+[2026-10-15T10:11:42+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2117.970 ms | cpu_mean=57.412%
+[2026-10-15T10:11:42+08:00] lat fbit-wasm 5000 m3_W0.5_r3 conf=fbit_wasm_flush_0.5.conf 
+[2026-10-15T10:15:11+08:00]   -> FAIL rate=5000 gen_avg=4441/s gen_mb_s=4.552 lag_p99=18998ms | p99 = 17393.298 ms | cpu_mean=97.079%
+[2026-10-15T10:15:11+08:00] lat wcm 5000 batch_W0.5_r3 conf=wcm_batch_W0.5.yaml 
+[2026-10-15T10:18:39+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2312.132 ms | cpu_mean=38.911%
+[2026-10-15T10:18:39+08:00] lat wcm 5000 stream_k256_W0.5_r3 conf=wcm_stream_k256_W0.5.yaml 
+[2026-10-15T10:22:07+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2174.265 ms | cpu_mean=42.279%
+[2026-10-15T10:22:07+08:00] lat fbit-lua 5000 m3_W1_r3 conf=fbit_lua_flush_1.conf 
+[2026-10-15T10:25:23+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2536.196 ms | cpu_mean=13.902%
+[2026-10-15T10:25:23+08:00] lat fluentd 5000 m3_W1_r3 conf=fluentd_m3_W1.conf 
+[2026-10-15T10:28:50+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2686.000 ms | cpu_mean=20.700%
+[2026-10-15T10:28:50+08:00] lat vector 5000 m3_W1_r3 conf=vector_align.yaml FLUSH_INTERVAL=1
+[2026-10-15T10:32:13+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2756.863 ms | cpu_mean=57.595%
+[2026-10-15T10:32:13+08:00] lat fbit-wasm 5000 m3_W1_r3 conf=fbit_wasm_flush_1.conf 
+[2026-10-15T10:35:41+08:00]   -> FAIL rate=5000 gen_avg=4399/s gen_mb_s=4.509 lag_p99=20539ms | p99 = 19409.932 ms | cpu_mean=95.339%
+[2026-10-15T10:35:41+08:00] lat wcm 5000 batch_W1_r3 conf=wcm_batch_W1.yaml 
+[2026-10-15T10:39:09+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 3099.537 ms | cpu_mean=40.676%
+[2026-10-15T10:39:09+08:00] lat wcm 5000 stream_k256_W1_r3 conf=wcm_stream_k256_W1.yaml 
+[2026-10-15T10:42:35+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2748.210 ms | cpu_mean=41.148%
+[2026-10-15T10:42:35+08:00] lat fbit-wasm 4000 m3_W0.1_r1 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T10:45:52+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 1996.425 ms | cpu_mean=89.973%
+[2026-10-15T10:45:52+08:00] lat fbit-wasm 4000 m3_W0.1_r2 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T10:49:15+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 1982.056 ms | cpu_mean=89.090%
+[2026-10-15T10:49:15+08:00] lat fbit-wasm 4000 m3_W0.1_r3 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T10:52:40+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 2005.494 ms | cpu_mean=89.298%
+[2026-10-15T10:52:40+08:00] lat fbit-wasm 4000 m3_W0.5_r1 conf=fbit_wasm_flush_0.5.conf 
+[2026-10-15T10:56:03+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 2311.188 ms | cpu_mean=88.155%
+[2026-10-15T10:56:03+08:00] lat fbit-wasm 4000 m3_W0.5_r2 conf=fbit_wasm_flush_0.5.conf 
+[2026-10-15T10:59:24+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 2325.246 ms | cpu_mean=90.235%
+[2026-10-15T10:59:24+08:00] lat fbit-wasm 4000 m3_W0.5_r3 conf=fbit_wasm_flush_0.5.conf 
+[2026-10-15T11:02:47+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 2357.938 ms | cpu_mean=88.194%
+[2026-10-15T11:02:47+08:00] lat fbit-wasm 4000 m3_W1_r1 conf=fbit_wasm_flush_1.conf 
+[2026-10-15T11:06:10+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 2744.725 ms | cpu_mean=88.459%
+[2026-10-15T11:06:10+08:00] lat fbit-wasm 4000 m3_W1_r2 conf=fbit_wasm_flush_1.conf 
+[2026-10-15T11:09:31+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 2805.854 ms | cpu_mean=89.421%
+[2026-10-15T11:09:31+08:00] lat fbit-wasm 4000 m3_W1_r3 conf=fbit_wasm_flush_1.conf 
+[2026-10-15T11:12:56+08:00]   -> PASS rate=4000 gen_avg=4000/s gen_mb_s=4.100 lag_p99=5ms lag | p99 = 2822.613 ms | cpu_mean=89.918%
+[2026-10-15T11:12:56+08:00] PHASE2 LAT p99@5k(r1): fbit-lua=31.481/117.452/741.754/1021.497/ fluentd=57.840/128.103/524.634/1383.761/ vector=85.734/163.449/557.238/1130.029/ fbit-wasm=17702.030/13161.679/11771.421/12773.028/ wcm-batch=48.432/168.510/653.933/735.933/ wcm-stream=56.368/140.931/521.037/1014.911/
+[2026-10-15T11:12:56+08:00] search fbit-lua m3_W0.01 start=57500 conf=fbit_lua_flush_0.01.conf 
+[2026-10-15T11:21:42+08:00]   -> CAPACITY dut=fbit-lua tag=m3_W0.01 eps=39000 first_fail=40500
+[2026-10-15T11:21:42+08:00] search fluentd m3_W0.01 start=30000 conf=fluentd_m3_W0.01.conf 
+[2026-10-15T11:30:50+08:00]   -> CAPACITY dut=fluentd tag=m3_W0.01 eps=20500 first_fail=21250
+[2026-10-15T11:30:50+08:00] search vector m3_W0.01 start=12750 conf=vector_align.yaml FLUSH_INTERVAL=0.01
+[2026-10-15T11:36:48+08:00]   -> CAPACITY dut=vector tag=m3_W0.01 eps=11750 first_fail=12000
+[2026-10-15T11:36:48+08:00] search fbit-wasm m3_W0.01 start=4300 conf=fbit_wasm_flush_0.01.conf 
+[2026-10-15T11:42:47+08:00]   -> CAPACITY dut=fbit-wasm tag=m3_W0.01 eps=4000 first_fail=4100
+[2026-10-15T11:42:47+08:00] search wcm batch_W0.01 start=20250 conf=wcm_batch_W0.01.yaml 
+[2026-10-15T11:53:40+08:00]   -> CAPACITY dut=wcm tag=batch_W0.01 eps=13500 first_fail=13750
+[2026-10-15T11:53:40+08:00] search wcm stream_k256_W0.01 start=25000 conf=wcm_stream_k256_W0.01.yaml 
+[2026-10-15T12:05:59+08:00]   -> CAPACITY dut=wcm tag=stream_k256_W0.01 eps=13250 first_fail=13750
+[2026-10-15T12:05:59+08:00] search fbit-lua m3_W0.1 start=65000 conf=fbit_lua_flush_0.1.conf 
+[2026-10-15T12:13:22+08:00]   -> CAPACITY dut=fbit-lua tag=m3_W0.1 eps=55500 first_fail=57000
+[2026-10-15T12:13:22+08:00] search fluentd m3_W0.1 start=48500 conf=fluentd_m3_W0.1.conf 
+[2026-10-15T12:21:02+08:00]   -> CAPACITY dut=fluentd tag=m3_W0.1 eps=41500 first_fail=42500
+[2026-10-15T12:21:02+08:00] search vector m3_W0.1 start=15500 conf=vector_align.yaml FLUSH_INTERVAL=0.1
+[2026-10-15T12:27:03+08:00]   -> CAPACITY dut=vector tag=m3_W0.1 eps=14250 first_fail=14750
+[2026-10-15T12:27:03+08:00] search fbit-wasm m3_W0.1 start=5500 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T12:33:00+08:00]   -> CAPACITY dut=fbit-wasm tag=m3_W0.1 eps=5000 first_fail=5200
+[2026-10-15T12:33:00+08:00] search fbit-lua m3_W0.5 start=61500 conf=fbit_lua_flush_0.5.conf 
+[2026-10-15T12:40:23+08:00]   -> CAPACITY dut=fbit-lua tag=m3_W0.5 eps=67500 first_fail=69500
+[2026-10-15T12:40:23+08:00] search fluentd m3_W0.5 start=46000 conf=fluentd_m3_W0.5.conf 
+[2026-10-15T12:47:56+08:00]   -> CAPACITY dut=fluentd tag=m3_W0.5 eps=38000 first_fail=39500
+[2026-10-15T12:47:56+08:00] search vector m3_W0.5 start=14250 conf=vector_align.yaml FLUSH_INTERVAL=0.5
+[2026-10-15T12:53:46+08:00]   -> CAPACITY dut=vector tag=m3_W0.5 eps=14250 first_fail=14750
+[2026-10-15T12:53:46+08:00] search fbit-wasm m3_W0.5 start=5300 conf=fbit_wasm_flush_0.5.conf 
+[2026-10-15T12:59:33+08:00]   -> CAPACITY dut=fbit-wasm tag=m3_W0.5 eps=5200 first_fail=5300
+[2026-10-15T12:59:33+08:00] search wcm batch_W0.5 start=22000 conf=wcm_batch_W0.5.yaml 
+[2026-10-15T13:05:43+08:00]   -> CAPACITY dut=wcm tag=batch_W0.5 eps=22750 first_fail=23250
+[2026-10-15T13:05:43+08:00] search wcm stream_k256_W0.5 start=25000 conf=wcm_stream_k256_W0.5.yaml 
+[2026-10-15T13:10:16+08:00]   -> CAPACITY dut=wcm tag=stream_k256_W0.5 eps=25000 first_fail=26250
+[2026-10-15T13:10:16+08:00] search fbit-lua m3_W1 start=51000 conf=fbit_lua_flush_1.conf 
+[2026-10-15T13:17:23+08:00]   -> CAPACITY dut=fbit-lua tag=m3_W1 eps=64500 first_fail=67500
+[2026-10-15T13:17:23+08:00] search fluentd m3_W1 start=39500 conf=fluentd_m3_W1.conf 
+[2026-10-15T13:24:48+08:00]   -> CAPACITY dut=fluentd tag=m3_W1 eps=45000 first_fail=46000
+[2026-10-15T13:24:48+08:00] search vector m3_W1 start=13750 conf=vector_align.yaml FLUSH_INTERVAL=1
+[2026-10-15T13:30:42+08:00]   -> CAPACITY dut=vector tag=m3_W1 eps=13750 first_fail=14250
+[2026-10-15T13:30:42+08:00] search fbit-wasm m3_W1 start=5300 conf=fbit_wasm_flush_1.conf 
+[2026-10-15T13:36:29+08:00]   -> CAPACITY dut=fbit-wasm tag=m3_W1 eps=5200 first_fail=5300
+[2026-10-15T13:36:29+08:00] search wcm batch_W1 start=19250 conf=wcm_batch_W1.yaml 
+[2026-10-15T13:42:21+08:00]   -> CAPACITY dut=wcm tag=batch_W1 eps=18750 first_fail=19250
+[2026-10-15T13:42:21+08:00] search wcm stream_k256_W1 start=25000 conf=wcm_stream_k256_W1.yaml 
+[2026-10-15T13:49:55+08:00]   -> CAPACITY dut=wcm tag=stream_k256_W1 eps=20000 first_fail=20750
+[2026-10-15T13:49:55+08:00] search fbit-lua m3_W0.1_r2 start=55500 conf=fbit_lua_flush_0.1.conf 
+[2026-10-15T13:54:12+08:00]   -> CAPACITY dut=fbit-lua tag=m3_W0.1_r2 eps=58500 first_fail=61000
+[2026-10-15T13:54:12+08:00] search fluentd m3_W0.1_r2 start=41500 conf=fluentd_m3_W0.1.conf 
+[2026-10-15T14:00:10+08:00]   -> CAPACITY dut=fluentd tag=m3_W0.1_r2 eps=36500 first_fail=38000
+[2026-10-15T14:00:10+08:00] search vector m3_W0.1_r2 start=14250 conf=vector_align.yaml FLUSH_INTERVAL=0.1
+[2026-10-15T14:07:33+08:00]   -> CAPACITY dut=vector tag=m3_W0.1_r2 eps=11750 first_fail=12250
+[2026-10-15T14:07:33+08:00] search fbit-wasm m3_W0.1_r2 start=5000 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T14:13:23+08:00]   -> CAPACITY dut=fbit-wasm tag=m3_W0.1_r2 eps=4200 first_fail=4400
+[2026-10-15T14:13:23+08:00] search wcm batch_W0.1_r2 start=21750 conf=wcm_batch_W0.1.yaml 
+[2026-10-15T14:19:38+08:00]   -> CAPACITY dut=wcm tag=batch_W0.1_r2 eps=20500 first_fail=21250
+[2026-10-15T14:19:38+08:00] search fbit-lua m3_W0.1_r3 start=55500 conf=fbit_lua_flush_0.1.conf 
+[2026-10-15T14:23:51+08:00]   -> CAPACITY dut=fbit-lua tag=m3_W0.1_r3 eps=58500 first_fail=61000
+[2026-10-15T14:23:51+08:00] search fluentd m3_W0.1_r3 start=41500 conf=fluentd_m3_W0.1.conf 
+[2026-10-15T14:29:56+08:00]   -> CAPACITY dut=fluentd tag=m3_W0.1_r3 eps=36500 first_fail=38000
+[2026-10-15T14:29:56+08:00] search vector m3_W0.1_r3 start=14250 conf=vector_align.yaml FLUSH_INTERVAL=0.1
+[2026-10-15T14:37:08+08:00]   -> CAPACITY dut=vector tag=m3_W0.1_r3 eps=11750 first_fail=12250
+[2026-10-15T14:37:08+08:00] search fbit-wasm m3_W0.1_r3 start=5000 conf=fbit_wasm_flush_0.1.conf 
+[2026-10-15T14:43:08+08:00]   -> CAPACITY dut=fbit-wasm tag=m3_W0.1_r3 eps=4400 first_fail=4600
+[2026-10-15T14:43:08+08:00] search wcm batch_W0.1_r3 start=21750 conf=wcm_batch_W0.1.yaml 
+[2026-10-15T14:49:17+08:00]   -> CAPACITY dut=wcm tag=batch_W0.1_r3 eps=20000 first_fail=20500
+[2026-10-15T14:49:18+08:00] PHASE2 CAP: fbit-lua=39000/55500/67500/64500/ (W0.1 r2/r3 58500/58500); fluentd=20500/41500/38000/45000/ (W0.1 r2/r3 36500/36500); vector=11750/14250/14250/13750/ (W0.1 r2/r3 11750/11750); fbit-wasm=4000/5000/5200/5200/ (W0.1 r2/r3 4200/4400); wcm-batch=13500/21750/22750/18750/ (W0.1 r2/r3 20500/20000); wcm-stream=13250/25000/25000/20000/ (W0.1 r2/r3 25000/20000);
+[2026-10-15T14:49:18+08:00] DONE 2026-10-15T14:49:18+08:00 BEST_K=256 units_run=208 units_skipped=9 ratio_best_stream_over_batch=1.149 stream_ge_0.95x_batch=YES 

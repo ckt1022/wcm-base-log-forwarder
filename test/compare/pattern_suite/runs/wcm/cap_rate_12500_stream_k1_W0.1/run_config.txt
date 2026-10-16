@@ -1,0 +1,42 @@
+date=2026-10-15T00:38:14+08:00
+dut=wcm rate=12500 mode=cap tag=stream_k1_W0.1 image=wcm-base-log-forwarder:suite
+image_id=sha256:9b7a60f2566e99cb4d37cd1ffa2f8f35b5bfe3c9ea01456ad4545ddd8dd894d8
+conf=/home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_suite/conf/wcm_stream_k1_W0.1.yaml
+load_secs=60 drain_secs=20 gen_mode=json-fields1k cpus=1 mem=512m
+FLUSH_INTERVAL=1 VECTOR_BATCH_MAX_BYTES= VECTOR_BATCH_MAX_EVENTS=
+clocksource=tsc timesyncd=inactive
+----- conf -----
+# pattern_suite: copy of streaming_validation/conf/wcm_stream_W0.1.yaml; micro_batch_records=1, max_transport_bytes=134217728 (time-triggered only)
+# streaming_validation: copy of batch_alignment/conf/wcm_tw128_wait100.yaml; only added processing_mode/micro_batch_* (max_wait_ms=100 = output flush window W)
+plugins:
+  parse: "latency_rust_parse.wasm"
+  parse_noop: ~
+  filter: "latency_rust_filter.wasm"
+  format: "latency_rust_format.wasm"
+  transport: "transport.wasm"
+stages:
+  filter: true
+  format: true
+  transport: true
+input:
+  mode: tcp
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+batch:
+  mem_limit_mb: 256
+  buffer_size_mb: 128
+  max_wait_ms: 100
+  channel_capacity: 50000
+  max_format_chunk: 10000
+  max_transport_bytes: 134217728
+  transport_workers: 1
+  pipeline_channel_capacity: 2
+  stage_timeout_ms: 30000
+  plugin_instance_reuse: true
+  processing_mode: streaming
+  micro_batch_records: 1
+  micro_batch_max_wait_ms: 5
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+config_reload_secs: 3600

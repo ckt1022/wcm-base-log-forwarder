@@ -1,0 +1,25 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=18000 mode=cap tag=m3_W0.01 load=60s conf=wcm_tw128_wait10.yaml
+[align] 進度 [httpsink] t=34s lines/s=7282 MB/s=7.70 total=211798
+[align] 進度 [httpsink] t=64s lines/s=7282 MB/s=7.70 total=427779
+PASS rate=18000 gen_avg=17999/s gen_mb_s=18.449 lag_p99=5ms lag_max=19.9ms sink_total=431991 expected=431990 backlog=-1 win_out_eps=7200 win_out_mb_s=7.610 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=19750 mode=cap tag=m3_W0.01 load=60s conf=wcm_tw128_wait10.yaml
+[align] 進度 [httpsink] t=34s lines/s=7244 MB/s=7.66 total=221233
+[align] 進度 [httpsink] t=64s lines/s=7170 MB/s=7.58 total=450105
+PASS rate=19750 gen_avg=19750/s gen_mb_s=20.243 lag_p99=5ms lag_max=22.3ms sink_total=473994 expected=473993 backlog=15713 win_out_eps=7604 win_out_mb_s=8.037 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=21750 mode=cap tag=m3_W0.01 load=60s conf=wcm_tw128_wait10.yaml
+[align] 進度 [httpsink] t=34s lines/s=7128 MB/s=7.53 total=221979
+[align] 進度 [httpsink] t=64s lines/s=11351 MB/s=12.00 total=453520
+FAIL rate=21750 gen_avg=21750/s gen_mb_s=22.293 lag_p99=5ms lag_max=23.8ms sink_total=521997 expected=521996 backlog=61285 win_out_eps=7671 win_out_mb_s=8.107 oom=false reasons=backlog=61285>26100
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=20750 mode=cap tag=m3_W0.01 load=60s conf=wcm_tw128_wait10.yaml
+[align] 進度 [httpsink] t=34s lines/s=7764 MB/s=8.21 total=224868
+[align] 進度 [httpsink] t=64s lines/s=9264 MB/s=9.79 total=457971
+FAIL rate=20750 gen_avg=20750/s gen_mb_s=21.268 lag_p99=5ms lag_max=15.8ms sink_total=497999 expected=497997 backlog=32660 win_out_eps=7779 win_out_mb_s=8.222 oom=false reasons=backlog=32660>24900
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=20250 mode=cap tag=m3_W0.01 load=60s conf=wcm_tw128_wait10.yaml
+[align] 進度 [httpsink] t=34s lines/s=7868 MB/s=8.32 total=223185
+[align] 進度 [httpsink] t=64s lines/s=7862 MB/s=8.31 total=456169
+PASS rate=20250 gen_avg=20250/s gen_mb_s=20.756 lag_p99=5ms lag_max=19.8ms sink_total=485999 expected=485998 backlog=21429 win_out_eps=7726 win_out_mb_s=8.165 oom=false

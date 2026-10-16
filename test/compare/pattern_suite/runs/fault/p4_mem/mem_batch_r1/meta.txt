@@ -1,0 +1,59 @@
+case=mem_batch_r1 marker=FAULT_MEM marker_count=1 eps=5000 secs=40 fault_at=15 gen_timeout=100 drain=8 mode=run
+mode=native (no container/cgroup) pinning: dut=core4 sink=core8 gen=core9,10
+config=/home/ckt1022/wcm-base-log-forwarder/test/ours/fault_isolation/forwarder_fault.yaml
+binary_sha256=b5ab86755805f9716b85d84b7573ad76b3c69c5651e851f68af248783279c5fd
+plugin latency_rust_filter.wasm sha256=28c8086345847e73a0465a479a42f0befdd36eddbcf7af301771012c6caeb3f9
+plugin latency_rust_format.wasm sha256=096462091f2cd9b0d2775172e85b4e5d05fb047243c6d6bbb92c88c5f6235421
+plugin parse_chaos.wasm sha256=fefc19aaff9535d560e48a4178d693abf09c66681ff6d9555ba9c06f9f899875
+plugin transport.wasm sha256=51529f848173cf696ab01aee376009ae58288a3b4e82362412071885baca51a4
+date=2026-10-15T03:21:38+08:00
+----- config -----
+# Fault isolation 實驗用設定：parse 使用 chaos plugin（可由 marker 觸發故障），
+# filter／format／transport 使用正式 Rust WCM plugin，transport 以 wasi:http 送到 httpsink。
+#
+# 能力授權：chaos plugin 因 Rust std(wasip2) 連帶 import filesystem 與 sockets，
+# 需明確授權為 inert（連結介面但零 preopen／位址全拒），用來示範
+# 「即使授權連結，plugin 仍打不開檔案、連不出網路」。
+plugins:
+  parse: "parse_chaos.wasm"
+  parse_noop: ~
+  filter: "latency_rust_filter.wasm"
+  format: "latency_rust_format.wasm"
+  transport: "transport.wasm"
+
+stages:
+  filter: true
+  format: true
+  transport: true
+
+input:
+  mode: tcp
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+
+batch:
+  mem_limit_mb: 128
+  buffer_size_mb: 1
+  max_wait_ms: 1000
+  channel_capacity: 50000
+  max_format_chunk: 10000
+  max_transport_bytes: 1048576
+  transport_workers: 1
+  pipeline_channel_capacity: 2
+  # 把 stage timeout 縮短成 2s，讓無窮迴圈故障的 trap 偵測在實驗時間尺度內可觀察
+  stage_timeout_ms: 2000
+  plugin_instance_reuse: true
+  parse_isolation: true
+
+# chaos plugin 的能力授權（只有這個 stage；filter/format/transport 維持預設 deny）
+capabilities:
+  parse:
+    filesystem: inert
+    sockets: inert
+
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+
+config_reload_secs: 3600
+gen_rc=0

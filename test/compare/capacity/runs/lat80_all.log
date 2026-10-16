@@ -1,0 +1,17 @@
+═══════ LAT80 fluentd @ 140800 ═══════
+[cap] dut=fluentd rate=140800 mode=lat load=300s flush=1s cpus=1 mem=512m
+PASS rate=140800 gen_avg=140799/s gen_mb_s=22.484 lag_p99=5ms lag_max=7.2ms sink_total=16895984 expected=16895983 backlog=26400 win_out_eps=56316 win_out_mb_s=11.391 oom=false
+[calc] ── 穩態延遲統計（第 30~230 秒，0 點 = 第一筆 receive）──
+[calc] 來源：runs/fluentd/lat_rate_140800/latency_worker_1.csv
+[calc] 窗口內 11263026 筆 / 全部 16895984 筆
+[calc]   mean   =    512.833 ms
+[calc]   min    =      8.278 ms
+[calc]   p50    =    512.613 ms
+[calc]   p90    =    912.578 ms
+[calc]   p95    =    964.770 ms
+[calc]   p99    =   1006.651 ms
+[calc]   p99.9  =   1016.453 ms
+[calc]   max    =   1035.618 ms
+═══════ LAT80 fbit-lua @ 236800 ═══════
+[cap] dut=fbit-lua rate=236800 mode=lat load=300s flush=1s cpus=1 mem=512m
+PASS rate=236800 gen_avg=236799/s gen_mb_s=37.815 lag_p99=5ms lag_max=5.2ms sink_total=28415997 expected=28415996 backlog=7016 win_out_eps=94720 win_out_mb_s=19.091 oom=false

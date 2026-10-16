@@ -1,0 +1,159 @@
+═══════ SEARCH fluentd ═══════
+[search] === fluentd @ 2000 eps ===
+[cap] dut=fluentd rate=2000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=2000 gen_avg=2000/s gen_mb_s=0.320 lag_p99=5ms lag_max=7.4ms sink_total=48001 expected=48000 backlog=207 win_out_eps=800 win_out_mb_s=0.160 oom=false
+[search] === fluentd @ 4000 eps ===
+[cap] dut=fluentd rate=4000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=4000 gen_avg=4000/s gen_mb_s=0.635 lag_p99=5ms lag_max=3.7ms sink_total=95999 expected=95998 backlog=-1 win_out_eps=1600 win_out_mb_s=0.318 oom=false
+[search] === fluentd @ 8000 eps ===
+[cap] dut=fluentd rate=8000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=8000 gen_avg=8000/s gen_mb_s=1.278 lag_p99=5ms lag_max=2.3ms sink_total=191998 expected=191997 backlog=-1 win_out_eps=3195 win_out_mb_s=0.641 oom=false
+[search] === fluentd @ 16000 eps ===
+[cap] dut=fluentd rate=16000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=16000 gen_avg=16000/s gen_mb_s=2.557 lag_p99=5ms lag_max=2.5ms sink_total=383998 expected=383997 backlog=-1 win_out_eps=6406 win_out_mb_s=1.287 oom=false
+[search] === fluentd @ 32000 eps ===
+[cap] dut=fluentd rate=32000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=32000 gen_avg=31999/s gen_mb_s=5.113 lag_p99=5ms lag_max=6.8ms sink_total=768001 expected=767999 backlog=1317 win_out_eps=12815 win_out_mb_s=2.576 oom=false
+[search] === fluentd @ 64000 eps ===
+[cap] dut=fluentd rate=64000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=64000 gen_avg=63999/s gen_mb_s=10.227 lag_p99=5ms lag_max=3.8ms sink_total=1535981 expected=1535979 backlog=9218 win_out_eps=25581 win_out_mb_s=5.152 oom=false
+[search] === fluentd @ 128000 eps ===
+[cap] dut=fluentd rate=128000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=128000 gen_avg=127997/s gen_mb_s=20.454 lag_p99=5ms lag_max=16.6ms sink_total=3072000 expected=3071999 backlog=14493 win_out_eps=51222 win_out_mb_s=10.336 oom=false
+[search] === fluentd @ 256000 eps ===
+[cap] dut=fluentd rate=256000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=256000 gen_avg=199660/s gen_mb_s=31.881 lag_p99=13142ms lag_max=13142.2ms sink_total=4793871 expected=4793870 backlog=-1 win_out_eps=80211 win_out_mb_s=16.187 oom=false reasons=gen_blocked(avg=199660/256000,lag_p99=13142.0ms)
+[search] === fluentd @ 192000 eps ===
+[cap] dut=fluentd rate=192000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=192000 gen_avg=189011/s gen_mb_s=30.172 lag_p99=1000ms lag_max=993.1ms sink_total=4543091 expected=4543090 backlog=62697 win_out_eps=75143 win_out_mb_s=15.159 oom=false reasons=gen_blocked(avg=189011/192000,lag_p99=1000.0ms)
+[search] === fluentd @ 160000 eps ===
+[cap] dut=fluentd rate=160000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=160000 gen_avg=159996/s gen_mb_s=25.567 lag_p99=5ms lag_max=2.6ms sink_total=3839954 expected=3839953 backlog=5090 win_out_eps=63976 win_out_mb_s=12.915 oom=false
+[search] === fluentd @ 176000 eps ===
+[cap] dut=fluentd rate=176000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=176000 gen_avg=175996/s gen_mb_s=28.108 lag_p99=5ms lag_max=3.8ms sink_total=4223969 expected=4223967 backlog=-2 win_out_eps=70439 win_out_mb_s=14.215 oom=false
+[search] === fluentd @ 184000 eps ===
+[cap] dut=fluentd rate=184000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=184000 gen_avg=183996/s gen_mb_s=29.386 lag_p99=500ms lag_max=258.7ms sink_total=4415947 expected=4415945 backlog=34262 win_out_eps=74071 win_out_mb_s=14.948 oom=false reasons=gen_blocked(avg=183996/184000,lag_p99=500.0ms)
+[search] === 容量點確認重跑: fluentd @ 176000 ===
+[search] === fluentd @ 176000 eps ===
+[cap] dut=fluentd rate=176000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=176000 gen_avg=175996/s gen_mb_s=28.092 lag_p99=5ms lag_max=5.0ms sink_total=4223945 expected=4223944 backlog=-1 win_out_eps=70481 win_out_mb_s=14.217 oom=false
+CAPACITY dut=fluentd eps=176000 first_fail=184000 confirmed=yes
+═══════ SEARCH fbit-lua ═══════
+[search] === fbit-lua @ 2000 eps ===
+[cap] dut=fbit-lua rate=2000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=2000 gen_avg=2000/s gen_mb_s=0.320 lag_p99=5ms lag_max=2.3ms sink_total=48001 expected=48000 backlog=225 win_out_eps=800 win_out_mb_s=0.159 oom=false
+[search] === fbit-lua @ 4000 eps ===
+[cap] dut=fbit-lua rate=4000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=4000 gen_avg=4000/s gen_mb_s=0.639 lag_p99=5ms lag_max=2.8ms sink_total=96000 expected=95999 backlog=-1 win_out_eps=1600 win_out_mb_s=0.318 oom=false
+[search] === fbit-lua @ 8000 eps ===
+[cap] dut=fbit-lua rate=8000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=8000 gen_avg=8000/s gen_mb_s=1.278 lag_p99=5ms lag_max=7.2ms sink_total=191998 expected=191997 backlog=-1 win_out_eps=3199 win_out_mb_s=0.638 oom=false
+[search] === fbit-lua @ 16000 eps ===
+[cap] dut=fbit-lua rate=16000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=16000 gen_avg=16000/s gen_mb_s=2.557 lag_p99=5ms lag_max=2.4ms sink_total=383995 expected=383994 backlog=-1 win_out_eps=6399 win_out_mb_s=1.279 oom=false
+[search] === fbit-lua @ 32000 eps ===
+[cap] dut=fbit-lua rate=32000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=32000 gen_avg=31999/s gen_mb_s=5.113 lag_p99=5ms lag_max=3.6ms sink_total=767991 expected=767990 backlog=-1 win_out_eps=12803 win_out_mb_s=2.560 oom=false
+[search] === fbit-lua @ 64000 eps ===
+[cap] dut=fbit-lua rate=64000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=64000 gen_avg=63999/s gen_mb_s=10.227 lag_p99=5ms lag_max=4.9ms sink_total=1535985 expected=1535983 backlog=-2 win_out_eps=25600 win_out_mb_s=5.130 oom=false
+[search] === fbit-lua @ 128000 eps ===
+[cap] dut=fbit-lua rate=128000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=128000 gen_avg=127997/s gen_mb_s=20.422 lag_p99=5ms lag_max=3.7ms sink_total=3071971 expected=3071970 backlog=-1 win_out_eps=51200 win_out_mb_s=10.268 oom=false
+[search] === fbit-lua @ 256000 eps ===
+[cap] dut=fbit-lua rate=256000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=256000 gen_avg=255995/s gen_mb_s=40.907 lag_p99=5ms lag_max=3.6ms sink_total=6143885 expected=6143884 backlog=-1 win_out_eps=102398 win_out_mb_s=20.580 oom=false
+[search] === fbit-lua @ 512000 eps ===
+[cap] dut=fbit-lua rate=512000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=512000 gen_avg=300628/s gen_mb_s=48.021 lag_p99=24743ms lag_max=24743.4ms sink_total=7217233 expected=7217232 backlog=4101 win_out_eps=119909 win_out_mb_s=24.094 oom=false reasons=gen_blocked(avg=300628/512000,lag_p99=24743.0ms)
+[search] === fbit-lua @ 384000 eps ===
+[cap] dut=fbit-lua rate=384000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=384000 gen_avg=304173/s gen_mb_s=48.569 lag_p99=12490ms lag_max=12489.8ms sink_total=7316931 expected=7316930 backlog=64039 win_out_eps=121480 win_out_mb_s=24.402 oom=false reasons=gen_blocked(avg=304173/384000,lag_p99=12490.0ms)
+[search] === fbit-lua @ 320000 eps ===
+[cap] dut=fbit-lua rate=320000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=320000 gen_avg=299996/s gen_mb_s=47.936 lag_p99=3799ms lag_max=3798.7ms sink_total=7205651 expected=7205650 backlog=23109 win_out_eps=119287 win_out_mb_s=23.976 oom=false reasons=gen_blocked(avg=299996/320000,lag_p99=3799.0ms)
+[search] === fbit-lua @ 288000 eps ===
+[cap] dut=fbit-lua rate=288000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=288000 gen_avg=287994/s gen_mb_s=45.989 lag_p99=5ms lag_max=5.1ms sink_total=6911866 expected=6911865 backlog=39556 win_out_eps=115200 win_out_mb_s=23.142 oom=false
+[search] === fbit-lua @ 304000 eps ===
+[cap] dut=fbit-lua rate=304000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=304000 gen_avg=301373/s gen_mb_s=48.128 lag_p99=1000ms lag_max=598.7ms sink_total=7246382 expected=7246381 backlog=4019 win_out_eps=120181 win_out_mb_s=24.144 oom=false reasons=gen_blocked(avg=301373/304000,lag_p99=1000.0ms)
+[search] === fbit-lua @ 296000 eps ===
+[cap] dut=fbit-lua rate=296000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=296000 gen_avg=295993/s gen_mb_s=47.268 lag_p99=5ms lag_max=3.9ms sink_total=7103939 expected=7103937 backlog=-2 win_out_eps=118399 win_out_mb_s=23.785 oom=false
+[search] === 容量點確認重跑: fbit-lua @ 296000 ===
+[search] === fbit-lua @ 296000 eps ===
+[cap] dut=fbit-lua rate=296000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=296000 gen_avg=295994/s gen_mb_s=47.260 lag_p99=5ms lag_max=2.7ms sink_total=7103953 expected=7103951 backlog=-2 win_out_eps=118401 win_out_mb_s=23.783 oom=false
+CAPACITY dut=fbit-lua eps=296000 first_fail=304000 confirmed=yes
+═══════ SEARCH fbit-wasm ═══════
+[search] === fbit-wasm @ 2000 eps ===
+[cap] dut=fbit-wasm rate=2000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=2000 gen_avg=2000/s gen_mb_s=0.318 lag_p99=5ms lag_max=2.2ms sink_total=48001 expected=48000 backlog=296 win_out_eps=800 win_out_mb_s=0.159 oom=false
+[search] === fbit-wasm @ 4000 eps ===
+[cap] dut=fbit-wasm rate=4000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=4000 gen_avg=4000/s gen_mb_s=0.639 lag_p99=5ms lag_max=2.4ms sink_total=96001 expected=96000 backlog=613 win_out_eps=1600 win_out_mb_s=0.320 oom=false
+[search] === fbit-wasm @ 8000 eps ===
+[cap] dut=fbit-wasm rate=8000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=8000 gen_avg=8000/s gen_mb_s=1.278 lag_p99=5ms lag_max=2.3ms sink_total=191999 expected=191998 backlog=-1 win_out_eps=3200 win_out_mb_s=0.642 oom=false
+[search] === fbit-wasm @ 16000 eps ===
+[cap] dut=fbit-wasm rate=16000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=16000 gen_avg=16000/s gen_mb_s=2.556 lag_p99=5ms lag_max=2.6ms sink_total=383995 expected=383994 backlog=-1 win_out_eps=6401 win_out_mb_s=1.286 oom=false
+[search] === fbit-wasm @ 32000 eps ===
+[cap] dut=fbit-wasm rate=32000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=32000 gen_avg=29065/s gen_mb_s=4.645 lag_p99=5360ms lag_max=5359.7ms sink_total=715783 expected=715782 backlog=10253 win_out_eps=11540 win_out_mb_s=2.320 oom=false reasons=gen_blocked(avg=29065/32000,lag_p99=5360.0ms)
+[search] === fbit-wasm @ 24000 eps ===
+[cap] dut=fbit-wasm rate=24000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=24000 gen_avg=24000/s gen_mb_s=3.827 lag_p99=5ms lag_max=2.8ms sink_total=575997 expected=575995 backlog=-2 win_out_eps=9600 win_out_mb_s=1.926 oom=false
+[search] === fbit-wasm @ 28000 eps ===
+[cap] dut=fbit-wasm rate=28000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=28000 gen_avg=24644/s gen_mb_s=3.938 lag_p99=6676ms lag_max=6676.5ms sink_total=592869 expected=592868 backlog=13941 win_out_eps=9366 win_out_mb_s=1.883 oom=false reasons=gen_blocked(avg=24644/28000,lag_p99=6676.0ms)
+[search] === fbit-wasm @ 26000 eps ===
+[cap] dut=fbit-wasm rate=26000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=26000 gen_avg=24189/s gen_mb_s=3.863 lag_p99=3995ms lag_max=3994.7ms sink_total=588141 expected=588139 backlog=21436 win_out_eps=9473 win_out_mb_s=1.903 oom=false reasons=gen_blocked(avg=24189/26000,lag_p99=3995.0ms)
+[search] === fbit-wasm @ 25000 eps ===
+[cap] dut=fbit-wasm rate=25000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=25000 gen_avg=24177/s gen_mb_s=3.864 lag_p99=1935ms lag_max=1934.8ms sink_total=589409 expected=589407 backlog=13024 win_out_eps=9478 win_out_mb_s=1.905 oom=false reasons=gen_blocked(avg=24177/25000,lag_p99=1935.0ms)
+[search] === 容量點確認重跑: fbit-wasm @ 24000 ===
+[search] === fbit-wasm @ 24000 eps ===
+[cap] dut=fbit-wasm rate=24000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=24000 gen_avg=23999/s gen_mb_s=3.827 lag_p99=5ms lag_max=226.6ms sink_total=575997 expected=575995 backlog=16670 win_out_eps=9330 win_out_mb_s=1.872 oom=false
+CAPACITY dut=fbit-wasm eps=24000 first_fail=25000 confirmed=yes
+═══════ SEARCH vector ═══════
+[search] === vector @ 2000 eps ===
+[cap] dut=vector rate=2000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=2000 gen_avg=2000/s gen_mb_s=0.320 lag_p99=5ms lag_max=16.0ms sink_total=47999 expected=47998 backlog=107 win_out_eps=795 win_out_mb_s=0.155 oom=false
+[search] === vector @ 4000 eps ===
+[cap] dut=vector rate=4000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=4000 gen_avg=4000/s gen_mb_s=0.639 lag_p99=5ms lag_max=15.8ms sink_total=95999 expected=95998 backlog=56 win_out_eps=1593 win_out_mb_s=0.311 oom=false
+[search] === vector @ 8000 eps ===
+[cap] dut=vector rate=8000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=8000 gen_avg=8000/s gen_mb_s=1.271 lag_p99=5ms lag_max=14.3ms sink_total=191999 expected=191997 backlog=158 win_out_eps=3186 win_out_mb_s=0.618 oom=false
+[search] === vector @ 16000 eps ===
+[cap] dut=vector rate=16000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=16000 gen_avg=16000/s gen_mb_s=2.557 lag_p99=5ms lag_max=15.9ms sink_total=383998 expected=383997 backlog=1978 win_out_eps=6322 win_out_mb_s=1.233 oom=false
+[search] === vector @ 32000 eps ===
+[cap] dut=vector rate=32000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=32000 gen_avg=31999/s gen_mb_s=5.113 lag_p99=5ms lag_max=17.7ms sink_total=767998 expected=767997 backlog=2189 win_out_eps=12899 win_out_mb_s=2.515 oom=false
+[search] === vector @ 64000 eps ===
+[cap] dut=vector rate=64000 mode=cap load=60s flush=1s cpus=1 mem=512m
+FAIL rate=64000 gen_avg=60820/s gen_mb_s=9.674 lag_p99=3019ms lag_max=3019.3ms sink_total=1470093 expected=1470092 backlog=33445 win_out_eps=23821 win_out_mb_s=4.628 oom=false reasons=gen_blocked(avg=60820/64000,lag_p99=3019.0ms)
+[search] === vector @ 48000 eps ===
+[cap] dut=vector rate=48000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=48000 gen_avg=47999/s gen_mb_s=7.670 lag_p99=5ms lag_max=2.2ms sink_total=1151993 expected=1151992 backlog=-1 win_out_eps=19408 win_out_mb_s=3.784 oom=false
+[search] === vector @ 56000 eps ===
+[cap] dut=vector rate=56000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=56000 gen_avg=55999/s gen_mb_s=8.941 lag_p99=5ms lag_max=6.8ms sink_total=1343983 expected=1343982 backlog=7555 win_out_eps=22448 win_out_mb_s=4.374 oom=false
+[search] === vector @ 60000 eps ===
+[cap] dut=vector rate=60000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=60000 gen_avg=59999/s gen_mb_s=9.588 lag_p99=5ms lag_max=4.9ms sink_total=1439995 expected=1439994 backlog=-1 win_out_eps=24244 win_out_mb_s=4.728 oom=false
+[search] === vector @ 62000 eps ===
+[cap] dut=vector rate=62000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=62000 gen_avg=61999/s gen_mb_s=9.901 lag_p99=5ms lag_max=2.3ms sink_total=1487973 expected=1487972 backlog=-1 win_out_eps=24998 win_out_mb_s=4.872 oom=false
+[search] === 容量點確認重跑: vector @ 62000 ===
+[search] === vector @ 62000 eps ===
+[cap] dut=vector rate=62000 mode=cap load=60s flush=1s cpus=1 mem=512m
+PASS rate=62000 gen_avg=61999/s gen_mb_s=9.901 lag_p99=5ms lag_max=2.7ms sink_total=1487993 expected=1487992 backlog=-1 win_out_eps=25082 win_out_mb_s=4.889 oom=false
+CAPACITY dut=vector eps=62000 first_fail=64000 confirmed=yes

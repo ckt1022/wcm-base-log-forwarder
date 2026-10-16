@@ -1,0 +1,20 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=22000 mode=cap tag=stream_W0.1 load=60s conf=wcm_stream_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=8268 MB/s=8.74 total=248739
+[align] 進度 [httpsink] t=64s lines/s=8524 MB/s=9.02 total=503203
+PASS rate=22000 gen_avg=22000/s gen_mb_s=22.550 lag_p99=5ms lag_max=6.0ms sink_total=528001 expected=527999 backlog=16450 win_out_eps=8468 win_out_mb_s=8.956 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=24250 mode=cap tag=stream_W0.1 load=60s conf=wcm_stream_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=7372 MB/s=7.79 total=240533
+[align] 進度 [httpsink] t=64s lines/s=7450 MB/s=7.88 total=466607
+FAIL rate=24250 gen_avg=20611/s gen_mb_s=21.127 lag_p99=8633ms lag_max=8633.5ms sink_total=508572 expected=508571 backlog=27116 win_out_eps=7727 win_out_mb_s=8.172 oom=false reasons=gen_blocked(avg=20611/24250,lag_p99=8633.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=23250 mode=cap tag=stream_W0.1 load=60s conf=wcm_stream_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=9523 MB/s=10.07 total=251804
+[align] 進度 [httpsink] t=64s lines/s=7449 MB/s=7.88 total=486940
+FAIL rate=23250 gen_avg=21542/s gen_mb_s=22.080 lag_p99=3864ms lag_max=3863.6ms sink_total=517675 expected=517674 backlog=23003 win_out_eps=8135 win_out_mb_s=8.604 oom=false reasons=gen_blocked(avg=21542/23250,lag_p99=3864.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=22750 mode=cap tag=stream_W0.1 load=60s conf=wcm_stream_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=8678 MB/s=9.17 total=254551
+[align] 進度 [httpsink] t=64s lines/s=7476 MB/s=7.91 total=501259
+FAIL rate=22750 gen_avg=22114/s gen_mb_s=22.667 lag_p99=1432ms lag_max=1432.1ms sink_total=534009 expected=534008 backlog=24711 win_out_eps=8410 win_out_mb_s=8.894 oom=false reasons=gen_blocked(avg=22114/22750,lag_p99=1432.0ms)

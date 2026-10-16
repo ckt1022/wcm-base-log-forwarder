@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+<title id="title">Parse Total Latency — Five Methods</title>
+<desc id="desc">Log-log chart of median total time by batch size for WCM, Core JSON, Core Direct, native Rust and subprocess.</desc>
+<rect width="100%" height="100%" fill="#f8fafc"/>
+<rect x="122" y="132" width="1006" height="524" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+<text x="122" y="52" font-family="Inter,Segoe UI,sans-serif" font-size="29" font-weight="700" fill="#0f172a">Parse Total — WCM vs Core ABIs vs No-WASM Baselines</text>
+<text x="122" y="82" font-family="Inter,Segoe UI,sans-serif" font-size="15" fill="#475569">Median of 300 samples per point (3 runs × 100) · log₂ batch axis · log₁₀ time axis · native/subprocess pinned to one core (native run, no cgroup)</text>
+<line x1="122" y1="624.00" x2="1128" y2="624.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="629.00" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">100 µs</text>
+<line x1="122" y1="577.84" x2="1128" y2="577.84" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="582.84" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">200 µs</text>
+<line x1="122" y1="516.82" x2="1128" y2="516.82" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="521.82" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">500 µs</text>
+<line x1="122" y1="470.67" x2="1128" y2="470.67" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="475.67" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">1 ms</text>
+<line x1="122" y1="424.51" x2="1128" y2="424.51" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="429.51" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">2 ms</text>
+<line x1="122" y1="363.49" x2="1128" y2="363.49" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="368.49" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">5 ms</text>
+<line x1="122" y1="317.33" x2="1128" y2="317.33" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="322.33" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">10 ms</text>
+<line x1="122" y1="271.18" x2="1128" y2="271.18" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="276.18" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">20 ms</text>
+<line x1="122" y1="210.16" x2="1128" y2="210.16" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="215.16" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">50 ms</text>
+<line x1="122" y1="164.00" x2="1128" y2="164.00" stroke="#e2e8f0" stroke-width="1"/>
+<text x="108" y="169.00" text-anchor="end" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">100 ms</text>
+<line x1="162.00" y1="132" x2="162.00" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="162.00" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">64</text>
+<line x1="294.29" y1="132" x2="294.29" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="294.29" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">128</text>
+<line x1="426.57" y1="132" x2="426.57" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="426.57" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">256</text>
+<line x1="558.86" y1="132" x2="558.86" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="558.86" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">512</text>
+<line x1="691.14" y1="132" x2="691.14" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="691.14" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">1024</text>
+<line x1="823.43" y1="132" x2="823.43" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="823.43" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">2048</text>
+<line x1="955.71" y1="132" x2="955.71" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="955.71" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">4096</text>
+<line x1="1088.00" y1="132" x2="1088.00" y2="656" stroke="#f1f5f9" stroke-width="1"/>
+<text x="1088.00" y="680" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#475569">8192</text>
+<text x="625.0" y="710" text-anchor="middle" font-family="Inter,Segoe UI,sans-serif" font-size="15" fill="#334155">Batch size (records, ~1 KiB each)</text>
+<path d="M162.00,568.27 L294.29,526.03 L426.57,482.17 L558.86,434.42 L691.14,372.01 L823.43,322.68 L955.71,274.78 L1088.00,226.80" fill="none" stroke="#2563eb" stroke-width="3"/>
+<circle cx="162.00" cy="568.27" r="4.5" fill="#2563eb"/>
+<circle cx="294.29" cy="526.03" r="4.5" fill="#2563eb"/>
+<circle cx="426.57" cy="482.17" r="4.5" fill="#2563eb"/>
+<circle cx="558.86" cy="434.42" r="4.5" fill="#2563eb"/>
+<circle cx="691.14" cy="372.01" r="4.5" fill="#2563eb"/>
+<circle cx="823.43" cy="322.68" r="4.5" fill="#2563eb"/>
+<circle cx="955.71" cy="274.78" r="4.5" fill="#2563eb"/>
+<circle cx="1088.00" cy="226.80" r="4.5" fill="#2563eb"/>
+<line x1="122" y1="730" x2="150" y2="730" stroke="#2563eb" stroke-width="4"/>
+<text x="158" y="735" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#0f172a">WCM Canonical ABI</text>
+<path d="M162.00,494.09 L294.29,457.31 L426.57,407.93 L558.86,358.47 L691.14,310.25 L823.43,262.40 L955.71,214.49 L1088.00,167.51" fill="none" stroke="#ea580c" stroke-width="3"/>
+<circle cx="162.00" cy="494.09" r="4.5" fill="#ea580c"/>
+<circle cx="294.29" cy="457.31" r="4.5" fill="#ea580c"/>
+<circle cx="426.57" cy="407.93" r="4.5" fill="#ea580c"/>
+<circle cx="558.86" cy="358.47" r="4.5" fill="#ea580c"/>
+<circle cx="691.14" cy="310.25" r="4.5" fill="#ea580c"/>
+<circle cx="823.43" cy="262.40" r="4.5" fill="#ea580c"/>
+<circle cx="955.71" cy="214.49" r="4.5" fill="#ea580c"/>
+<circle cx="1088.00" cy="167.51" r="4.5" fill="#ea580c"/>
+<line x1="322" y1="730" x2="350" y2="730" stroke="#ea580c" stroke-width="4"/>
+<text x="358" y="735" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#0f172a">Core Wasm JSON ABI</text>
+<path d="M162.00,549.10 L294.29,509.34 L426.57,468.65 L558.86,422.41 L691.14,374.79 L823.43,325.80 L955.71,277.46 L1088.00,229.75" fill="none" stroke="#059669" stroke-width="3"/>
+<circle cx="162.00" cy="549.10" r="4.5" fill="#059669"/>
+<circle cx="294.29" cy="509.34" r="4.5" fill="#059669"/>
+<circle cx="426.57" cy="468.65" r="4.5" fill="#059669"/>
+<circle cx="558.86" cy="422.41" r="4.5" fill="#059669"/>
+<circle cx="691.14" cy="374.79" r="4.5" fill="#059669"/>
+<circle cx="823.43" cy="325.80" r="4.5" fill="#059669"/>
+<circle cx="955.71" cy="277.46" r="4.5" fill="#059669"/>
+<circle cx="1088.00" cy="229.75" r="4.5" fill="#059669"/>
+<line x1="522" y1="730" x2="550" y2="730" stroke="#059669" stroke-width="4"/>
+<text x="558" y="735" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#0f172a">Core Wasm Direct Memory</text>
+<path d="M162.00,608.30 L294.29,572.86 L426.57,526.92 L558.86,480.87 L691.14,420.67 L823.43,371.66 L955.71,320.16 L1088.00,282.15" fill="none" stroke="#7c3aed" stroke-width="3"/>
+<circle cx="162.00" cy="608.30" r="4.5" fill="#7c3aed"/>
+<circle cx="294.29" cy="572.86" r="4.5" fill="#7c3aed"/>
+<circle cx="426.57" cy="526.92" r="4.5" fill="#7c3aed"/>
+<circle cx="558.86" cy="480.87" r="4.5" fill="#7c3aed"/>
+<circle cx="691.14" cy="420.67" r="4.5" fill="#7c3aed"/>
+<circle cx="823.43" cy="371.66" r="4.5" fill="#7c3aed"/>
+<circle cx="955.71" cy="320.16" r="4.5" fill="#7c3aed"/>
+<circle cx="1088.00" cy="282.15" r="4.5" fill="#7c3aed"/>
+<line x1="722" y1="730" x2="750" y2="730" stroke="#7c3aed" stroke-width="4"/>
+<text x="758" y="735" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#0f172a">Native Rust (in-process)</text>
+<path d="M162.00,549.25 L294.29,479.59 L426.57,433.39 L558.86,388.64 L691.14,338.22 L823.43,288.49 L955.71,240.96 L1088.00,188.10" fill="none" stroke="#db2777" stroke-width="3"/>
+<circle cx="162.00" cy="549.25" r="4.5" fill="#db2777"/>
+<circle cx="294.29" cy="479.59" r="4.5" fill="#db2777"/>
+<circle cx="426.57" cy="433.39" r="4.5" fill="#db2777"/>
+<circle cx="558.86" cy="388.64" r="4.5" fill="#db2777"/>
+<circle cx="691.14" cy="338.22" r="4.5" fill="#db2777"/>
+<circle cx="823.43" cy="288.49" r="4.5" fill="#db2777"/>
+<circle cx="955.71" cy="240.96" r="4.5" fill="#db2777"/>
+<circle cx="1088.00" cy="188.10" r="4.5" fill="#db2777"/>
+<line x1="922" y1="730" x2="950" y2="730" stroke="#db2777" stroke-width="4"/>
+<text x="958" y="735" font-family="Inter,Segoe UI,sans-serif" font-size="13" fill="#0f172a">Subprocess + pipe</text>
+</svg>

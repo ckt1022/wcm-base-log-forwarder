@@ -42,7 +42,8 @@ public partial class ParserPluginWorldExportsImpl : IParserPluginWorldExports
                 timestamp: r.Timestamp,
                 level:     (PP.LogLevel)(byte)r.Level,
                 message:   r.Message,
-                tags:      r.Tags
+                tags:      r.Tags,
+                targettag: r.Targettag
             ));
             _count++;
         }

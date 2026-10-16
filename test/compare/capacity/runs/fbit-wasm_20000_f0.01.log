@@ -1,0 +1,9 @@
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/lat_rate_20000/sink.log)
+[cap] dut=fbit-wasm rate=20000 mode=lat load=90s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:20000 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/lat_rate_20000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/lat_rate_20000/sink.log)
+[cap] 進度 [httpsink] t=33s lines/s=7941 MB/s=1.60 total=235140
+[cap] 進度 [httpsink] t=63s lines/s=7944 MB/s=1.60 total=475143
+[cap] gen 完成,drain 10s 後關閉並判定
+[cap] 進度 [httpsink] t=93s lines/s=8016 MB/s=1.61 total=715121
+PASS rate=20000 gen_avg=20000/s gen_mb_s=3.195 lag_p99=5ms lag_max=2.5ms sink_total=719995 expected=719993 backlog=-2 win_out_eps=7999 win_out_mb_s=1.607 oom=false

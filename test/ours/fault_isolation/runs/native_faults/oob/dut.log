@@ -1,0 +1,93 @@
+=== WCM Log Forwarder ===
+Memory Limit : 128 MB
+Buffer Size  : 1 MB
+Stages       : parse → filter → format → transport
+========================
+Stage impl   : parse=wcm filter=wcm format=wcm transport=wcm
+[mem-guard] disabled: cgroup memory.current/memory.max 不可讀或無上限
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:44334
+[tcp-input] 127.0.0.1:44334 disconnected
+[tcp-input] accepted 127.0.0.1:34908
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+[worker0][trap 1/2] batch=74: error while executing at wasm backtrace:
+    0:  0x1563a - <unknown>!<wasm function 323>
+    1:   0xfbed - <unknown>!<wasm function 231>
+    2:   0xd3c7 - <unknown>!<wasm function 184>
+    3:   0xd443 - <unknown>!<wasm function 186>
+    4:   0xd198 - <unknown>!<wasm function 179>
+    5:   0xd1bc - <unknown>!<wasm function 180>
+    6:  0x10add - <unknown>!<wasm function 243>
+    7:   0xfe13 - <unknown>!<wasm function 234>
+    8:   0xd532 - <unknown>!<wasm function 190>
+    9:   0xd526 - <unknown>!<wasm function 189>
+   10:  0x184f3 - <unknown>!<wasm function 382>
+   11:  0x189ff - <unknown>!<wasm function 385>
+   12:   0x1dd6 - <unknown>!<wasm function 36>
+   13:   0x28ec - <unknown>!<wasm function 38>
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+[worker0][trap 2/2] batch=74: error while executing at wasm backtrace:
+    0:  0x1563a - <unknown>!<wasm function 323>
+    1:   0xfbed - <unknown>!<wasm function 231>
+    2:   0xd3c7 - <unknown>!<wasm function 184>
+    3:   0xd443 - <unknown>!<wasm function 186>
+    4:   0xd198 - <unknown>!<wasm function 179>
+    5:   0xd1bc - <unknown>!<wasm function 180>
+    6:  0x10add - <unknown>!<wasm function 243>
+    7:   0xfe13 - <unknown>!<wasm function 234>
+    8:   0xd532 - <unknown>!<wasm function 190>
+    9:   0xd526 - <unknown>!<wasm function 189>
+   10:  0x184f3 - <unknown>!<wasm function 382>
+   11:  0x189ff - <unknown>!<wasm function 385>
+   12:   0x1dd6 - <unknown>!<wasm function 36>
+   13:   0x28ec - <unknown>!<wasm function 38>
+[worker0][trap] exceeded retries, isolating batch 74 (1025 lines) by bounded bisection
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread '<unnamed>' (1) panicked at src/lib.rs:71:20:
+index out of bounds: the len is 3 but the index is 1000000
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+[worker0][parse-isolate] batch=74 reason=trap lines=1025 salvaged=1024 rejected=1 calls=20 trap_calls=20 budget_exhausted=false last_error=error while executing at wasm backtrace:
+[tcp-input] 127.0.0.1:34908 disconnected

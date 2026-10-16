@@ -1,0 +1,8 @@
+[2026-10-15T16:06:26+08:00] run_gaps.sh start pid=843725 image=wcm-base-log-forwarder:suite runs=/home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_gaps/runs_smoke smoke=1
+[2026-10-15T16:06:31+08:00] ===== SMOKE (runs_smoke/) =====
+[2026-10-15T16:06:31+08:00] smoke cap trial (g1-type) wcm smoke_stream_k1024 @15000
+[2026-10-15T16:07:23+08:00]   -> PASS rate=15000 gen_avg=14999/s gen_mb_s=15.374 lag_p99=5ms lag_max=4.1ms sink_total=179995 expected=179994 backlog=-1 win_out_eps=5998 win_out_mb_s=6.337 oom=false
+[2026-10-15T16:07:23+08:00] smoke cap trial (g5-type) wcm smoke_batch_mr5 @10000
+[2026-10-15T16:09:09+08:00]   -> PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=8.4ms sink_total=113842 expected=113840 backlog=-2 win_out_eps=3797 win_out_mb_s=4.009 oom=false malformed=15365 malformed_keep_slot=6157
+[2026-10-15T16:09:10+08:00] SMOKE: noepoch zero_tail=29 of 41 s; recv_total=20000
+[2026-10-15T16:09:10+08:00] SMOKE DONE units_run=2

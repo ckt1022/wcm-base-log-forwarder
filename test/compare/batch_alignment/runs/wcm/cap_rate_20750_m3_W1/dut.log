@@ -1,0 +1,26 @@
+=== WCM Log Forwarder ===
+Memory Limit : 256 MB
+Buffer Size  : 128 MB
+Stages       : parse → filter → format → transport
+========================
+[mem-guard] enabled: limit=512MB high=70% low=55% current=10MB
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:41800
+[tcp-input] 127.0.0.1:41800 disconnected
+[tcp-input] accepted 127.0.0.1:56626
+[mem-guard] PAUSE input: mem=359MB (70% of 512MB)
+[mem-guard] RESUME input: mem=273MB (53%)
+[mem-guard] PAUSE input: mem=359MB (70% of 512MB)
+[mem-guard] RESUME input: mem=260MB (51%)
+[mem-guard] PAUSE input: mem=361MB (71% of 512MB)
+[mem-guard] RESUME input: mem=267MB (52%)
+[mem-guard] PAUSE input: mem=364MB (71% of 512MB)
+[mem-guard] RESUME input: mem=280MB (55%)
+[mem-guard] PAUSE input: mem=366MB (72% of 512MB)
+[mem-guard] RESUME input: mem=258MB (50%)
+[mem-guard] PAUSE input: mem=378MB (74% of 512MB)
+[mem-guard] RESUME input: mem=275MB (54%)
+[mem-guard] PAUSE input: mem=359MB (70% of 512MB)
+[mem-guard] RESUME input: mem=206MB (40%)
+[mem-guard] PAUSE input: mem=407MB (80% of 512MB)

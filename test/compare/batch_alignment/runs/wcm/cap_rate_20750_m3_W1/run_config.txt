@@ -1,0 +1,38 @@
+date=2026-10-14T02:58:13+08:00
+dut=wcm rate=20750 mode=cap tag=m3_W1 image=wcm-base-log-forwarder:memguard
+image_id=sha256:6365acbf5f7f95c2a1ace3ce8e3600e45babe9f3d859a560e85b93f0c8086fba
+conf=/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/conf/wcm_tw128_wait1000.yaml
+load_secs=60 drain_secs=20 gen_mode=json-fields1k cpus=1 mem=512m
+FLUSH_INTERVAL=1 VECTOR_BATCH_MAX_BYTES= VECTOR_BATCH_MAX_EVENTS=
+clocksource=tsc timesyncd=inactive
+----- conf -----
+# batch_alignment: copy of forwarder_membound_tw128.yaml (128 MB buffer => time-dominated); only max_wait_ms changed (=1000)
+plugins:
+  parse: "latency_rust_parse.wasm"
+  parse_noop: ~
+  filter: "latency_rust_filter.wasm"
+  format: "latency_rust_format.wasm"
+  transport: "transport.wasm"
+stages:
+  filter: true
+  format: true
+  transport: true
+input:
+  mode: tcp
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+batch:
+  mem_limit_mb: 256
+  buffer_size_mb: 128
+  max_wait_ms: 1000
+  channel_capacity: 50000
+  max_format_chunk: 10000
+  max_transport_bytes: 1048576
+  transport_workers: 1
+  pipeline_channel_capacity: 2
+  stage_timeout_ms: 30000
+  plugin_instance_reuse: true
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+config_reload_secs: 3600

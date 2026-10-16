@@ -1,0 +1,63 @@
+[config] processing_mode=batch：累積原始輸入至 buffer_size_mb=1 MB 或 max_wait_ms=1000 ms 後整批處理（micro_batch_* 不使用）
+=== WCM Log Forwarder ===
+Memory Limit : 128 MB
+Buffer Size  : 1 MB
+Stages       : parse → filter → format → transport
+========================
+[config] epoch_interruption=true
+Stage impl   : parse=wcm filter=wcm format=wcm transport=wcm
+[mem-guard] disabled: cgroup memory.current/memory.max 不可讀或無上限
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:39042
+[tcp-input] 127.0.0.1:39042 disconnected
+[tcp-input] accepted 127.0.0.1:39050
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+[worker0][trap 1/2] batch=74: error while executing at wasm backtrace:
+    0:  0x1862e - <unknown>!<wasm function 365>
+    1:  0x12769 - <unknown>!<wasm function 268>
+    2:   0xef4a - <unknown>!<wasm function 211>
+    3:  0x12a19 - <unknown>!<wasm function 273>
+    4:  0x129de - <unknown>!<wasm function 272>
+    5:   0xf17f - <unknown>!<wasm function 220>
+    6:   0xf14f - <unknown>!<wasm function 219>
+    7:  0x1c777 - <unknown>!<wasm function 454>
+    8:  0x1ca26 - <unknown>!<wasm function 463>
+    9:   0x57d7 - <unknown>!<wasm function 70>
+   10:   0x3a11 - <unknown>!<wasm function 61>
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+[worker0][trap 2/2] batch=74: error while executing at wasm backtrace:
+    0:  0x1862e - <unknown>!<wasm function 365>
+    1:  0x12769 - <unknown>!<wasm function 268>
+    2:   0xef4a - <unknown>!<wasm function 211>
+    3:  0x12a19 - <unknown>!<wasm function 273>
+    4:  0x129de - <unknown>!<wasm function 272>
+    5:   0xf17f - <unknown>!<wasm function 220>
+    6:   0xf14f - <unknown>!<wasm function 219>
+    7:  0x1c777 - <unknown>!<wasm function 454>
+    8:  0x1ca26 - <unknown>!<wasm function 463>
+    9:   0x57d7 - <unknown>!<wasm function 70>
+   10:   0x3a11 - <unknown>!<wasm function 61>
+[worker0][trap] exceeded retries, isolating batch 74 (1025 lines) by bounded bisection
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+memory allocation of 33554432 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+[worker0][parse-isolate] batch=74 reason=trap lines=1025 salvaged=1024 rejected=1 calls=20 trap_calls=20 budget_exhausted=false last_error=error while executing at wasm backtrace:
+[tcp-input] 127.0.0.1:39050 disconnected

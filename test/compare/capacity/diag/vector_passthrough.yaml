@@ -1,0 +1,33 @@
+# 診斷用:與 latency.yaml 相同的 source/sink,但拿掉 VRL transform(直通)
+# 用於分解 vector 容量瓶頸:VRL 成本 vs 框架(source/sink/runtime)成本
+sources:
+  tcp_in:
+    type: socket
+    mode: tcp
+    address: "0.0.0.0:5140"
+    decoding:
+      codec: json
+
+sinks:
+  out_http:
+    type: http
+    inputs: ["tcp_in"]
+    uri: "http://127.0.0.1:8080/ingest"
+    method: "post"
+    encoding:
+      codec: "json"
+    framing:
+      method: "newline_delimited"
+    compression: "none"
+    batch:
+      timeout_secs: 1
+      max_bytes: 134217728
+    request:
+      concurrency: 1
+      timeout_secs: 30
+      retry_attempts: 3
+    buffer:
+      type: memory
+      max_events: 150000
+    healthcheck:
+      enabled: false

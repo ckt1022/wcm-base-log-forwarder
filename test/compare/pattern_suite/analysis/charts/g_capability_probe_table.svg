@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520">
+<title>Capability-scoped stage: probe outcomes (parse_chaos plugin, 3 reps each)</title>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<style>text{font-family:"Noto Sans CJK TC","Noto Sans",sans-serif;fill:#172033}.tick{font-size:16px}.axis{font-size:18px}.note{font-size:14px;fill:#475569}.legend{font-size:16px}.title{font-size:27px;font-weight:700}.pt{font-size:13px;fill:#334155}.fail{font-size:13px;fill:#b91c1c;font-weight:700}.cell{font-size:15px}.hdr{font-size:15px;font-weight:700}</style>
+<text x="700.0" y="42" text-anchor="middle" class="title">Capability-scoped stage: probe outcomes (parse_chaos plugin, 3 reps each)</text>
+<text x="700.0" y="69" text-anchor="middle" class="note">1024 B / 36 fields · 1 CPU · 512 MiB · single TCP conn · 30–150 s window · pattern_suite 2026-10-14/15</text>
+<rect x="30" y="94" width="1340" height="36" fill="#f1f5f9"/>
+<text x="40" y="120" class="hdr">probe</text>
+<text x="190" y="120" class="hdr">grant (parse stage)</text>
+<text x="560" y="120" class="hdr">where stopped</text>
+<text x="700" y="120" class="hdr">outcome (3 reps)</text>
+<text x="930" y="120" class="hdr">records lost</text>
+<text x="1060" y="120" class="hdr">evidence</text>
+<text x="40" y="172" class="cell">FAULT_NET</text>
+<text x="190" y="172" class="cell">sockets: deny（只授權 filesystem: inert）</text>
+<text x="560" y="172" class="cell">載入期</text>
+<text x="700" y="172" class="cell">REFUSED_AT_LOAD ×3</text>
+<text x="930" y="172" class="cell">n/a (never started</text>
+<text x="1060" y="172" class="cell">7 個未授權 import</text>
+<line x1="30" y1="190" x2="1370" y2="190" stroke="#e2e8f0"/>
+<text x="40" y="224" class="cell">FAULT_FILE/ENV</text>
+<text x="190" y="224" class="cell">全部 deny（無 capabilities: 區塊）</text>
+<text x="560" y="224" class="cell">載入期</text>
+<text x="700" y="224" class="cell">REFUSED_AT_LOAD ×3</text>
+<text x="930" y="224" class="cell">n/a (never started</text>
+<text x="1060" y="224" class="cell">9 個未授權 import</text>
+<line x1="30" y1="242" x2="1370" y2="242" stroke="#e2e8f0"/>
+<text x="40" y="276" class="cell">FAULT_NET</text>
+<text x="190" y="276" class="cell">filesystem: inert + sockets: inert</text>
+<text x="560" y="276" class="cell">執行期</text>
+<text x="700" y="276" class="cell">DENIED ×3</text>
+<text x="930" y="276" class="cell">0 0 0</text>
+<text x="1060" y="276" class="cell">FAULT_NET blocked: connect 127.0.0.1:8080 fa</text>
+<line x1="30" y1="294" x2="1370" y2="294" stroke="#e2e8f0"/>
+<text x="40" y="328" class="cell">FAULT_FILE</text>
+<text x="190" y="328" class="cell">filesystem: inert + sockets: inert</text>
+<text x="560" y="328" class="cell">執行期</text>
+<text x="700" y="328" class="cell">DENIED ×3</text>
+<text x="930" y="328" class="cell">0 0 0</text>
+<text x="1060" y="328" class="cell">FAULT_FILE blocked: kind=Uncategorized err=f</text>
+<line x1="30" y1="346" x2="1370" y2="346" stroke="#e2e8f0"/>
+<text x="40" y="380" class="cell">FAULT_ENV</text>
+<text x="190" y="380" class="cell">filesystem: inert + sockets: inert</text>
+<text x="560" y="380" class="cell">執行期</text>
+<text x="700" y="380" class="cell">DENIED(empty) ×3</text>
+<text x="930" y="380" class="cell">0 0 0</text>
+<text x="1060" y="380" class="cell">vars=0 bytes=0</text>
+<line x1="30" y1="398" x2="1370" y2="398" stroke="#e2e8f0"/>
+<text x="40" y="440" class="note">load-time import check: median 0.009 ms (max 0.031 ms) vs compile+link+instantiate_pre 25–1497 ms → ≤ 0.031 % of load time</text>
+<text x="40" y="464" class="note">26 plugins: default-deny LOAD_OK 6 / REFUSED 20; with inert-fs + inert-sockets LOAD_OK 24 / REFUSED 2</text>
+</svg>

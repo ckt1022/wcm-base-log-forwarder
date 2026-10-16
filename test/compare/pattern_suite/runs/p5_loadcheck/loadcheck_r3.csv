@@ -1,0 +1,54 @@
+stage,plugin,grant,result,wall_ms,compile_ms,check_ms,link_ms,instantiate_pre_ms,plugin_sha256
+parse,test/ours/latency-benchmark-Rust/plugin/latency_rust_parse.wasm,default,LOAD_OK,283.528,132.026,0.007,0.070,0.014,94bbf1ad1803298c4ee3b6b126f0d238901714aa477bbd98ba9ed3c171f95cd2
+parse,test/ours/latency-benchmark-Rust/plugin/latency_rust_parse.wasm,inert-fs inert-sockets,LOAD_OK,327.518,130.856,0.007,0.130,0.013,94bbf1ad1803298c4ee3b6b126f0d238901714aa477bbd98ba9ed3c171f95cd2
+parse,test-plugins/rust-plugin/parse_chaos/parse_chaos.wasm,default,LOAD_REFUSED,489.868,232.110,0.012,,,fefc19aaff9535d560e48a4178d693abf09c66681ff6d9555ba9c06f9f899875
+parse,test-plugins/rust-plugin/parse_chaos/parse_chaos.wasm,inert-fs inert-sockets,LOAD_OK,530.704,224.248,0.009,0.089,0.035,fefc19aaff9535d560e48a4178d693abf09c66681ff6d9555ba9c06f9f899875
+parse,test-plugins/c-plugin/noop-parser/parser_c_noop.wasm,default,LOAD_OK,66.885,27.552,0.006,0.051,0.012,3c9b1fdb60f60b2edb1ae873ef75ed235f8e2c44e14332f7a1715098e43cdfb8
+parse,test-plugins/c-plugin/noop-parser/parser_c_noop.wasm,inert-fs inert-sockets,LOAD_OK,67.482,26.430,0.005,0.081,0.012,3c9b1fdb60f60b2edb1ae873ef75ed235f8e2c44e14332f7a1715098e43cdfb8
+parse,test/ours/latency-benchmark-C/plugin/latency_c_parser.wasm,default,LOAD_REFUSED,230.576,117.486,0.043,,,c786c035f065b1bc096b910df02f7103ab208f18828ec8f04d69051f2d20a64f
+parse,test/ours/latency-benchmark-C/plugin/latency_c_parser.wasm,inert-fs inert-sockets,LOAD_OK,208.242,94.840,0.012,0.175,0.040,c786c035f065b1bc096b910df02f7103ab208f18828ec8f04d69051f2d20a64f
+parse,test-plugins/c-plugin/parse_access/parser_c_access.wasm,default,LOAD_REFUSED,180.590,84.097,0.009,,,f43be3f1f9dc46eea5d8616a5ab9a3396cbe0a148c3b7213f684e4d0ffd40389
+parse,test-plugins/c-plugin/parse_access/parser_c_access.wasm,inert-fs inert-sockets,LOAD_OK,185.506,83.955,0.008,0.092,0.029,f43be3f1f9dc46eea5d8616a5ab9a3396cbe0a148c3b7213f684e4d0ffd40389
+parse,test-plugins/c-plugin/parse_bad/parser_c_bad.wasm,default,LOAD_REFUSED,64.155,24.352,0.004,,,ad3c741aa0901df32d690d7d272fa99682ee5a998ae7ebd0ef81625b3dc2f308
+parse,test-plugins/c-plugin/parse_bad/parser_c_bad.wasm,inert-fs inert-sockets,LOAD_REFUSED,97.908,29.762,0.005,,,ad3c741aa0901df32d690d7d272fa99682ee5a998ae7ebd0ef81625b3dc2f308
+parse,test-plugins/c-plugin/parse/parser_c_json.wasm,default,LOAD_REFUSED,7.021,,,,,5944ec4f16ec9610a60b1072fa690c7c97cba90482857d7264bcc296fb032781
+parse,test-plugins/c-plugin/parse/parser_c_json.wasm,inert-fs inert-sockets,LOAD_REFUSED,8.172,,,,,5944ec4f16ec9610a60b1072fa690c7c97cba90482857d7264bcc296fb032781
+parse,test-plugins/csharp-plugin/parse/parser_csharp.wasm,default,LOAD_REFUSED,3035.391,1501.057,0.016,,,674713f1c7f1b9484f3970c113f70b13dc6c89c9e7d1f08c1f6e192b1ce7e62e
+parse,test-plugins/csharp-plugin/parse/parser_csharp.wasm,inert-fs inert-sockets,LOAD_OK,2969.805,1423.157,0.023,0.188,0.077,674713f1c7f1b9484f3970c113f70b13dc6c89c9e7d1f08c1f6e192b1ce7e62e
+parse,test-plugins/csharp-plugin/parse/parser_csharp_noop.wasm,default,LOAD_REFUSED,2659.260,1311.179,0.013,,,edef232e459ddcc4ca8992a82bc7c10d9947b80efc8ad3964651e5e80f1f6a4f
+parse,test-plugins/csharp-plugin/parse/parser_csharp_noop.wasm,inert-fs inert-sockets,LOAD_OK,2586.674,1295.927,0.011,0.190,0.032,edef232e459ddcc4ca8992a82bc7c10d9947b80efc8ad3964651e5e80f1f6a4f
+parse,test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm,default,LOAD_REFUSED,2969.448,1496.597,0.079,,,67bb31f6dcf5b205051cecf0e6ee384334007039ec0abe517c4d0e9ec2859e88
+parse,test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm,inert-fs inert-sockets,LOAD_OK,2973.048,1487.903,0.012,0.146,0.040,67bb31f6dcf5b205051cecf0e6ee384334007039ec0abe517c4d0e9ec2859e88
+parse,test-plugins/go-plugin/parse/parser_json.wasm,default,LOAD_REFUSED,247.855,116.757,0.009,,,a1944390696e0361782de2a2d4e071b1ab10de57aeb6323e6df32105ceb9b59d
+parse,test-plugins/go-plugin/parse/parser_json.wasm,inert-fs inert-sockets,LOAD_OK,302.939,169.974,0.008,0.095,0.036,a1944390696e0361782de2a2d4e071b1ab10de57aeb6323e6df32105ceb9b59d
+parse,test-plugins/go-plugin/parse/parser_fmt.wasm,default,LOAD_REFUSED,227.573,106.878,0.008,,,45b882c3757559e5de60a453a565f0bec854141a74d59a3d4fe11ea6f0eb7066
+parse,test-plugins/go-plugin/parse/parser_fmt.wasm,inert-fs inert-sockets,LOAD_OK,227.324,107.205,0.008,0.090,0.033,45b882c3757559e5de60a453a565f0bec854141a74d59a3d4fe11ea6f0eb7066
+parse,test-plugins/go-plugin/parse/parser_sys.wasm,default,LOAD_REFUSED,394.063,166.648,0.009,,,d3508cbf78aacf4e7bdf91859aedfceefc005fea2344c5a4be2ba790e7337105
+parse,test-plugins/go-plugin/parse/parser_sys.wasm,inert-fs inert-sockets,LOAD_OK,408.977,219.820,0.008,0.130,0.050,d3508cbf78aacf4e7bdf91859aedfceefc005fea2344c5a4be2ba790e7337105
+parse,test-plugins/go-plugin/noop-parser/noop_parser.wasm,default,LOAD_REFUSED,210.209,97.995,0.009,,,4c6a92af8eff104b279f08d78079959f21ec0c0c48df091ad024de01735eb29d
+parse,test-plugins/go-plugin/noop-parser/noop_parser.wasm,inert-fs inert-sockets,LOAD_OK,216.482,99.025,0.009,0.093,0.034,4c6a92af8eff104b279f08d78079959f21ec0c0c48df091ad024de01735eb29d
+filter,test/ours/latency-benchmark-Rust/plugin/latency_rust_filter.wasm,default,LOAD_OK,205.583,78.247,0.009,0.077,0.016,28c8086345847e73a0465a479a42f0befdd36eddbcf7af301771012c6caeb3f9
+filter,test/ours/latency-benchmark-Rust/plugin/latency_rust_filter.wasm,inert-fs inert-sockets,LOAD_OK,177.107,78.062,0.010,0.241,0.027,28c8086345847e73a0465a479a42f0befdd36eddbcf7af301771012c6caeb3f9
+filter,test/ours/latency-benchmark-C/plugin/latency_c_filter.wasm,default,LOAD_OK,83.164,39.839,0.014,0.101,0.028,20debc2f28f4939d03328fe5609282fa17b3d1d1c289ea98f35709b5afcd09ab
+filter,test/ours/latency-benchmark-C/plugin/latency_c_filter.wasm,inert-fs inert-sockets,LOAD_OK,68.484,24.167,0.005,0.082,0.011,20debc2f28f4939d03328fe5609282fa17b3d1d1c289ea98f35709b5afcd09ab
+filter,test-plugins/csharp-plugin/filter/filter_csharp.wasm,default,LOAD_REFUSED,2711.462,1368.182,0.015,,,cc9ae1d98ec3c8dcdf1e19555bd2a694a7c4d04311c283132f3781c89d088ac3
+filter,test-plugins/csharp-plugin/filter/filter_csharp.wasm,inert-fs inert-sockets,LOAD_OK,2747.029,1355.604,0.011,0.138,0.050,cc9ae1d98ec3c8dcdf1e19555bd2a694a7c4d04311c283132f3781c89d088ac3
+format,test/ours/latency-benchmark-Rust/plugin/latency_rust_format.wasm,default,LOAD_OK,220.151,81.260,0.006,0.084,0.012,096462091f2cd9b0d2775172e85b4e5d05fb047243c6d6bbb92c88c5f6235421
+format,test/ours/latency-benchmark-Rust/plugin/latency_rust_format.wasm,inert-fs inert-sockets,LOAD_OK,177.468,81.434,0.007,0.127,0.048,096462091f2cd9b0d2775172e85b4e5d05fb047243c6d6bbb92c88c5f6235421
+format,test/ours/latency-benchmark-C/plugin/latency_c_format.wasm,default,LOAD_REFUSED,166.172,76.606,0.013,,,19cd7ecf66200f6d8b9bd735bf69a2b9983fba1299c5cceae16cb07af1e48d4f
+format,test/ours/latency-benchmark-C/plugin/latency_c_format.wasm,inert-fs inert-sockets,LOAD_OK,232.426,76.335,0.008,0.101,0.026,19cd7ecf66200f6d8b9bd735bf69a2b9983fba1299c5cceae16cb07af1e48d4f
+format,test-plugins/c-plugin/format/format_json-flat.wasm,default,LOAD_REFUSED,166.938,71.808,0.010,,,19cd7ecf66200f6d8b9bd735bf69a2b9983fba1299c5cceae16cb07af1e48d4f
+format,test-plugins/c-plugin/format/format_json-flat.wasm,inert-fs inert-sockets,LOAD_OK,157.297,71.399,0.011,0.125,0.025,19cd7ecf66200f6d8b9bd735bf69a2b9983fba1299c5cceae16cb07af1e48d4f
+format,test-plugins/go-plugin/format/format.wasm,default,LOAD_REFUSED,242.635,112.899,0.017,,,b9cc8f4d10b1a61e370753e5ecee4a16f21f6b0b97599a83fe5b7dad4731af06
+format,test-plugins/go-plugin/format/format.wasm,inert-fs inert-sockets,LOAD_OK,313.250,117.660,0.009,0.093,0.035,b9cc8f4d10b1a61e370753e5ecee4a16f21f6b0b97599a83fe5b7dad4731af06
+transport,test/ours/latency-benchmark-Rust/plugin/transport.wasm,default,LOAD_OK,264.772,123.550,0.009,0.113,0.048,51529f848173cf696ab01aee376009ae58288a3b4e82362412071885baca51a4
+transport,test/ours/latency-benchmark-Rust/plugin/transport.wasm,inert-fs inert-sockets,LOAD_OK,257.383,122.405,0.007,0.132,0.028,51529f848173cf696ab01aee376009ae58288a3b4e82362412071885baca51a4
+transport,test/ours/latency-benchmark-C/plugin/latency_c_transport.wasm,default,LOAD_REFUSED,240.493,85.755,0.009,,,c3a2f2888e0f6d20f6d264e5cc203b4c833feb78ed67b3b227d85ebf681e7efa
+transport,test/ours/latency-benchmark-C/plugin/latency_c_transport.wasm,inert-fs inert-sockets,LOAD_OK,193.308,85.944,0.009,0.125,0.038,c3a2f2888e0f6d20f6d264e5cc203b4c833feb78ed67b3b227d85ebf681e7efa
+transport,test-plugins/c-plugin/transport_http/transport_http.wasm,default,LOAD_REFUSED,240.539,140.923,0.010,,,759c583336d5ad592ea4718c82c746646ea25a86a5e2c2dc4e36116ede76dcfe
+transport,test-plugins/c-plugin/transport_http/transport_http.wasm,inert-fs inert-sockets,LOAD_OK,196.574,92.099,0.009,0.130,0.040,759c583336d5ad592ea4718c82c746646ea25a86a5e2c2dc4e36116ede76dcfe
+transport,test-plugins/c-plugin/transport_http_stream/transport_http_stream.wasm,default,LOAD_REFUSED,189.401,86.570,0.010,,,c3a2f2888e0f6d20f6d264e5cc203b4c833feb78ed67b3b227d85ebf681e7efa
+transport,test-plugins/c-plugin/transport_http_stream/transport_http_stream.wasm,inert-fs inert-sockets,LOAD_OK,192.414,84.901,0.077,0.411,0.054,c3a2f2888e0f6d20f6d264e5cc203b4c833feb78ed67b3b227d85ebf681e7efa
+transport,test-plugins/c-plugin/transport/latency_c_transport.wasm,default,LOAD_REFUSED,281.586,117.901,0.014,,,47685935abf5ada11ac051c8e64c70c78670d4fa3ef1c42aa1475eb9ca0c17bb
+transport,test-plugins/c-plugin/transport/latency_c_transport.wasm,inert-fs inert-sockets,LOAD_OK,234.503,107.423,0.009,0.131,0.036,47685935abf5ada11ac051c8e64c70c78670d4fa3ef1c42aa1475eb9ca0c17bb
+#DONE 2026-10-15T03:32:15+08:00 binary_sha256=b5ab86755805f9716b85d84b7573ad76b3c69c5651e851f68af248783279c5fd

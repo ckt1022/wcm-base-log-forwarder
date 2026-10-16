@@ -1,0 +1,141 @@
+# Vector — buffer 大小觸發 flush 實驗（對應 test/ours/latency-benchmark-Rust）
+#
+# 設計（見 latency_size.sh）：batch.timeout_secs 固定 1s 當保底（不應觸發），
+# batch 於 ~0.8s 內先達 max_bytes → 每次 flush 都走大小觸發。
+#
+# 對齊備註：
+#   - vector 的 batch 計量在 remap「之後」的編碼 bytes（保留 40%、實測每筆
+#     ~193.9B），forwarder 的 buffer 計量在處理「之前」的原始輸入（100%、
+#     每行 ~158.7B）。同一觸發時刻的換算係數實測校正為 0.489；
+#     BATCH_MAX_BYTES 由 latency_size.sh 注入。
+#   - 一 batch = 一 POST，天然「一波一包」，與 forwarder 的
+#     max_transport_bytes=128MB 設定對齊
+#   - VRL 邏輯與 conf/latency.yaml 完全相同（已驗證），僅 batch 參數不同
+#
+# 由 latency_size.sh 以 docker（--network host）啟動
+
+sources:
+  tcp_in:
+    type: socket
+    mode: tcp
+    address: "0.0.0.0:5140"
+    decoding:
+      codec: json
+
+transforms:
+  latency_filter:
+    type: remap
+    inputs: ["tcp_in"]
+    # rank < warn 的 event 以 abort 丟棄
+    drop_on_abort: true
+    drop_on_error: false
+    source: |
+      # ── 邏輯對齊 latency_filter.lua / filter_latency_test.rb ──
+      # parse : ts 原字串搬到 timestamp、level 字串/數值映射、msg → message、
+      #         根層非保留欄位與 att.* 攤平成 tags
+      # filter: 只保留 level >= warn（MIN_KEEP_RANK = 2）
+      # format: json-flat 欄位集合 id/timestamp/level/message/lang/<tags>
+      # 關鍵約束：timestamp 必須是 gen 原始 ts 字串原封不動，
+      # 量測 server（tools/test/server.go）靠這個欄位計算延遲。
+
+      # level → rank（字串不分大小寫；數值 0~6 取整；缺失/未知 → info=1）
+      rank = 1
+      if is_string(.level) {
+        r = get!({"debug": 0, "info": 1, "warn": 2, "error": 3,
+                  "crit": 4, "alert": 5, "emerg": 6},
+                 [downcase(string!(.level))])
+        if r != null { rank = int!(r) }
+      } else if is_integer(.level) || is_float(.level) {
+        n = to_int(floor(to_float!(.level)))
+        if n >= 0 && n <= 6 { rank = n }
+      }
+
+      # filter：drop debug / info
+      if rank < 2 { abort }
+
+      level_name = string!(get!(["debug", "info", "warn", "error",
+                                 "crit", "alert", "emerg"], [rank]))
+
+      ts_val = ""
+      if is_string(.ts) { ts_val = string!(.ts) }
+      msg_val = ""
+      if is_string(.msg) { msg_val = string!(.msg) }
+
+      out = {
+        "id":        0,
+        "timestamp": ts_val,
+        "level":     level_name,
+        "message":   msg_val,
+        "lang":      "VRL"
+      }
+
+      # 根層非保留欄位攤平成 tags（對應 collect_all_tags 的第一段）。
+      # 除 gen record 的保留欄位外，還須排除 vector 對 event 注入的欄位
+      # （socket source：host/port/source_type；legacy namespace：timestamp）
+      for_each(object(.)) -> |k, v| {
+        if k != "ts" && k != "level" && k != "msg" && k != "att" &&
+           k != "timestamp" && k != "source_type" && k != "host" && k != "port" {
+          sv = ""
+          if is_string(v) {
+            sv = string!(v)
+          } else if is_object(v) || is_array(v) {
+            sv = encode_json(v)
+          } else {
+            sv = to_string!(v)
+          }
+          out = set!(out, [k], sv)
+        }
+      }
+
+      # att 物件內欄位攤平（對應 collect_all_tags 的第二段）
+      if is_object(.att) {
+        for_each(object!(.att)) -> |k, v| {
+          sv = ""
+          if is_string(v) {
+            sv = string!(v)
+          } else if is_object(v) || is_array(v) {
+            sv = encode_json(v)
+          } else {
+            sv = to_string!(v)
+          }
+          out = set!(out, [k], sv)
+        }
+      }
+
+      . = out
+
+sinks:
+  out_http:
+    type: http
+    inputs: ["latency_filter"]
+    uri: "http://127.0.0.1:8080/ingest"
+    method: "post"
+    # NDJSON：json codec + newline_delimited framing
+    # （Content-Type: application/x-ndjson）
+    encoding:
+      codec: "json"
+    framing:
+      method: "newline_delimited"
+    compression: "none"
+    batch:
+      # 保底時間窗：正常情況 max_bytes 先到；若 server 端批距 ≈ 1s
+      # 且筆數少於預期，代表退回時間觸發，該輪作廢
+      timeout_secs: 1
+      # DUT 變因：大小觸發閾值（bytes），由 latency_size.sh 以 BATCH_MAX_BYTES 注入
+      # 預設值對應 1MB 欄（1MiB × 0.489 ≈ 512753；係數為實測校正值，
+      # vector 每筆 event 計量 ~193.9B，見 latency_size.sh 檔頭）
+      max_bytes: ${BATCH_MAX_BYTES:-512753}
+    request:
+      # 單一 in-flight request，對齊單一 flush thread
+      concurrency: 1
+      # 對齊 forwarder transport plugin 的 request_timeout_ms=30000
+      timeout_secs: 30
+      # 對齊 fluentd retry_max_times 3
+      retry_attempts: 3
+    buffer:
+      type: memory
+      # 對齊 forwarder channel_capacity=150000
+      max_events: 150000
+    # server 只接受 POST /ingest，關閉啟動時的 GET healthcheck
+    healthcheck:
+      enabled: false

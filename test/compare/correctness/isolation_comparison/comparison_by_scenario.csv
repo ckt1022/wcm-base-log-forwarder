@@ -1,0 +1,13 @@
+group,scenario,environment,reps,pass,expected_total,received_total,missing_total,dup_corrupt_reorder_total,rejected_lines_per_run,isolation_calls_per_run,cpu_mean_pct_avg,mem_max_mib_max
+container_before,C1,container 1 CPU/512 MiB,3,3,120000,120000,0,0,-/-/-,-/-/-,14.27,29.94
+container_before,C2,container 1 CPU/512 MiB,3,3,1200000,1200000,0,0,-/-/-,-/-/-,78.53,30.86
+container_before,C3,container 1 CPU/512 MiB,3,0,114000,0,114000,0,-/-/-,-/-/-,2.53,12.98
+container_before,C4,container 1 CPU/512 MiB,3,3,120000,120000,0,0,-/-/-,-/-/-,13.71,29.19
+native_legacy,C3,"native, taskset dut=4",3,0,114000,0,114000,0,0/0/0,0/0/0,2.36,26.83
+native_isolation,C1,"native, taskset dut=4",3,3,120000,120000,0,0,0/0/0,0/0/0,19.94,41.93
+native_isolation,C3,"native, taskset dut=4",3,3,114000,114000,0,0,5000/5000/5000,52308/52308/52308,29.9,42.07
+native_isolation,C4,"native, taskset dut=4",3,3,120000,120000,0,0,0/0/0,0/0/0,21.73,41.48
+container_isolation,C1,container 1 CPU/512 MiB,3,3,120000,120000,0,0,0/0/0,0/0/0,12.97,30.19
+container_isolation,C2,container 1 CPU/512 MiB,3,3,1200000,1200000,0,0,0/0/0,0/0/0,77.17,31.01
+container_isolation,C3,container 1 CPU/512 MiB,3,3,114000,114000,0,0,5000/5000/5000,52308/52308/52312,18.65,33.17
+container_isolation,C4,container 1 CPU/512 MiB,3,3,120000,120000,0,0,0/0/0,0/0/0,15.95,30.11

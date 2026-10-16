@@ -1,0 +1,19 @@
+=== WCM Log Forwarder ===
+Memory Limit : 128 MB
+Buffer Size  : 1 MB
+Stages       : parse → filter → format → transport
+========================
+Stage impl   : parse=wcm filter=wcm format=wcm transport=wcm
+[mem-guard] disabled: cgroup memory.current/memory.max 不可讀或無上限
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:45750
+[tcp-input] 127.0.0.1:45750 disconnected
+[tcp-input] accepted 127.0.0.1:45762
+[worker0][trap 1/2] batch=74: error while executing at wasm backtrace:
+    0:   0x267d - <unknown>!<wasm function 38>
+[worker0][trap 2/2] batch=74: error while executing at wasm backtrace:
+    0:   0x267d - <unknown>!<wasm function 38>
+[worker0][trap] exceeded retries, isolating batch 74 (1025 lines) by bounded bisection
+[worker0][parse-isolate] batch=74 reason=trap lines=1025 salvaged=1024 rejected=1 calls=20 trap_calls=20 budget_exhausted=false last_error=error while executing at wasm backtrace:
+[tcp-input] 127.0.0.1:45762 disconnected

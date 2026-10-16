@@ -1,0 +1,41 @@
+# WCM 時間窗主導（time-window dominated）對照設定。
+#
+# 目的：item 1 公平性分析。正式 WCM 延遲 sweep 用的是 forwarder_membound_b1.yaml
+# （buffer_size_mb: 1）——在 5,000 EPS × 1 KB 下約每 200 ms 就被 size trigger 觸發一次
+# flush，因此 p50≈158 ms 主要是「每 200 ms 批次」的產物，而其他產品是 1 秒 timer flush。
+#
+# 本設定把 buffer 放大到 128 MB（mem_limit 256 MB），使 5,000 EPS 下
+# 一秒累積僅約 5 MB，遠不到 size 閾值，flush 完全由 max_wait_ms=1000（1 秒時間窗）
+# 決定，與 Fluentd／Fluent Bit／Vector 的 1 秒 flush 對齊。
+# 其餘參數（plugin、transport_workers、stage_timeout…）與 b1 相同，確保唯一變因是 flush policy。
+# 與既有 runs/wcm-tw128/ 的設定一致（Memory 256 MB / Buffer 128 MB）。
+plugins:
+  parse: "latency_rust_parse.wasm"
+  parse_noop: ~
+  filter: "latency_rust_filter.wasm"
+  format: "latency_rust_format.wasm"
+  transport: "transport.wasm"
+stages:
+  filter: true
+  format: true
+  transport: true
+input:
+  mode: tcp
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+batch:
+  processing_mode: batch   # 明確指定整批模式（2026-10-15 程式預設將改為 streaming）
+  mem_limit_mb: 256
+  buffer_size_mb: 128
+  max_wait_ms: 1000
+  channel_capacity: 50000
+  max_format_chunk: 10000
+  max_transport_bytes: 1048576
+  transport_workers: 1
+  pipeline_channel_capacity: 2
+  stage_timeout_ms: 30000
+  plugin_instance_reuse: true
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+config_reload_secs: 3600

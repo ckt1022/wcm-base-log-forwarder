@@ -1,0 +1,10 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=5000 mode=lat tag=smoke_stream_k256_wait20 load=60s conf=wcm_stream_k256_W0.1_wait20.yaml
+[align] 進度 [httpsink] t=34s lines/s=2041 MB/s=2.16 total=58030
+[align] 進度 [httpsink] t=64s lines/s=2015 MB/s=2.13 total=117987
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=6.5ms sink_total=119999 expected=119998 backlog=-1 win_out_eps=1999 win_out_mb_s=2.113 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=5000 mode=lat tag=smoke_stream_mr1 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=1964 MB/s=2.08 total=57830
+[align] 進度 [httpsink] t=64s lines/s=1975 MB/s=2.09 total=117236
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=8.5ms sink_total=118762 expected=118761 backlog=-1 win_out_eps=1979 win_out_mb_s=2.091 oom=false malformed=3154 malformed_keep_slot=1238

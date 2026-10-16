@@ -1,0 +1,13 @@
+[2026-10-15T14:51:26+08:00] run_suite.sh start pid=774252 image=wcm-base-log-forwarder:suite runs=/home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_suite/runs dryrun=0 smoke=0
+[2026-10-15T14:51:29+08:00] Phase 0 已完成（/home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_suite/runs/phase0_decision.txt）：BEST_K=256
+[2026-10-15T14:51:29+08:00] ===== PHASE 1: pattern experiments (WCM-stream = k256) =====
+[2026-10-15T14:51:31+08:00] PHASE1-P1 SUMMARY: P1a: batch@0%=3/3 batch@0.1%=3/3 batch@1%=3/3 batch@5%=3/3 batch@20%=3/3 stream@0%=3/3 stream@0.1%=3/3 stream@1%=3/3 stream@5%=3/3 stream@20%=3/3 | timeout runs host: t1000=alive t5000=alive t30000=alive 
+[2026-10-15T14:51:31+08:00] PHASE1-P2 SUMMARY: P2: k1 cap=0/0/0 p99@5k=64445.538ms; k16 cap=15750/17500/14750 p99@5k=126.891ms; k64 cap=21500/21500/18500 p99@5k=132.738ms; k256 cap=25000/25000/20000 p99@5k=140.931ms;
+[2026-10-15T14:51:33+08:00] PHASE1-P4 SUMMARY: P4: cpu@15k epoch_on=83.838/84.271/83.864/ epoch_off=77.006/76.785/78.426/ reuse_off=90.244/91.263/90.590/ p99 on/off=181.162/155.790ms | noepoch loop host=alive
+[2026-10-15T14:51:34+08:00] PHASE1-P5 SUMMARY: net_sockdeny=outcome=REFUSED_AT_LOAD capdeny=outcome=REFUSED_AT_LOAD | net_inert: PROBE net target=127.0.0.1:8080 outcome=DENIED | file: PROBE file path=/etc/passwd outcome=DENIED | env: PROBE env vars=0 bytes=0 outcome=DENIED(empty) | loadcheck rows=52
+[2026-10-15T14:51:34+08:00] ===== PHASE 2: five-product method 3 (WCM-stream = k256) =====
+[2026-10-15T14:51:34+08:00] lat fluentd 5000 m3_W0.01_r3 conf=fluentd_m3_W0.01.conf 
+[2026-10-15T14:54:51+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99 = 2006.788 ms | cpu_mean=32.169%
+[2026-10-15T14:54:51+08:00] PHASE2 LAT p99@5k(r1): fbit-lua=31.481/117.452/741.754/1021.497/ fluentd=57.840/128.103/524.634/1383.761/ vector=85.734/163.449/557.238/1130.029/ fbit-wasm=17702.030/13161.679/11771.421/12773.028/ wcm-batch=48.432/168.510/653.933/735.933/ wcm-stream=56.368/140.931/521.037/1014.911/
+[2026-10-15T14:54:52+08:00] PHASE2 CAP: fbit-lua=39000/55500/67500/64500/ (W0.1 r2/r3 58500/58500); fluentd=20500/41500/38000/45000/ (W0.1 r2/r3 36500/36500); vector=11750/14250/14250/13750/ (W0.1 r2/r3 11750/11750); fbit-wasm=4000/5000/5200/5200/ (W0.1 r2/r3 4200/4400); wcm-batch=13500/21750/22750/18750/ (W0.1 r2/r3 20500/20000); wcm-stream=13250/25000/25000/20000/ (W0.1 r2/r3 25000/20000);
+[2026-10-15T14:54:52+08:00] DONE 2026-10-15T14:54:52+08:00 BEST_K=256 units_run=1 units_skipped=209 ratio_best_stream_over_batch=1.149 stream_ge_0.95x_batch=YES 

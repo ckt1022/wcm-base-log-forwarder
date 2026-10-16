@@ -1,0 +1,25 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=25000 mode=cap tag=stream_k256_W0.1_r3 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=7986 MB/s=8.44 total=223297
+[align] 進度 [httpsink] t=64s lines/s=7680 MB/s=8.12 total=451240
+FAIL rate=25000 gen_avg=20240/s gen_mb_s=20.746 lag_p99=11078ms lag_max=11077.8ms sink_total=497713 expected=497712 backlog=31317 win_out_eps=7593 win_out_mb_s=8.026 oom=false reasons=gen_blocked(avg=20240/25000,lag_p99=11078.0ms);backlog=31317>30000
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=22000 mode=cap tag=stream_k256_W0.1_r3 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=7987 MB/s=8.44 total=230138
+[align] 進度 [httpsink] t=64s lines/s=7783 MB/s=8.23 total=462586
+FAIL rate=22000 gen_avg=20660/s gen_mb_s=21.176 lag_p99=3460ms lag_max=3460.1ms sink_total=516603 expected=516602 backlog=31385 win_out_eps=7786 win_out_mb_s=8.230 oom=false reasons=gen_blocked(avg=20660/22000,lag_p99=3460.0ms);backlog=31385>26400
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=19250 mode=cap tag=stream_k256_W0.1_r3 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=7969 MB/s=8.42 total=222727
+[align] 進度 [httpsink] t=64s lines/s=7826 MB/s=8.27 total=450347
+PASS rate=19250 gen_avg=19250/s gen_mb_s=19.731 lag_p99=5ms lag_max=15.5ms sink_total=461992 expected=461991 backlog=3550 win_out_eps=7577 win_out_mb_s=8.009 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=20750 mode=cap tag=stream_k256_W0.1_r3 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=7885 MB/s=8.33 total=227564
+[align] 進度 [httpsink] t=64s lines/s=8192 MB/s=8.66 total=463801
+FAIL rate=20750 gen_avg=20750/s gen_mb_s=21.268 lag_p99=5ms lag_max=19.3ms sink_total=498000 expected=497999 backlog=26518 win_out_eps=7851 win_out_mb_s=8.298 oom=false reasons=backlog=26518>24900
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=20000 mode=cap tag=stream_k256_W0.1_r3 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=7730 MB/s=8.17 total=227429
+[align] 進度 [httpsink] t=64s lines/s=7782 MB/s=8.23 total=461403
+PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=25.9ms sink_total=479997 expected=479996 backlog=10810 win_out_eps=7785 win_out_mb_s=8.228 oom=false

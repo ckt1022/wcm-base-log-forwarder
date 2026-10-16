@@ -1,0 +1,174 @@
+═══════ fluentd:flush_thread_interval 寫死 0.1,只需一次 ═══════
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fluentd/lat_rate_140800/sink.log)
+[cap] dut=fluentd rate=140800 mode=lat load=90s flush=0.1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:140800 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fluentd/lat_rate_140800/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fluentd/lat_rate_140800/sink.log)
+[cap] 進度 [httpsink] t=35s lines/s=56558 MB/s=11.42 total=1648841
+[cap] 進度 [httpsink] t=65s lines/s=56564 MB/s=11.42 total=3340377
+[cap] 進度 [httpsink] t=95s lines/s=56630 MB/s=11.43 total=5031691
+[cap] gen 完成,drain 10s 後關閉並判定
+PASS rate=140800 gen_avg=140798/s gen_mb_s=22.487 lag_p99=5ms lag_max=6.3ms sink_total=5068764 expected=5068763 backlog=-1 win_out_eps=56356 win_out_mb_s=11.373 oom=false
+[calc] ── 穩態延遲統計(第 15~85 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/fluentd/lat_rate_140800/latency_worker_1.csv
+[calc] 窗口內 3942572 筆 / 全部 5068764 筆
+[calc]   mean   =     57.649 ms
+[calc]   min    =      3.803 ms
+[calc]   p50    =     57.648 ms
+[calc]   p90    =     97.822 ms
+[calc]   p95    =    102.844 ms
+[calc]   p99    =    107.026 ms
+[calc]   p99.9  =    113.302 ms
+[calc]   max    =    126.817 ms
+═══════ fbit-lua 階梯:flush 0.1/0.05/0.02/0.01 @ 236800 ═══════
+── fbit-lua flush=0.1 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] dut=fbit-lua rate=236800 mode=cap load=25s flush=0.1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:236800 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=236800 gen_avg=236788/s gen_mb_s=37.810 lag_p99=5ms lag_max=3.8ms sink_total=2367989 expected=2367988 backlog=-1 win_out_eps=94724 win_out_mb_s=19.019 oom=false
+── fbit-lua flush=0.05 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] dut=fbit-lua rate=236800 mode=cap load=25s flush=0.05s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:236800 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=236800 gen_avg=236788/s gen_mb_s=37.808 lag_p99=5ms lag_max=3.8ms sink_total=2367961 expected=2367960 backlog=-1 win_out_eps=94719 win_out_mb_s=19.020 oom=false
+── fbit-lua flush=0.02 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] dut=fbit-lua rate=236800 mode=cap load=25s flush=0.02s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:236800 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=236800 gen_avg=236788/s gen_mb_s=37.813 lag_p99=5ms lag_max=2.2ms sink_total=2367949 expected=2367947 backlog=45128 win_out_eps=94713 win_out_mb_s=19.021 oom=false
+── fbit-lua flush=0.01 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] dut=fbit-lua rate=236800 mode=cap load=25s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:236800 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/cap_rate_236800/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=236800 gen_avg=236788/s gen_mb_s=37.810 lag_p99=5ms lag_max=7.2ms sink_total=2367913 expected=2367912 backlog=41217 win_out_eps=94730 win_out_mb_s=19.023 oom=false
+LADDER_MIN dut=fbit-lua min_flush=0.01
+── fbit-lua 延遲量測 @ flush=0.01 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/lat_rate_236800/sink.log)
+[cap] dut=fbit-lua rate=236800 mode=lat load=90s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:236800 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/lat_rate_236800/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/lat_rate_236800/sink.log)
+[cap] 進度 [httpsink] t=33s lines/s=94688 MB/s=19.02 total=2795449
+[cap] 進度 [httpsink] t=63s lines/s=94779 MB/s=19.04 total=5637159
+[cap] 進度 [httpsink] t=93s lines/s=94698 MB/s=19.02 total=8478675
+[cap] gen 完成,drain 10s 後關閉並判定
+PASS rate=236800 gen_avg=236796/s gen_mb_s=37.810 lag_p99=5ms lag_max=3.6ms sink_total=8524749 expected=8524748 backlog=46073 win_out_eps=94721 win_out_mb_s=19.025 oom=false
+[calc] ── 穩態延遲統計(第 15~85 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/fbit-lua/lat_rate_236800/latency_worker_1.csv
+[calc] 窗口內 6630440 筆 / 全部 8524749 筆
+[calc]   mean   =      8.963 ms
+[calc]   min    =      2.448 ms
+[calc]   p50    =      8.957 ms
+[calc]   p90    =     12.968 ms
+[calc]   p95    =     13.540 ms
+[calc]   p99    =     14.319 ms
+[calc]   p99.9  =     15.338 ms
+[calc]   max    =     20.702 ms
+═══════ fbit-wasm 階梯:flush 0.1/0.05/0.02/0.01 @ 19200 ═══════
+── fbit-wasm flush=0.1 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] dut=fbit-wasm rate=19200 mode=cap load=25s flush=0.1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:19200 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=19200 gen_avg=19199/s gen_mb_s=3.062 lag_p99=5ms lag_max=2.0ms sink_total=191999 expected=191998 backlog=-1 win_out_eps=7678 win_out_mb_s=1.539 oom=false
+── fbit-wasm flush=0.05 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] dut=fbit-wasm rate=19200 mode=cap load=25s flush=0.05s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:19200 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=19200 gen_avg=19199/s gen_mb_s=3.068 lag_p99=5ms lag_max=2.7ms sink_total=191994 expected=191993 backlog=-1 win_out_eps=7684 win_out_mb_s=1.543 oom=false
+── fbit-wasm flush=0.02 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] dut=fbit-wasm rate=19200 mode=cap load=25s flush=0.02s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:19200 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=19200 gen_avg=19199/s gen_mb_s=3.068 lag_p99=5ms lag_max=4.0ms sink_total=191995 expected=191994 backlog=-1 win_out_eps=7678 win_out_mb_s=1.541 oom=false
+── fbit-wasm flush=0.01 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] dut=fbit-wasm rate=19200 mode=cap load=25s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:19200 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/cap_rate_19200/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=19200 gen_avg=19199/s gen_mb_s=3.068 lag_p99=5ms lag_max=2.5ms sink_total=191997 expected=191996 backlog=3667 win_out_eps=7682 win_out_mb_s=1.542 oom=false
+LADDER_MIN dut=fbit-wasm min_flush=0.01
+── fbit-wasm 延遲量測 @ flush=0.01 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/lat_rate_19200/sink.log)
+[cap] dut=fbit-wasm rate=19200 mode=lat load=90s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:19200 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/lat_rate_19200/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-wasm/lat_rate_19200/sink.log)
+[cap] 進度 [httpsink] t=33s lines/s=7648 MB/s=1.53 total=226519
+[cap] 進度 [httpsink] t=63s lines/s=7636 MB/s=1.53 total=456947
+[cap] 進度 [httpsink] t=93s lines/s=7636 MB/s=1.53 total=687347
+[cap] gen 完成,drain 10s 後關閉並判定
+PASS rate=19200 gen_avg=19200/s gen_mb_s=3.059 lag_p99=5ms lag_max=6.2ms sink_total=691197 expected=691195 backlog=3848 win_out_eps=7680 win_out_mb_s=1.539 oom=false
+[calc] ── 穩態延遲統計(第 15~85 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/fbit-wasm/lat_rate_19200/latency_worker_1.csv
+[calc] 窗口內 537632 筆 / 全部 691197 筆
+[calc]   mean   =     22.562 ms
+[calc]   min    =     13.621 ms
+[calc]   p50    =     22.196 ms
+[calc]   p90    =     28.143 ms
+[calc]   p95    =     30.902 ms
+[calc]   p99    =     34.226 ms
+[calc]   p99.9  =     35.353 ms
+[calc]   max    =     39.578 ms
+═══════ vector 階梯:flush 0.1/0.05/0.02/0.01 @ 49600 ═══════
+── vector flush=0.1 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] dut=vector rate=49600 mode=cap load=25s flush=0.1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:49600 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=49600 gen_avg=49597/s gen_mb_s=7.921 lag_p99=5ms lag_max=2.3ms sink_total=495983 expected=495982 backlog=-1 win_out_eps=19805 win_out_mb_s=3.860 oom=false
+── vector flush=0.05 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] dut=vector rate=49600 mode=cap load=25s flush=0.05s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:49600 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=49600 gen_avg=49598/s gen_mb_s=7.919 lag_p99=5ms lag_max=2.3ms sink_total=495991 expected=495990 backlog=10516 win_out_eps=19828 win_out_mb_s=3.864 oom=false
+── vector flush=0.02 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] dut=vector rate=49600 mode=cap load=25s flush=0.02s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:49600 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=49600 gen_avg=49597/s gen_mb_s=7.921 lag_p99=5ms lag_max=2.4ms sink_total=495988 expected=495987 backlog=9472 win_out_eps=19844 win_out_mb_s=3.868 oom=false
+── vector flush=0.01 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] dut=vector rate=49600 mode=cap load=25s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:49600 eps × 25s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/cap_rate_49600/sink.log)
+[cap] gen 完成,drain 8s 後關閉並判定
+PASS rate=49600 gen_avg=49597/s gen_mb_s=7.921 lag_p99=5ms lag_max=2.3ms sink_total=495987 expected=495986 backlog=9448 win_out_eps=19824 win_out_mb_s=3.864 oom=false
+LADDER_MIN dut=vector min_flush=0.01
+── vector 延遲量測 @ flush=0.01 ──
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/lat_rate_49600/sink.log)
+[cap] dut=vector rate=49600 mode=lat load=90s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:49600 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/lat_rate_49600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/lat_rate_49600/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=19793 MB/s=3.86 total=585469
+[cap] 進度 [httpsink] t=64s lines/s=19786 MB/s=3.86 total=1180687
+[cap] 進度 [httpsink] t=94s lines/s=19795 MB/s=3.86 total=1776074
+[cap] gen 完成,drain 10s 後關閉並判定
+PASS rate=49600 gen_avg=49599/s gen_mb_s=7.920 lag_p99=5ms lag_max=4.3ms sink_total=1785593 expected=1785591 backlog=9517 win_out_eps=19839 win_out_mb_s=3.866 oom=false
+[calc] ── 穩態延遲統計(第 15~85 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/vector/lat_rate_49600/latency_worker_1.csv
+[calc] 窗口內 1388832 筆 / 全部 1785593 筆
+[calc]   mean   =     19.090 ms
+[calc]   min    =      6.513 ms
+[calc]   p50    =     19.089 ms
+[calc]   p90    =     27.387 ms
+[calc]   p95    =     28.464 ms
+[calc]   p99    =     29.718 ms
+[calc]   p99.9  =     30.984 ms
+[calc]   max    =     43.720 ms

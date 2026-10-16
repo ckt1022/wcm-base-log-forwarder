@@ -1,0 +1,11 @@
+trial rate=25000 PASS
+trial rate=50000 FAIL
+trial rate=37500 FAIL
+trial rate=31200 FAIL
+trial rate=28100 FAIL
+trial rate=26500 PASS
+trial rate=27300 PASS
+trial rate=27300 FAIL
+CAPACITY dut=fluentd eps=27300 first_fail=28100 confirmed=NO(重跑失敗,需人工檢視)
+trial rate=26500 PASS (fallback confirmation)
+CAPACITY dut=fluentd eps=26500 first_unstable=27300 confirmed=yes

@@ -1,0 +1,23 @@
+# Method 3 — latency at 5,000 EPS, time-dominated batching, W in {0.01, 0.1, 0.5, 1.0}
+# All points (incl. W=1.0 of FB Lua/WASM) are re-measured under the current clock with clock-step correction.
+# WCM W=1.0 (= wcm-tw128) is scheduled last (queue_last.txt).
+wcm 5000 lat m2_vol1MiB conf/wcm_b1.yaml
+fbit-lua 5000 lat m3_W0.01 conf/fbit_lua_flush_0.01.conf
+fluentd 5000 lat m3_W0.01 conf/fluentd_m3_W0.01.conf
+vector 5000 lat m3_W0.01 conf/vector_align.yaml FLUSH_INTERVAL=0.01
+wcm 5000 lat m3_W0.01 conf/wcm_tw128_wait10.yaml
+fbit-wasm 5000 lat m3_W0.01 conf/fbit_wasm_flush_0.01.conf
+fbit-lua 5000 lat m3_W0.1 conf/fbit_lua_flush_0.1.conf
+fluentd 5000 lat m3_W0.1 conf/fluentd_m3_W0.1.conf
+vector 5000 lat m3_W0.1 conf/vector_align.yaml FLUSH_INTERVAL=0.1
+wcm 5000 lat m3_W0.1 conf/wcm_tw128_wait100.yaml
+fbit-wasm 5000 lat m3_W0.1 conf/fbit_wasm_flush_0.1.conf
+fbit-lua 5000 lat m3_W0.5 conf/fbit_lua_flush_0.5.conf
+fluentd 5000 lat m3_W0.5 conf/fluentd_m3_W0.5.conf
+vector 5000 lat m3_W0.5 conf/vector_align.yaml FLUSH_INTERVAL=0.5
+wcm 5000 lat m3_W0.5 conf/wcm_tw128_wait500.yaml
+fbit-wasm 5000 lat m3_W0.5 conf/fbit_wasm_flush_0.5.conf
+fbit-lua 5000 lat m3_W1 conf/fbit_lua_flush_1.conf
+fluentd 5000 lat m3_W1 conf/fluentd_m3_W1.conf
+vector 5000 lat m3_W1 conf/vector_align.yaml FLUSH_INTERVAL=1
+fbit-wasm 5000 lat m3_W1 conf/fbit_wasm_flush_1.conf

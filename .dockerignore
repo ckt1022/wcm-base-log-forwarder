@@ -1,0 +1,12 @@
+# docker build 只需要 Cargo.toml / Cargo.lock / src / wit，
+# 其餘（尤其 target 與測試資料）排除以縮小 build context。
+target/
+test/
+test-plugins/
+tools/
+script/
+.git/
+*.log
+*.csv
+*.pdf
+*.md

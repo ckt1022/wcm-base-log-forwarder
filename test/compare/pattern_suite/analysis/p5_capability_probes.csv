@@ -1,0 +1,6 @@
+probe,grant,where,reps,outcomes,records_lost,host,refusal_elapsed_s,detail
+FAULT_NET,sockets: deny（只授權 filesystem: inert）,載入期,3,REFUSED_AT_LOAD REFUSED_AT_LOAD REFUSED_AT_LOAD,n/a (never started),exit 1 at load,0.289 0.263 0.317,7 個未授權 import
+FAULT_FILE/ENV,全部 deny（無 capabilities: 區塊）,載入期,3,REFUSED_AT_LOAD REFUSED_AT_LOAD REFUSED_AT_LOAD,n/a (never started),exit 1 at load,0.256 0.258 0.263,9 個未授權 import
+FAULT_NET,filesystem: inert + sockets: inert,執行期,3,DENIED DENIED DENIED,0 0 0,alive alive alive,,FAULT_NET blocked: connect 127.0.0.1:8080 failed: kind=PermissionDenied err=Permission den
+FAULT_FILE,filesystem: inert + sockets: inert,執行期,3,DENIED DENIED DENIED,0 0 0,alive alive alive,,FAULT_FILE blocked: kind=Uncategorized err=failed to find a pre-opened file descriptor thr
+FAULT_ENV,filesystem: inert + sockets: inert,執行期,3,DENIED(empty) DENIED(empty) DENIED(empty),0 0 0,alive alive alive,,vars=0 bytes=0

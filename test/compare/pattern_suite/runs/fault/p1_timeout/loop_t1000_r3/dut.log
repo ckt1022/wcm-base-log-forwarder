@@ -1,0 +1,21 @@
+[config] processing_mode=streaming：輸入端 micro-batch（256 筆 或 第一筆後 5 ms 即送 parse）；輸出端 router 每 max_wait_ms=100 ms 週期 flush（同 Fluent Bit 全域 Flush），或 endpoint buffer 達 max_transport_bytes=134217728 B 時立即送出
+=== WCM Log Forwarder ===
+Memory Limit : 128 MB
+Buffer Size  : 1 MB
+Stages       : parse → filter → format → transport
+========================
+[config] epoch_interruption=true
+Stage impl   : parse=wcm filter=wcm format=wcm transport=wcm
+[mem-guard] disabled: cgroup memory.current/memory.max 不可讀或無上限
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:47242
+[tcp-input] 127.0.0.1:47242 disconnected
+[tcp-input] accepted 127.0.0.1:47258
+[worker0][trap 1/2] batch=750: error while executing at wasm backtrace:
+    0:   0x384e - <unknown>!<wasm function 61>
+[worker0][trap 2/2] batch=750: error while executing at wasm backtrace:
+    0:   0x384e - <unknown>!<wasm function 61>
+[worker0][trap] exceeded retries, isolating batch 750 (100 lines) by bounded bisection
+[worker0][parse-isolate] batch=750 reason=trap lines=100 salvaged=99 rejected=1 calls=12 trap_calls=12 budget_exhausted=false last_error=error while executing at wasm backtrace:
+[tcp-input] 127.0.0.1:47258 disconnected

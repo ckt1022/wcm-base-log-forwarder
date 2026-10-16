@@ -1,0 +1,65 @@
+[search] === wcm-v2 @ 96000 eps ===
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_96000/sink.log)
+[cap] dut=wcm-v2 rate=96000 mode=cap load=60s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:96000 eps × 60s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_96000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_96000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=21130 MB/s=4.27 total=1098941
+[cap] 進度 [httpsink] t=64s lines/s=42260 MB/s=8.58 total=2261069
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=96000 gen_avg=95998/s gen_mb_s=15.340 lag_p99=5ms lag_max=2.6ms sink_total=2303981 expected=2303979 backlog=652 win_out_eps=38456 win_out_mb_s=7.771 oom=false
+[search] === wcm-v2 @ 192000 eps ===
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_192000/sink.log)
+[cap] dut=wcm-v2 rate=192000 mode=cap load=60s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:192000 eps × 60s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_192000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_192000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42310 MB/s=8.54 total=1296753
+[cap] 進度 [httpsink] t=64s lines/s=42311 MB/s=8.58 total=2601006
+[cap] gen 完成,drain 20s 後關閉並判定
+FAIL rate=192000 gen_avg=120223/s gen_mb_s=19.182 lag_p99=22042ms lag_max=22041.9ms sink_total=3015599 expected=3015597 backlog=282298 win_out_eps=43585 win_out_mb_s=8.811 oom=false reasons=gen_blocked(avg=120223/192000,lag_p99=22042.0ms);backlog=282298>230400
+[search] === wcm-v2 @ 144000 eps ===
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_144000/sink.log)
+[cap] dut=wcm-v2 rate=144000 mode=cap load=60s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:144000 eps × 60s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_144000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_144000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42290 MB/s=8.54 total=1501327
+[cap] 進度 [httpsink] t=64s lines/s=42290 MB/s=8.58 total=3066027
+[cap] gen 完成,drain 20s 後關閉並判定
+FAIL rate=144000 gen_avg=143997/s gen_mb_s=22.995 lag_p99=1647ms lag_max=1646.7ms sink_total=3455939 expected=3455938 backlog=347622 win_out_eps=52439 win_out_mb_s=10.606 oom=false reasons=gen_blocked(avg=143997/144000,lag_p99=1647.0ms);backlog=347622>172800
+[search] === wcm-v2 @ 120000 eps ===
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_120000/sink.log)
+[cap] dut=wcm-v2 rate=120000 mode=cap load=60s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:120000 eps × 60s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_120000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_120000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=63388 MB/s=12.80 total=1394575
+[cap] 進度 [httpsink] t=64s lines/s=63389 MB/s=12.87 total=2831388
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=120000 gen_avg=119997/s gen_mb_s=19.176 lag_p99=5ms lag_max=6.3ms sink_total=2879976 expected=2879975 backlog=6328 win_out_eps=48176 win_out_mb_s=9.746 oom=false
+[search] === wcm-v2 @ 132000 eps ===
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_132000/sink.log)
+[cap] dut=wcm-v2 rate=132000 mode=cap load=60s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:132000 eps × 60s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_132000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_132000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42284 MB/s=8.54 total=1522347
+[cap] 進度 [httpsink] t=64s lines/s=42284 MB/s=8.58 total=3107997
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=132000 gen_avg=131997/s gen_mb_s=21.081 lag_p99=5ms lag_max=3.4ms sink_total=3167992 expected=3167991 backlog=17710 win_out_eps=52855 win_out_mb_s=10.692 oom=false
+[search] === wcm-v2 @ 138000 eps ===
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_138000/sink.log)
+[cap] dut=wcm-v2 rate=138000 mode=cap load=60s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:138000 eps × 60s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_138000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_138000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=63435 MB/s=12.81 total=1501328
+[cap] 進度 [httpsink] t=64s lines/s=63436 MB/s=12.87 total=3066071
+[cap] gen 完成,drain 20s 後關閉並判定
+FAIL rate=138000 gen_avg=137997/s gen_mb_s=22.036 lag_p99=5ms lag_max=3.6ms sink_total=3311977 expected=3311976 backlog=203615 win_out_eps=52440 win_out_mb_s=10.606 oom=false reasons=backlog=203615>165600
+[search] === 容量點確認重跑: wcm-v2 @ 132000 ===
+[search] === wcm-v2 @ 132000 eps ===
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_132000/sink.log)
+[cap] dut=wcm-v2 rate=132000 mode=cap load=60s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:132000 eps × 60s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_132000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-v2/cap_rate_132000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42284 MB/s=8.54 total=1479961
+[cap] 進度 [httpsink] t=64s lines/s=42284 MB/s=8.58 total=3044469
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=132000 gen_avg=131997/s gen_mb_s=21.081 lag_p99=5ms lag_max=4.3ms sink_total=3167959 expected=3167958 backlog=81205 win_out_eps=52009 win_out_mb_s=10.520 oom=false
+CAPACITY dut=wcm-v2 eps=132000 first_fail=138000 confirmed=yes

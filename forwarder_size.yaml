@@ -1,0 +1,72 @@
+# WCM Log Forwarder Configuration
+# All plugin paths are relative to this file's directory (or absolute).
+
+# 使用哪些階段，若有階段未啟用，預設使用RUST原生處理
+# 
+# (以下尚未實作)
+# Parse:Default為解析json，只做最簡單的時間戳、日誌內容、日誌層級解析，預設endpoint標籤為A
+# Filter:Default為不開啟就不做任何事情
+# Format:Default為組合成json。
+# Transport:Default傳遞
+
+plugins:
+  # C# Parser
+  #parse: "test-plugins/csharp-plugin/parse/parser_csharp.wasm"
+  #parse: "test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm"
+  # C  Parser
+  parse: "test-plugins/c-plugin/parse/parser_c_json.wasm"
+  #parse: "test-plugins/c-plugin/parse_access/parser_c_access.wasm"
+  #parse: "test-plugins/c-plugin/parse_bad/parser_c_bad.wasm"
+  # GO Parser
+  #parse: "test-plugins/go-plugin/parse/parser_json.wasm"
+  #parse: "test-plugins/go-plugin/parse/parser_sys.wasm"
+  #parse: "test-plugins/go-plugin/parse/parser_fmt.wasm"
+  parse_noop: ~
+
+  # 缺少C的過濾
+  filter: "test-plugins/csharp-plugin/filter/filter_csharp.wasm"
+
+  format: "test-plugins/c-plugin/format/format_json-flat.wasm"
+
+  # 缺少C的transport
+  #transport: "test-plugins/rust-plugin/transport/target/wasm32-unknown-unknown/release/transport_component.wasm"
+
+# Which pipeline stages to enable
+stages:
+  filter: true
+  format: true
+  transport: true
+
+# Input source — choose one mode
+input:
+  mode: tcp       # "tcp" | "tail"
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+  tail:
+    path: "/tmp/test-logs.log"
+
+# Batch processing parameters (hot-reloadable at runtime)
+batch:
+  processing_mode: batch   # 明確指定整批模式（2026-10-15 程式預設將改為 streaming）
+  mem_limit_mb: 256
+  # parse buffer 大小觸發閾值（MB），需 <= mem_limit_mb 的 70%（差距 > 30%）
+  buffer_size_mb: 128
+  max_wait_ms: 100
+  channel_capacity: 150000
+  max_format_chunk: 50000
+  max_transport_bytes: 131072
+  transport_workers: 5
+  # parse→filter / filter→format / format→transport 三條 pipeline channel 容量
+  pipeline_channel_capacity: 20000
+  # 每個階段 WASM 呼叫超時上限（ms）；超過後重試最多 2 次，均失敗寫入 error.txt
+  stage_timeout_ms: 5000
+
+# 後端transport的標籤，可以有多個，以字母方式排序。
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+  B: "http://127.0.0.1:8000/ingest"
+  C: "http://127.0.0.1:5000/ingest"
+
+# How often (seconds) to re-read this file and apply changes
+config_reload_secs: 10

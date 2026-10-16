@@ -1,0 +1,468 @@
+[micro] stage=parse lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=3.958 ms  ns/record=3865  rec/s=258747
+[micro]   B=    4 calls=  256 median_total=3.207 ms  ns/record=3132  rec/s=319270
+[micro]   B=   16 calls=   64 median_total=3.161 ms  ns/record=3087  rec/s=323934
+[micro]   B=   64 calls=   16 median_total=2.999 ms  ns/record=2928  rec/s=341488
+[micro]   B=  256 calls=    4 median_total=2.959 ms  ns/record=2889  rec/s=346084
+[micro]   B= 1024 calls=    1 median_total=3.879 ms  ns/record=3788  rec/s=263971
+[micro] stage=filter lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=1.697 ms  ns/record=1657  rec/s=603340
+[micro]   B=    4 calls=  256 median_total=1.040 ms  ns/record=1016  rec/s=984587
+[micro]   B=   16 calls=   64 median_total=0.907 ms  ns/record=886  rec/s=1128516
+[micro]   B=   64 calls=   16 median_total=0.863 ms  ns/record=843  rec/s=1185891
+[micro]   B=  256 calls=    4 median_total=0.853 ms  ns/record=833  rec/s=1199979
+[micro]   B= 1024 calls=    1 median_total=0.848 ms  ns/record=828  rec/s=1207067
+[micro] stage=format lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=5.047 ms  ns/record=4929  rec/s=202881
+[micro]   B=    4 calls=  256 median_total=4.439 ms  ns/record=4335  rec/s=230698
+[micro]   B=   16 calls=   64 median_total=4.158 ms  ns/record=4060  rec/s=246289
+[micro]   B=   64 calls=   16 median_total=4.019 ms  ns/record=3925  rec/s=254790
+[micro]   B=  256 calls=    4 median_total=3.996 ms  ns/record=3902  rec/s=256249
+[micro]   B= 1024 calls=    1 median_total=4.025 ms  ns/record=3931  rec/s=254412
+[micro] stage=parse lang=c mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=6.732 ms  ns/record=6574  rec/s=152117
+[micro]   B=    4 calls=  256 median_total=5.398 ms  ns/record=5271  rec/s=189702
+[micro]   B=   16 calls=   64 median_total=5.308 ms  ns/record=5184  rec/s=192911
+[micro]   B=   64 calls=   16 median_total=5.222 ms  ns/record=5099  rec/s=196110
+[micro]   B=  256 calls=    4 median_total=5.655 ms  ns/record=5523  rec/s=181067
+[micro]   B= 1024 calls=    1 median_total=5.153 ms  ns/record=5032  rec/s=198710
+[micro] stage=filter lang=c mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=2.414 ms  ns/record=2358  rec/s=424146
+[micro]   B=    4 calls=  256 median_total=1.759 ms  ns/record=1718  rec/s=582079
+[micro]   B=   16 calls=   64 median_total=1.510 ms  ns/record=1475  rec/s=678022
+[micro]   B=   64 calls=   16 median_total=1.455 ms  ns/record=1421  rec/s=703677
+[micro]   B=  256 calls=    4 median_total=1.953 ms  ns/record=1907  rec/s=524361
+[micro]   B= 1024 calls=    1 median_total=1.448 ms  ns/record=1414  rec/s=707347
+[micro] stage=format lang=c mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=5.267 ms  ns/record=5143  rec/s=194423
+[micro]   B=    4 calls=  256 median_total=4.735 ms  ns/record=4624  rec/s=216281
+[micro]   B=   16 calls=   64 median_total=4.556 ms  ns/record=4450  rec/s=224737
+[micro]   B=   64 calls=   16 median_total=4.561 ms  ns/record=4454  rec/s=224518
+[micro]   B=  256 calls=    4 median_total=4.503 ms  ns/record=4397  rec/s=227414
+[micro]   B= 1024 calls=    1 median_total=4.282 ms  ns/record=4181  rec/s=239158
+[micro] stage=parse lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=4.196 ms  ns/record=4097  rec/s=244059
+[micro]   B=    4 calls=  256 median_total=3.430 ms  ns/record=3350  rec/s=298508
+[micro]   B=   16 calls=   64 median_total=3.301 ms  ns/record=3223  rec/s=310246
+[micro]   B=   64 calls=   16 median_total=3.376 ms  ns/record=3297  rec/s=303273
+[micro]   B=  256 calls=    4 median_total=3.382 ms  ns/record=3302  rec/s=302817
+[micro]   B= 1024 calls=    1 median_total=4.317 ms  ns/record=4216  rec/s=237197
+[micro] stage=filter lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=1.789 ms  ns/record=1747  rec/s=572465
+[micro]   B=    4 calls=  256 median_total=1.085 ms  ns/record=1059  rec/s=943966
+[micro]   B=   16 calls=   64 median_total=0.947 ms  ns/record=925  rec/s=1081501
+[micro]   B=   64 calls=   16 median_total=0.897 ms  ns/record=876  rec/s=1141911
+[micro]   B=  256 calls=    4 median_total=0.890 ms  ns/record=870  rec/s=1150052
+[micro]   B= 1024 calls=    1 median_total=0.890 ms  ns/record=869  rec/s=1150659
+[micro] stage=format lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=5.305 ms  ns/record=5181  rec/s=193030
+[micro]   B=    4 calls=  256 median_total=4.595 ms  ns/record=4488  rec/s=222835
+[micro]   B=   16 calls=   64 median_total=4.310 ms  ns/record=4209  rec/s=237578
+[micro]   B=   64 calls=   16 median_total=4.217 ms  ns/record=4118  rec/s=242820
+[micro]   B=  256 calls=    4 median_total=4.290 ms  ns/record=4190  rec/s=238677
+[micro]   B= 1024 calls=    1 median_total=4.453 ms  ns/record=4349  rec/s=229952
+[micro] stage=parse lang=c mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=6.491 ms  ns/record=6339  rec/s=157749
+[micro]   B=    4 calls=  256 median_total=5.434 ms  ns/record=5307  rec/s=188448
+[micro]   B=   16 calls=   64 median_total=5.162 ms  ns/record=5041  rec/s=198355
+[micro]   B=   64 calls=   16 median_total=5.073 ms  ns/record=4955  rec/s=201834
+[micro]   B=  256 calls=    4 median_total=4.995 ms  ns/record=4878  rec/s=205011
+[micro]   B= 1024 calls=    1 median_total=4.948 ms  ns/record=4832  rec/s=206953
+[micro] stage=filter lang=c mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=2.321 ms  ns/record=2266  rec/s=441261
+[micro]   B=    4 calls=  256 median_total=1.670 ms  ns/record=1631  rec/s=613095
+[micro]   B=   16 calls=   64 median_total=1.463 ms  ns/record=1429  rec/s=699833
+[micro]   B=   64 calls=   16 median_total=1.445 ms  ns/record=1411  rec/s=708566
+[micro]   B=  256 calls=    4 median_total=1.407 ms  ns/record=1374  rec/s=727975
+[micro]   B= 1024 calls=    1 median_total=1.391 ms  ns/record=1358  rec/s=736209
+[micro] stage=format lang=c mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=5.104 ms  ns/record=4985  rec/s=200613
+[micro]   B=    4 calls=  256 median_total=4.350 ms  ns/record=4248  rec/s=235383
+[micro]   B=   16 calls=   64 median_total=4.171 ms  ns/record=4074  rec/s=245481
+[micro]   B=   64 calls=   16 median_total=4.205 ms  ns/record=4107  rec/s=243503
+[micro]   B=  256 calls=    4 median_total=4.220 ms  ns/record=4122  rec/s=242628
+[micro]   B= 1024 calls=    1 median_total=3.944 ms  ns/record=3852  rec/s=259629
+[micro] stage=parse lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=3.957 ms  ns/record=3864  rec/s=258794
+[micro]   B=    4 calls=  256 median_total=3.205 ms  ns/record=3129  rec/s=319548
+[micro]   B=   16 calls=   64 median_total=3.085 ms  ns/record=3013  rec/s=331900
+[micro]   B=   64 calls=   16 median_total=3.033 ms  ns/record=2962  rec/s=337586
+[micro]   B=  256 calls=    4 median_total=3.029 ms  ns/record=2958  rec/s=338049
+[micro]   B= 1024 calls=    1 median_total=3.886 ms  ns/record=3794  rec/s=263539
+[micro] stage=filter lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=1.721 ms  ns/record=1681  rec/s=594900
+[micro]   B=    4 calls=  256 median_total=1.034 ms  ns/record=1010  rec/s=990162
+[micro]   B=   16 calls=   64 median_total=0.879 ms  ns/record=859  rec/s=1164572
+[micro]   B=   64 calls=   16 median_total=0.835 ms  ns/record=816  rec/s=1225737
+[micro]   B=  256 calls=    4 median_total=0.827 ms  ns/record=807  rec/s=1238508
+[micro]   B= 1024 calls=    1 median_total=0.821 ms  ns/record=801  rec/s=1247992
+[micro] stage=format lang=rust mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=5.003 ms  ns/record=4885  rec/s=204693
+[micro]   B=    4 calls=  256 median_total=4.658 ms  ns/record=4549  rec/s=219820
+[micro]   B=   16 calls=   64 median_total=4.390 ms  ns/record=4287  rec/s=233270
+[micro]   B=   64 calls=   16 median_total=4.480 ms  ns/record=4375  rec/s=228569
+[micro]   B=  256 calls=    4 median_total=4.273 ms  ns/record=4173  rec/s=239641
+[micro]   B= 1024 calls=    1 median_total=4.225 ms  ns/record=4126  rec/s=242365
+[micro] stage=parse lang=c mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=7.667 ms  ns/record=7487  rec/s=133557
+[micro]   B=    4 calls=  256 median_total=6.298 ms  ns/record=6151  rec/s=162580
+[micro]   B=   16 calls=   64 median_total=5.415 ms  ns/record=5288  rec/s=189107
+[micro]   B=   64 calls=   16 median_total=5.240 ms  ns/record=5117  rec/s=195427
+[micro]   B=  256 calls=    4 median_total=5.393 ms  ns/record=5267  rec/s=189878
+[micro]   B= 1024 calls=    1 median_total=5.290 ms  ns/record=5166  rec/s=193560
+[micro] stage=filter lang=c mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=2.393 ms  ns/record=2337  rec/s=427875
+[micro]   B=    4 calls=  256 median_total=1.698 ms  ns/record=1658  rec/s=603012
+[micro]   B=   16 calls=   64 median_total=1.488 ms  ns/record=1453  rec/s=688253
+[micro]   B=   64 calls=   16 median_total=1.504 ms  ns/record=1468  rec/s=680969
+[micro]   B=  256 calls=    4 median_total=1.459 ms  ns/record=1425  rec/s=701722
+[micro]   B= 1024 calls=    1 median_total=1.448 ms  ns/record=1414  rec/s=707163
+[micro] stage=format lang=c mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=5.574 ms  ns/record=5444  rec/s=183700
+[micro]   B=    4 calls=  256 median_total=4.847 ms  ns/record=4733  rec/s=211273
+[micro]   B=   16 calls=   64 median_total=5.324 ms  ns/record=5199  rec/s=192346
+[micro]   B=   64 calls=   16 median_total=4.786 ms  ns/record=4674  rec/s=213970
+[micro]   B=  256 calls=    4 median_total=4.826 ms  ns/record=4713  rec/s=212180
+[micro]   B= 1024 calls=    1 median_total=4.572 ms  ns/record=4464  rec/s=223989
+[micro] stage=parse lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/component/target/wasm32-wasip2/release/parse_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=3.533 ms  ns/record=3450  rec/s=289871
+[micro]   B=    4 calls=  256 median_total=2.725 ms  ns/record=2661  rec/s=375823
+[micro]   B=   16 calls=   64 median_total=2.487 ms  ns/record=2429  rec/s=411719
+[micro]   B=   64 calls=   16 median_total=2.567 ms  ns/record=2507  rec/s=398832
+[micro]   B=  256 calls=    4 median_total=2.432 ms  ns/record=2375  rec/s=421068
+[micro]   B= 1024 calls=    1 median_total=3.512 ms  ns/record=3429  rec/s=291593
+[micro] stage=filter lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=1.766 ms  ns/record=1725  rec/s=579710
+[micro]   B=    4 calls=  256 median_total=0.991 ms  ns/record=968  rec/s=1033275
+[micro]   B=   16 calls=   64 median_total=0.868 ms  ns/record=847  rec/s=1180218
+[micro]   B=   64 calls=   16 median_total=0.822 ms  ns/record=803  rec/s=1245557
+[micro]   B=  256 calls=    4 median_total=0.811 ms  ns/record=792  rec/s=1262036
+[micro]   B= 1024 calls=    1 median_total=0.820 ms  ns/record=801  rec/s=1248532
+[micro] stage=format lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=4.859 ms  ns/record=4745  rec/s=210755
+[micro]   B=    4 calls=  256 median_total=4.313 ms  ns/record=4212  rec/s=237422
+[micro]   B=   16 calls=   64 median_total=3.888 ms  ns/record=3796  rec/s=263403
+[micro]   B=   64 calls=   16 median_total=3.793 ms  ns/record=3704  rec/s=269985
+[micro]   B=  256 calls=    4 median_total=3.758 ms  ns/record=3669  rec/s=272519
+[micro]   B= 1024 calls=    1 median_total=3.873 ms  ns/record=3782  rec/s=264389
+[micro] stage=parse lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/c_component/parser_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=7.070 ms  ns/record=6904  rec/s=144842
+[micro]   B=    4 calls=  256 median_total=5.917 ms  ns/record=5778  rec/s=173058
+[micro]   B=   16 calls=   64 median_total=5.771 ms  ns/record=5636  rec/s=177441
+[micro]   B=   64 calls=   16 median_total=5.690 ms  ns/record=5557  rec/s=179957
+[micro]   B=  256 calls=    4 median_total=5.548 ms  ns/record=5418  rec/s=184555
+[micro]   B= 1024 calls=    1 median_total=5.836 ms  ns/record=5699  rec/s=175477
+[micro] stage=filter lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/c_component/filter_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=2.590 ms  ns/record=2530  rec/s=395297
+[micro]   B=    4 calls=  256 median_total=1.866 ms  ns/record=1823  rec/s=548659
+[micro]   B=   16 calls=   64 median_total=1.779 ms  ns/record=1737  rec/s=575594
+[micro]   B=   64 calls=   16 median_total=1.587 ms  ns/record=1550  rec/s=645305
+[micro]   B=  256 calls=    4 median_total=1.628 ms  ns/record=1589  rec/s=629137
+[micro]   B= 1024 calls=    1 median_total=1.531 ms  ns/record=1495  rec/s=668876
+[micro] stage=format lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=1 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/c_component/format_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=5.513 ms  ns/record=5384  rec/s=185741
+[micro]   B=    4 calls=  256 median_total=5.170 ms  ns/record=5049  rec/s=198054
+[micro]   B=   16 calls=   64 median_total=4.621 ms  ns/record=4512  rec/s=221615
+[micro]   B=   64 calls=   16 median_total=4.609 ms  ns/record=4501  rec/s=222175
+[micro]   B=  256 calls=    4 median_total=5.000 ms  ns/record=4883  rec/s=204781
+[micro]   B= 1024 calls=    1 median_total=4.893 ms  ns/record=4778  rec/s=209283
+[micro] stage=parse lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/component/target/wasm32-wasip2/release/parse_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=3.395 ms  ns/record=3315  rec/s=301614
+[micro]   B=    4 calls=  256 median_total=2.762 ms  ns/record=2697  rec/s=370723
+[micro]   B=   16 calls=   64 median_total=2.540 ms  ns/record=2481  rec/s=403088
+[micro]   B=   64 calls=   16 median_total=2.391 ms  ns/record=2335  rec/s=428243
+[micro]   B=  256 calls=    4 median_total=2.349 ms  ns/record=2294  rec/s=435996
+[micro]   B= 1024 calls=    1 median_total=3.374 ms  ns/record=3295  rec/s=303514
+[micro] stage=filter lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=1.641 ms  ns/record=1603  rec/s=623886
+[micro]   B=    4 calls=  256 median_total=0.977 ms  ns/record=954  rec/s=1047854
+[micro]   B=   16 calls=   64 median_total=0.854 ms  ns/record=834  rec/s=1198505
+[micro]   B=   64 calls=   16 median_total=0.811 ms  ns/record=792  rec/s=1262474
+[micro]   B=  256 calls=    4 median_total=0.828 ms  ns/record=809  rec/s=1236763
+[micro]   B= 1024 calls=    1 median_total=0.808 ms  ns/record=789  rec/s=1267335
+[micro] stage=format lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=4.780 ms  ns/record=4668  rec/s=214218
+[micro]   B=    4 calls=  256 median_total=4.080 ms  ns/record=3985  rec/s=250958
+[micro]   B=   16 calls=   64 median_total=3.787 ms  ns/record=3698  rec/s=270425
+[micro]   B=   64 calls=   16 median_total=3.701 ms  ns/record=3614  rec/s=276680
+[micro]   B=  256 calls=    4 median_total=3.683 ms  ns/record=3597  rec/s=278045
+[micro]   B= 1024 calls=    1 median_total=3.704 ms  ns/record=3617  rec/s=276483
+[micro] stage=parse lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/c_component/parser_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=6.536 ms  ns/record=6383  rec/s=156669
+[micro]   B=    4 calls=  256 median_total=5.509 ms  ns/record=5380  rec/s=185883
+[micro]   B=   16 calls=   64 median_total=5.380 ms  ns/record=5254  rec/s=190327
+[micro]   B=   64 calls=   16 median_total=5.270 ms  ns/record=5147  rec/s=194297
+[micro]   B=  256 calls=    4 median_total=5.333 ms  ns/record=5208  rec/s=192000
+[micro]   B= 1024 calls=    1 median_total=5.372 ms  ns/record=5246  rec/s=190633
+[micro] stage=filter lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/c_component/filter_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=2.643 ms  ns/record=2581  rec/s=387456
+[micro]   B=    4 calls=  256 median_total=1.880 ms  ns/record=1836  rec/s=544792
+[micro]   B=   16 calls=   64 median_total=1.633 ms  ns/record=1595  rec/s=627036
+[micro]   B=   64 calls=   16 median_total=1.593 ms  ns/record=1556  rec/s=642785
+[micro]   B=  256 calls=    4 median_total=1.581 ms  ns/record=1544  rec/s=647540
+[micro]   B= 1024 calls=    1 median_total=1.584 ms  ns/record=1547  rec/s=646553
+[micro] stage=format lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=2 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/c_component/format_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=5.472 ms  ns/record=5344  rec/s=187135
+[micro]   B=    4 calls=  256 median_total=4.680 ms  ns/record=4570  rec/s=218813
+[micro]   B=   16 calls=   64 median_total=4.577 ms  ns/record=4470  rec/s=223738
+[micro]   B=   64 calls=   16 median_total=4.527 ms  ns/record=4421  rec/s=226210
+[micro]   B=  256 calls=    4 median_total=4.691 ms  ns/record=4581  rec/s=218292
+[micro]   B= 1024 calls=    1 median_total=4.368 ms  ns/record=4265  rec/s=234453
+[micro] stage=parse lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/component/target/wasm32-wasip2/release/parse_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=3.119 ms  ns/record=3046  rec/s=328321
+[micro]   B=    4 calls=  256 median_total=2.370 ms  ns/record=2315  rec/s=431999
+[micro]   B=   16 calls=   64 median_total=2.291 ms  ns/record=2238  rec/s=446907
+[micro]   B=   64 calls=   16 median_total=2.198 ms  ns/record=2146  rec/s=465940
+[micro]   B=  256 calls=    4 median_total=2.166 ms  ns/record=2115  rec/s=472786
+[micro]   B= 1024 calls=    1 median_total=3.123 ms  ns/record=3050  rec/s=327914
+[micro] stage=filter lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=1.571 ms  ns/record=1534  rec/s=651915
+[micro]   B=    4 calls=  256 median_total=0.945 ms  ns/record=923  rec/s=1083601
+[micro]   B=   16 calls=   64 median_total=0.896 ms  ns/record=875  rec/s=1142479
+[micro]   B=   64 calls=   16 median_total=0.851 ms  ns/record=831  rec/s=1202971
+[micro]   B=  256 calls=    4 median_total=0.837 ms  ns/record=817  rec/s=1223397
+[micro]   B= 1024 calls=    1 median_total=0.830 ms  ns/record=811  rec/s=1233548
+[micro] stage=format lang=rust-instr mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm
+[micro]   B=    1 calls= 1024 median_total=4.861 ms  ns/record=4747  rec/s=210651
+[micro]   B=    4 calls=  256 median_total=4.090 ms  ns/record=3994  rec/s=250352
+[micro]   B=   16 calls=   64 median_total=3.760 ms  ns/record=3672  rec/s=272347
+[micro]   B=   64 calls=   16 median_total=3.674 ms  ns/record=3588  rec/s=278744
+[micro]   B=  256 calls=    4 median_total=3.684 ms  ns/record=3598  rec/s=277966
+[micro]   B= 1024 calls=    1 median_total=3.686 ms  ns/record=3600  rec/s=277809
+[micro] stage=parse lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/c_component/parser_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=6.290 ms  ns/record=6143  rec/s=162788
+[micro]   B=    4 calls=  256 median_total=5.495 ms  ns/record=5366  rec/s=186346
+[micro]   B=   16 calls=   64 median_total=5.336 ms  ns/record=5211  rec/s=191891
+[micro]   B=   64 calls=   16 median_total=5.207 ms  ns/record=5085  rec/s=196657
+[micro]   B=  256 calls=    4 median_total=5.244 ms  ns/record=5121  rec/s=195267
+[micro]   B= 1024 calls=    1 median_total=5.159 ms  ns/record=5038  rec/s=198488
+[micro] stage=filter lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/c_component/filter_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=2.486 ms  ns/record=2428  rec/s=411918
+[micro]   B=    4 calls=  256 median_total=1.784 ms  ns/record=1742  rec/s=574059
+[micro]   B=   16 calls=   64 median_total=1.577 ms  ns/record=1541  rec/s=649137
+[micro]   B=   64 calls=   16 median_total=1.530 ms  ns/record=1495  rec/s=669119
+[micro]   B=  256 calls=    4 median_total=1.558 ms  ns/record=1521  rec/s=657302
+[micro]   B= 1024 calls=    1 median_total=1.501 ms  ns/record=1466  rec/s=682306
+[micro] stage=format lang=c-instr mode=reuse records=1024 rounds=100 warmup=10 run=3 instrumented=true wasm=/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/c_component/format_c_benchmark.wasm
+[micro]   B=    1 calls= 1024 median_total=5.266 ms  ns/record=5142  rec/s=194473
+[micro]   B=    4 calls=  256 median_total=4.562 ms  ns/record=4455  rec/s=224461
+[micro]   B=   16 calls=   64 median_total=4.374 ms  ns/record=4272  rec/s=234086
+[micro]   B=   64 calls=   16 median_total=4.412 ms  ns/record=4308  rec/s=232104
+[micro]   B=  256 calls=    4 median_total=4.402 ms  ns/record=4299  rec/s=232606
+[micro]   B= 1024 calls=    1 median_total=4.173 ms  ns/record=4075  rec/s=245383
+[micro] stage=parse lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=83.909 ms  ns/record=81942  rec/s=12204
+[micro]   B= 1024 calls=    1 median_total=5.966 ms  ns/record=5826  rec/s=171651
+[micro] stage=parse lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=92.489 ms  ns/record=90321  rec/s=11072
+[micro]   B= 1024 calls=    1 median_total=6.896 ms  ns/record=6734  rec/s=148490
+[micro] stage=filter lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=76.301 ms  ns/record=74513  rec/s=13420
+[micro]   B= 1024 calls=    1 median_total=1.902 ms  ns/record=1858  rec/s=538239
+[micro] stage=filter lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=77.846 ms  ns/record=76021  rec/s=13154
+[micro]   B= 1024 calls=    1 median_total=1.954 ms  ns/record=1908  rec/s=524117
+[micro] stage=format lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=78.791 ms  ns/record=76944  rec/s=12996
+[micro]   B= 1024 calls=    1 median_total=6.791 ms  ns/record=6632  rec/s=150791
+[micro] stage=format lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=84.615 ms  ns/record=82632  rec/s=12102
+[micro]   B= 1024 calls=    1 median_total=6.842 ms  ns/record=6682  rec/s=149666
+[micro] stage=parse lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=105.514 ms  ns/record=103041  rec/s=9705
+[micro]   B= 1024 calls=    1 median_total=6.398 ms  ns/record=6248  rec/s=160039
+[micro] stage=parse lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=114.716 ms  ns/record=112028  rec/s=8926
+[micro]   B= 1024 calls=    1 median_total=6.259 ms  ns/record=6112  rec/s=163602
+[micro] stage=filter lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=78.861 ms  ns/record=77013  rec/s=12985
+[micro]   B= 1024 calls=    1 median_total=1.596 ms  ns/record=1558  rec/s=641713
+[micro] stage=filter lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=86.073 ms  ns/record=84056  rec/s=11897
+[micro]   B= 1024 calls=    1 median_total=1.645 ms  ns/record=1607  rec/s=622446
+[micro] stage=format lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=95.814 ms  ns/record=93569  rec/s=10687
+[micro]   B= 1024 calls=    1 median_total=7.656 ms  ns/record=7476  rec/s=133760
+[micro] stage=format lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=115.311 ms  ns/record=112609  rec/s=8880
+[micro]   B= 1024 calls=    1 median_total=7.251 ms  ns/record=7081  rec/s=141220
+[micro] stage=parse lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=80.898 ms  ns/record=79002  rec/s=12658
+[micro]   B= 1024 calls=    1 median_total=5.799 ms  ns/record=5663  rec/s=176590
+[micro] stage=parse lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=97.264 ms  ns/record=94985  rec/s=10528
+[micro]   B= 1024 calls=    1 median_total=6.110 ms  ns/record=5967  rec/s=167594
+[micro] stage=filter lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=71.256 ms  ns/record=69586  rec/s=14371
+[micro]   B= 1024 calls=    1 median_total=1.944 ms  ns/record=1898  rec/s=526780
+[micro] stage=filter lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=77.760 ms  ns/record=75937  rec/s=13169
+[micro]   B= 1024 calls=    1 median_total=1.953 ms  ns/record=1907  rec/s=524304
+[micro] stage=format lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=79.931 ms  ns/record=78058  rec/s=12811
+[micro]   B= 1024 calls=    1 median_total=6.827 ms  ns/record=6667  rec/s=149982
+[micro] stage=format lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=84.378 ms  ns/record=82400  rec/s=12136
+[micro]   B= 1024 calls=    1 median_total=7.155 ms  ns/record=6987  rec/s=143120
+[micro] stage=parse lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=102.245 ms  ns/record=99848  rec/s=10015
+[micro]   B= 1024 calls=    1 median_total=6.227 ms  ns/record=6081  rec/s=164454
+[micro] stage=parse lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=116.146 ms  ns/record=113424  rec/s=8816
+[micro]   B= 1024 calls=    1 median_total=6.441 ms  ns/record=6290  rec/s=158990
+[micro] stage=filter lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=83.226 ms  ns/record=81275  rec/s=12304
+[micro]   B= 1024 calls=    1 median_total=1.776 ms  ns/record=1734  rec/s=576634
+[micro] stage=filter lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=88.916 ms  ns/record=86832  rec/s=11516
+[micro]   B= 1024 calls=    1 median_total=1.643 ms  ns/record=1604  rec/s=623364
+[micro] stage=format lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=88.213 ms  ns/record=86146  rec/s=11608
+[micro]   B= 1024 calls=    1 median_total=7.356 ms  ns/record=7184  rec/s=139206
+[micro] stage=format lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=109.202 ms  ns/record=106643  rec/s=9377
+[micro]   B= 1024 calls=    1 median_total=6.811 ms  ns/record=6651  rec/s=150347
+[micro] stage=parse lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=90.108 ms  ns/record=87996  rec/s=11364
+[micro]   B= 1024 calls=    1 median_total=6.158 ms  ns/record=6014  rec/s=166287
+[micro] stage=parse lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+[micro]   B=    1 calls= 1024 median_total=89.159 ms  ns/record=87069  rec/s=11485
+[micro]   B= 1024 calls=    1 median_total=6.219 ms  ns/record=6074  rec/s=164644
+[micro] stage=filter lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=71.793 ms  ns/record=70111  rec/s=14263
+[micro]   B= 1024 calls=    1 median_total=1.939 ms  ns/record=1894  rec/s=528062
+[micro] stage=filter lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+[micro]   B=    1 calls= 1024 median_total=78.734 ms  ns/record=76888  rec/s=13006
+[micro]   B= 1024 calls=    1 median_total=1.953 ms  ns/record=1908  rec/s=524242
+[micro] stage=format lang=rust mode=fresh-pre records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=80.069 ms  ns/record=78192  rec/s=12789
+[micro]   B= 1024 calls=    1 median_total=6.798 ms  ns/record=6639  rec/s=150634
+[micro] stage=format lang=rust mode=fresh-link records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+[micro]   B=    1 calls= 1024 median_total=89.672 ms  ns/record=87570  rec/s=11419
+[micro]   B= 1024 calls=    1 median_total=6.761 ms  ns/record=6603  rec/s=151455
+[micro] stage=parse lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=101.931 ms  ns/record=99542  rec/s=10046
+[micro]   B= 1024 calls=    1 median_total=6.138 ms  ns/record=5994  rec/s=166832
+[micro] stage=parse lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/.claude/worktrees/agent-a5fbec9d83acd8f7d/test/ours/per_record_invocation/scripts/../micro/plugins/parser_c_json.wasm
+[micro]   B=    1 calls= 1024 median_total=117.526 ms  ns/record=114771  rec/s=8713
+[micro]   B= 1024 calls=    1 median_total=6.853 ms  ns/record=6692  rec/s=149429
+[micro] stage=filter lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=76.062 ms  ns/record=74279  rec/s=13463
+[micro]   B= 1024 calls=    1 median_total=1.618 ms  ns/record=1580  rec/s=632737
+[micro] stage=filter lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+[micro]   B=    1 calls= 1024 median_total=85.183 ms  ns/record=83186  rec/s=12021
+[micro]   B= 1024 calls=    1 median_total=1.636 ms  ns/record=1598  rec/s=625923
+[micro] stage=format lang=c mode=fresh-pre records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=95.803 ms  ns/record=93557  rec/s=10689
+[micro]   B= 1024 calls=    1 median_total=6.987 ms  ns/record=6824  rec/s=146551
+[micro] stage=format lang=c mode=fresh-link records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+[micro]   B=    1 calls= 1024 median_total=109.298 ms  ns/record=106737  rec/s=9369
+[micro]   B= 1024 calls=    1 median_total=7.053 ms  ns/record=6887  rec/s=145191
+[micro] stage=parse lang=go mode=reuse records=1024 rounds=30 warmup=3 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/go-plugin/parse/parser_json.wasm
+[micro]   B=    1 calls= 1024 median_total=171.635 ms  ns/record=167612  rec/s=5966
+[micro]   B=    4 calls=  256 median_total=41.034 ms  ns/record=40072  rec/s=24955
+[micro]   B=   16 calls=   64 median_total=4.851 ms  ns/record=4738  rec/s=211079
+Error: error while executing at wasm backtrace:
+    0:  0x10b13 - main!main.skipJSONSpace
+    1:   0xfab8 - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse
+    2:   0xf3db - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse$gowrapper-wasmexport
+    3:   0x190d - main!tinygo_launch
+    4:   0x413a - main!runtime.scheduler
+    5:   0x288c - main!runtime.wasmExportRun
+    6:   0xf2f5 - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse#wasmexport
+note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+
+Caused by:
+    0: memory fault at wasm address 0x7374227b in linear memory of size 0x1fc0000
+    1: wasm trap: out of bounds memory access
+
+[micro] stage=parse lang=go mode=fresh-pre records=64 rounds=3 warmup=1 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/go-plugin/parse/parser_json.wasm
+[micro]   B=    1 calls=   64 median_total=2492.192 ms  ns/record=38940499  rec/s=26
+[micro] stage=parse lang=go mode=reuse records=1024 rounds=30 warmup=3 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/go-plugin/parse/parser_json.wasm
+[micro]   B=    1 calls= 1024 median_total=156.249 ms  ns/record=152587  rec/s=6554
+[micro]   B=    4 calls=  256 median_total=41.267 ms  ns/record=40300  rec/s=24814
+[micro]   B=   16 calls=   64 median_total=6.953 ms  ns/record=6790  rec/s=147275
+Error: error while executing at wasm backtrace:
+    0:  0x10b13 - main!main.skipJSONSpace
+    1:   0xfab8 - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse
+    2:   0xf3db - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse$gowrapper-wasmexport
+    3:   0x190d - main!tinygo_launch
+    4:   0x413a - main!runtime.scheduler
+    5:   0x288c - main!runtime.wasmExportRun
+    6:   0xf2f5 - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse#wasmexport
+note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+
+Caused by:
+    0: memory fault at wasm address 0x7374227b in linear memory of size 0x1fc0000
+    1: wasm trap: out of bounds memory access
+
+[micro] stage=parse lang=go mode=fresh-pre records=64 rounds=3 warmup=1 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/go-plugin/parse/parser_json.wasm
+[micro]   B=    1 calls=   64 median_total=2473.693 ms  ns/record=38651446  rec/s=26
+[micro] stage=parse lang=go mode=reuse records=1024 rounds=30 warmup=3 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/go-plugin/parse/parser_json.wasm
+[micro]   B=    1 calls= 1024 median_total=164.946 ms  ns/record=161080  rec/s=6208
+[micro]   B=    4 calls=  256 median_total=41.104 ms  ns/record=40141  rec/s=24912
+[micro]   B=   16 calls=   64 median_total=7.710 ms  ns/record=7530  rec/s=132807
+Error: error while executing at wasm backtrace:
+    0:  0x10b13 - main!main.skipJSONSpace
+    1:   0xfab8 - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse
+    2:   0xf3db - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse$gowrapper-wasmexport
+    3:   0x190d - main!tinygo_launch
+    4:   0x413a - main!runtime.scheduler
+    5:   0x288c - main!runtime.wasmExportRun
+    6:   0xf2f5 - main!example.com/internal/local/log-process/parser-plugin.wasmexport_Parse#wasmexport
+note: using the `WASMTIME_BACKTRACE_DETAILS=1` environment variable may show more debugging information
+
+Caused by:
+    0: memory fault at wasm address 0x7374227b in linear memory of size 0x1fc0000
+    1: wasm trap: out of bounds memory access
+
+[micro] stage=parse lang=go mode=fresh-pre records=64 rounds=3 warmup=1 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/go-plugin/parse/parser_json.wasm
+[micro]   B=    1 calls=   64 median_total=2476.533 ms  ns/record=38695832  rec/s=26
+[micro] stage=parse lang=csharp mode=reuse records=1024 rounds=30 warmup=2 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/parse/parser_csharp.wasm
+[micro]   B=    1 calls= 1024 median_total=11.436 ms  ns/record=11168  rec/s=89540
+[micro]   B=    4 calls=  256 median_total=10.540 ms  ns/record=10293  rec/s=97157
+[micro]   B=   16 calls=   64 median_total=10.496 ms  ns/record=10250  rec/s=97557
+[micro]   B=   64 calls=   16 median_total=9.826 ms  ns/record=9596  rec/s=104214
+[micro]   B=  256 calls=    4 median_total=11.067 ms  ns/record=10808  rec/s=92526
+[micro]   B= 1024 calls=    1 median_total=11.657 ms  ns/record=11384  rec/s=87844
+[micro] stage=filter lang=csharp mode=reuse records=1024 rounds=30 warmup=2 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/filter/filter_csharp.wasm
+[micro]   B=    1 calls= 1024 median_total=3.886 ms  ns/record=3795  rec/s=263532
+[micro]   B=    4 calls=  256 median_total=2.661 ms  ns/record=2599  rec/s=384761
+[micro]   B=   16 calls=   64 median_total=2.447 ms  ns/record=2390  rec/s=418407
+[micro]   B=   64 calls=   16 median_total=2.254 ms  ns/record=2201  rec/s=454350
+[micro]   B=  256 calls=    4 median_total=2.413 ms  ns/record=2357  rec/s=424308
+[micro]   B= 1024 calls=    1 median_total=2.650 ms  ns/record=2588  rec/s=386431
+[micro] stage=parse lang=csharp mode=fresh-pre records=16 rounds=3 warmup=1 run=1 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/parse/parser_csharp.wasm
+[micro]   B=    1 calls=   16 median_total=766.402 ms  ns/record=47900112  rec/s=21
+[micro] stage=parse lang=csharp mode=reuse records=1024 rounds=30 warmup=2 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/parse/parser_csharp.wasm
+[micro]   B=    1 calls= 1024 median_total=12.787 ms  ns/record=12487  rec/s=80081
+[micro]   B=    4 calls=  256 median_total=10.597 ms  ns/record=10348  rec/s=96633
+[micro]   B=   16 calls=   64 median_total=11.419 ms  ns/record=11151  rec/s=89677
+[micro]   B=   64 calls=   16 median_total=10.049 ms  ns/record=9813  rec/s=101902
+[micro]   B=  256 calls=    4 median_total=10.131 ms  ns/record=9894  rec/s=101073
+[micro]   B= 1024 calls=    1 median_total=11.768 ms  ns/record=11492  rec/s=87014
+[micro] stage=filter lang=csharp mode=reuse records=1024 rounds=30 warmup=2 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/filter/filter_csharp.wasm
+[micro]   B=    1 calls= 1024 median_total=3.443 ms  ns/record=3362  rec/s=297428
+[micro]   B=    4 calls=  256 median_total=2.484 ms  ns/record=2425  rec/s=412321
+[micro]   B=   16 calls=   64 median_total=2.172 ms  ns/record=2121  rec/s=471560
+[micro]   B=   64 calls=   16 median_total=2.129 ms  ns/record=2079  rec/s=480975
+[micro]   B=  256 calls=    4 median_total=2.207 ms  ns/record=2155  rec/s=464055
+[micro]   B= 1024 calls=    1 median_total=3.023 ms  ns/record=2952  rec/s=338720
+[micro] stage=parse lang=csharp mode=fresh-pre records=16 rounds=3 warmup=1 run=2 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/parse/parser_csharp.wasm
+[micro]   B=    1 calls=   16 median_total=784.175 ms  ns/record=49010957  rec/s=20
+[micro] stage=parse lang=csharp mode=reuse records=1024 rounds=30 warmup=2 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/parse/parser_csharp.wasm
+[micro]   B=    1 calls= 1024 median_total=11.737 ms  ns/record=11462  rec/s=87246
+[micro]   B=    4 calls=  256 median_total=10.575 ms  ns/record=10327  rec/s=96830
+[micro]   B=   16 calls=   64 median_total=10.169 ms  ns/record=9931  rec/s=100695
+[micro]   B=   64 calls=   16 median_total=9.733 ms  ns/record=9505  rec/s=105206
+[micro]   B=  256 calls=    4 median_total=9.738 ms  ns/record=9510  rec/s=105157
+[micro]   B= 1024 calls=    1 median_total=11.743 ms  ns/record=11468  rec/s=87200
+[micro] stage=filter lang=csharp mode=reuse records=1024 rounds=30 warmup=2 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/filter/filter_csharp.wasm
+[micro]   B=    1 calls= 1024 median_total=3.376 ms  ns/record=3297  rec/s=303338
+[micro]   B=    4 calls=  256 median_total=2.424 ms  ns/record=2368  rec/s=422368
+[micro]   B=   16 calls=   64 median_total=2.127 ms  ns/record=2077  rec/s=481454
+[micro]   B=   64 calls=   16 median_total=2.136 ms  ns/record=2086  rec/s=479409
+[micro]   B=  256 calls=    4 median_total=2.158 ms  ns/record=2107  rec/s=474586
+[micro]   B= 1024 calls=    1 median_total=2.540 ms  ns/record=2481  rec/s=403140
+[micro] stage=parse lang=csharp mode=fresh-pre records=16 rounds=3 warmup=1 run=3 instrumented=false wasm=/home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/parse/parser_csharp.wasm
+[micro]   B=    1 calls=   16 median_total=784.072 ms  ns/record=49004478  rec/s=20

@@ -1,0 +1,53 @@
+stage,plugin,grant,result,reps,wall_ms_median,compile_ms_median,check_ms_median,link_ms_median,instantiate_pre_ms_median
+parse,test/ours/latency-benchmark-Rust/plugin/latency_rust_parse.wasm,default,LOAD_OK,3,288.101,127.983,0.006,0.061,0.012
+parse,test/ours/latency-benchmark-Rust/plugin/latency_rust_parse.wasm,inert-fs inert-sockets,LOAD_OK,3,327.353,130.249,0.007,0.13,0.014
+parse,test-plugins/rust-plugin/parse_chaos/parse_chaos.wasm,default,LOAD_REFUSED,3,517.91,266.394,0.014,,
+parse,test-plugins/rust-plugin/parse_chaos/parse_chaos.wasm,inert-fs inert-sockets,LOAD_OK,3,530.704,236.66,0.01,0.094,0.038
+parse,test-plugins/c-plugin/noop-parser/parser_c_noop.wasm,default,LOAD_OK,3,69.084,30.429,0.006,0.051,0.013
+parse,test-plugins/c-plugin/noop-parser/parser_c_noop.wasm,inert-fs inert-sockets,LOAD_OK,3,66.622,26.43,0.006,0.086,0.013
+parse,test/ours/latency-benchmark-C/plugin/latency_c_parser.wasm,default,LOAD_REFUSED,3,230.576,117.486,0.01,,
+parse,test/ours/latency-benchmark-C/plugin/latency_c_parser.wasm,inert-fs inert-sockets,LOAD_OK,3,210.891,96.465,0.012,0.175,0.04
+parse,test-plugins/c-plugin/parse_access/parser_c_access.wasm,default,LOAD_REFUSED,3,181.421,84.097,0.009,,
+parse,test-plugins/c-plugin/parse_access/parser_c_access.wasm,inert-fs inert-sockets,LOAD_OK,3,185.506,83.955,0.008,0.106,0.029
+parse,test-plugins/c-plugin/parse_bad/parser_c_bad.wasm,default,LOAD_REFUSED,3,68.472,24.691,0.005,,
+parse,test-plugins/c-plugin/parse_bad/parser_c_bad.wasm,inert-fs inert-sockets,LOAD_REFUSED,3,97.908,27.064,0.005,,
+parse,test-plugins/c-plugin/parse/parser_c_json.wasm,default,LOAD_REFUSED,3,7.021,,,,
+parse,test-plugins/c-plugin/parse/parser_c_json.wasm,inert-fs inert-sockets,LOAD_REFUSED,3,7.287,,,,
+parse,test-plugins/csharp-plugin/parse/parser_csharp.wasm,default,LOAD_REFUSED,3,3035.391,1470.942,0.014,,
+parse,test-plugins/csharp-plugin/parse/parser_csharp.wasm,inert-fs inert-sockets,LOAD_OK,3,3010.527,1456.835,0.012,0.188,0.04
+parse,test-plugins/csharp-plugin/parse/parser_csharp_noop.wasm,default,LOAD_REFUSED,3,2659.26,1311.179,0.014,,
+parse,test-plugins/csharp-plugin/parse/parser_csharp_noop.wasm,inert-fs inert-sockets,LOAD_OK,3,2612.991,1297.376,0.011,0.098,0.03
+parse,test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm,default,LOAD_REFUSED,3,2969.448,1496.597,0.023,,
+parse,test-plugins/csharp-plugin/parse_loop/parser_csharp_loop.wasm,inert-fs inert-sockets,LOAD_OK,3,2993.06,1487.903,0.011,0.127,0.038
+parse,test-plugins/go-plugin/parse/parser_json.wasm,default,LOAD_REFUSED,3,247.855,116.757,0.009,,
+parse,test-plugins/go-plugin/parse/parser_json.wasm,inert-fs inert-sockets,LOAD_OK,3,293.877,122.869,0.008,0.108,0.038
+parse,test-plugins/go-plugin/parse/parser_fmt.wasm,default,LOAD_REFUSED,3,232.666,108.17,0.009,,
+parse,test-plugins/go-plugin/parse/parser_fmt.wasm,inert-fs inert-sockets,LOAD_OK,3,236.711,107.205,0.008,0.09,0.033
+parse,test-plugins/go-plugin/parse/parser_sys.wasm,default,LOAD_REFUSED,3,394.063,166.648,0.009,,
+parse,test-plugins/go-plugin/parse/parser_sys.wasm,inert-fs inert-sockets,LOAD_OK,3,403.429,187.094,0.008,0.119,0.046
+parse,test-plugins/go-plugin/noop-parser/noop_parser.wasm,default,LOAD_REFUSED,3,217.974,99.145,0.009,,
+parse,test-plugins/go-plugin/noop-parser/noop_parser.wasm,inert-fs inert-sockets,LOAD_OK,3,220.131,100.747,0.008,0.092,0.033
+filter,test/ours/latency-benchmark-Rust/plugin/latency_rust_filter.wasm,default,LOAD_OK,3,179.95,78.874,0.006,0.077,0.012
+filter,test/ours/latency-benchmark-Rust/plugin/latency_rust_filter.wasm,inert-fs inert-sockets,LOAD_OK,3,177.107,79.099,0.008,0.133,0.017
+filter,test/ours/latency-benchmark-C/plugin/latency_c_filter.wasm,default,LOAD_OK,3,72.65,30.796,0.007,0.088,0.014
+filter,test/ours/latency-benchmark-C/plugin/latency_c_filter.wasm,inert-fs inert-sockets,LOAD_OK,3,71.366,25.876,0.008,0.108,0.024
+filter,test-plugins/csharp-plugin/filter/filter_csharp.wasm,default,LOAD_REFUSED,3,2716.509,1364.143,0.015,,
+filter,test-plugins/csharp-plugin/filter/filter_csharp.wasm,inert-fs inert-sockets,LOAD_OK,3,2683.762,1289.812,0.011,0.138,0.042
+format,test/ours/latency-benchmark-Rust/plugin/latency_rust_format.wasm,default,LOAD_OK,3,220.151,81.26,0.006,0.073,0.012
+format,test/ours/latency-benchmark-Rust/plugin/latency_rust_format.wasm,inert-fs inert-sockets,LOAD_OK,3,186.492,84.45,0.007,0.127,0.03
+format,test/ours/latency-benchmark-C/plugin/latency_c_format.wasm,default,LOAD_REFUSED,3,166.172,76.606,0.009,,
+format,test/ours/latency-benchmark-C/plugin/latency_c_format.wasm,inert-fs inert-sockets,LOAD_OK,3,157.954,68.208,0.008,0.101,0.025
+format,test-plugins/c-plugin/format/format_json-flat.wasm,default,LOAD_REFUSED,3,166.938,71.808,0.01,,
+format,test-plugins/c-plugin/format/format_json-flat.wasm,inert-fs inert-sockets,LOAD_OK,3,157.297,69.187,0.01,0.125,0.027
+format,test-plugins/go-plugin/format/format.wasm,default,LOAD_REFUSED,3,245.852,112.899,0.017,,
+format,test-plugins/go-plugin/format/format.wasm,inert-fs inert-sockets,LOAD_OK,3,290.667,117.66,0.008,0.093,0.035
+transport,test/ours/latency-benchmark-Rust/plugin/transport.wasm,default,LOAD_OK,3,264.772,122.5,0.008,0.112,0.029
+transport,test/ours/latency-benchmark-Rust/plugin/transport.wasm,inert-fs inert-sockets,LOAD_OK,3,260.566,121.658,0.013,0.377,0.039
+transport,test/ours/latency-benchmark-C/plugin/latency_c_transport.wasm,default,LOAD_REFUSED,3,246.578,140.341,0.01,,
+transport,test/ours/latency-benchmark-C/plugin/latency_c_transport.wasm,inert-fs inert-sockets,LOAD_OK,3,195.838,87.273,0.009,0.125,0.046
+transport,test-plugins/c-plugin/transport_http/transport_http.wasm,default,LOAD_REFUSED,3,193.976,87.183,0.01,,
+transport,test-plugins/c-plugin/transport_http/transport_http.wasm,inert-fs inert-sockets,LOAD_OK,3,196.574,92.099,0.01,0.163,0.044
+transport,test-plugins/c-plugin/transport_http_stream/transport_http_stream.wasm,default,LOAD_REFUSED,3,195.894,90.783,0.01,,
+transport,test-plugins/c-plugin/transport_http_stream/transport_http_stream.wasm,inert-fs inert-sockets,LOAD_OK,3,193.072,84.901,0.023,0.385,0.054
+transport,test-plugins/c-plugin/transport/latency_c_transport.wasm,default,LOAD_REFUSED,3,276.539,117.901,0.031,,
+transport,test-plugins/c-plugin/transport/latency_c_transport.wasm,inert-fs inert-sockets,LOAD_OK,3,230.683,106.874,0.009,0.131,0.036

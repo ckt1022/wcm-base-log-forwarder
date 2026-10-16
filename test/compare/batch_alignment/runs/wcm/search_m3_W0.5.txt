@@ -1,0 +1,5 @@
+trial rate=25000 FAIL :: FAIL reason=gen_no_done_line
+trial rate=22000 PASS :: PASS rate=22000 gen_avg=21999/s gen_mb_s=22.549 lag_p99=5ms lag_max=5.4ms sink_total=528000 expected=527999 backlog=8638 win_out_eps=8888 win_out_mb_s=9.379 oom=false
+trial rate=23500 FAIL :: FAIL rate=23500 gen_avg=23499/s gen_mb_s=24.087 lag_p99=5ms lag_max=4.5ms sink_total=563991 expected=563990 backlog=50975 win_out_eps=8755 win_out_mb_s=9.237 oom=false reasons=backlog=50975>28200
+trial rate=22750 FAIL :: FAIL rate=22750 gen_avg=22749/s gen_mb_s=23.318 lag_p99=5ms lag_max=5.0ms sink_total=545995 expected=545994 backlog=31328 win_out_eps=8833 win_out_mb_s=9.321 oom=false reasons=backlog=31328>27300
+CAPACITY dut=wcm tag=m3_W0.5 eps=22000 first_fail=22750

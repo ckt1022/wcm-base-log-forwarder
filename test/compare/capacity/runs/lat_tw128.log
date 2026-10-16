@@ -1,0 +1,15 @@
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-tw128/lat_rate_105600/sink.log)
+[cap] dut=wcm-tw128 rate=105600 mode=lat load=300s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:105600 eps × 300s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-tw128/lat_rate_105600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-tw128/lat_rate_105600/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42189 MB/s=8.52 total=1182924
+[cap] 進度 [httpsink] t=64s lines/s=42083 MB/s=8.50 total=2450217
+[cap] 進度 [httpsink] t=94s lines/s=42268 MB/s=8.53 total=3717681
+[cap] 進度 [httpsink] t=124s lines/s=42216 MB/s=8.57 total=4984935
+[cap] 進度 [httpsink] t=154s lines/s=42309 MB/s=8.58 total=6252400
+[cap] 進度 [httpsink] t=184s lines/s=42283 MB/s=8.58 total=7519704
+[cap] 進度 [httpsink] t=214s lines/s=42333 MB/s=8.59 total=8787038
+[cap] 進度 [httpsink] t=244s lines/s=42215 MB/s=8.57 total=10054281
+[cap] 進度 [httpsink] t=274s lines/s=42167 MB/s=8.56 total=11321619
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=105600 gen_avg=105600/s gen_mb_s=16.865 lag_p99=5ms lag_max=8.9ms sink_total=12672001 expected=12672000 backlog=40751 win_out_eps=42245 win_out_mb_s=8.558 oom=false

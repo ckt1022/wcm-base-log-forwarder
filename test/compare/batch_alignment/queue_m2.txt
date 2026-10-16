@@ -1,0 +1,18 @@
+# Method 2 — batch volume = 1 MiB of input (1,024 input records ~= 410 output records)
+# WCM = wcm-b1 (formal config, re-measured under the current clock; formal data shown alongside).
+# FB: Flush = W_eq = 1 MiB / (R x 1024 B).  (wcm 5000 is in queue_m3_lat.txt as the first validation run)
+fbit-lua 5000 lat m2_vol1MiB conf/fbit_lua_flush_0.2048.conf
+fluentd 5000 lat m2_vol1MiB conf/fluentd_m2_rec410.conf
+vector 5000 lat m2_vol1MiB conf/vector_align.yaml FLUSH_INTERVAL=10 VECTOR_BATCH_MAX_EVENTS=410
+fbit-wasm 5000 lat m2_vol1MiB conf/fbit_wasm_flush_0.2048.conf
+wcm 10000 lat m2_vol1MiB conf/wcm_b1.yaml
+fbit-lua 10000 lat m2_vol1MiB conf/fbit_lua_flush_0.1024.conf
+fluentd 10000 lat m2_vol1MiB conf/fluentd_m2_rec410.conf
+vector 10000 lat m2_vol1MiB conf/vector_align.yaml FLUSH_INTERVAL=10 VECTOR_BATCH_MAX_EVENTS=410
+wcm 15000 lat m2_vol1MiB conf/wcm_b1.yaml
+fbit-lua 15000 lat m2_vol1MiB conf/fbit_lua_flush_0.0683.conf
+fluentd 15000 lat m2_vol1MiB conf/fluentd_m2_rec410.conf
+vector 15000 lat m2_vol1MiB conf/vector_align.yaml FLUSH_INTERVAL=10 VECTOR_BATCH_MAX_EVENTS=410
+wcm 20000 lat m2_vol1MiB conf/wcm_b1.yaml
+fbit-lua 20000 lat m2_vol1MiB conf/fbit_lua_flush_0.0512.conf
+fluentd 20000 lat m2_vol1MiB conf/fluentd_m2_rec410.conf

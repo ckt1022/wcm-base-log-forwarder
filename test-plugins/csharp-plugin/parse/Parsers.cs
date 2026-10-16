@@ -27,6 +27,17 @@ public struct ParseResult
     public LogLevel Level;
     public string Message;
     public List<(string Key, string Value)> Tags;
+    public string Targettag;
+}
+
+public static class Router
+{
+    public static string RouteTag(LogLevel level) => level switch
+    {
+        LogLevel.Error or LogLevel.Crit or LogLevel.Alert or LogLevel.Emerg => "AB",
+        LogLevel.Warn => "BC",
+        _ => "C",
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,12 +83,14 @@ public static class JsonParser
                         : kv.Value.GetRawText()));
             }
 
+            var parsedLevel = MapLevel(lvl);
             result = new ParseResult
             {
                 Timestamp = ts,
-                Level     = MapLevel(lvl),
+                Level     = parsedLevel,
                 Message   = msg,
                 Tags      = tags,
+                Targettag = Router.RouteTag(parsedLevel),
             };
             return true;
         }
@@ -157,7 +170,7 @@ public static class SyslogParser
             if (k != "level") tags.Add((k, v));
         }
 
-        result = new ParseResult { Timestamp = ts, Level = level, Message = msg, Tags = tags };
+        result = new ParseResult { Timestamp = ts, Level = level, Message = msg, Tags = tags, Targettag = Router.RouteTag(level) };
         return true;
     }
 
@@ -237,12 +250,14 @@ public static class LogfmtParser
             tags.Add((k, v));
         }
 
+        var parsedLevel = MapLevel(lvl);
         result = new ParseResult
         {
             Timestamp = ts,
-            Level     = MapLevel(lvl),
+            Level     = parsedLevel,
             Message   = msg,
             Tags      = tags,
+            Targettag = Router.RouteTag(parsedLevel),
         };
         return true;
     }

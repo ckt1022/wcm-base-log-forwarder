@@ -1,0 +1,40 @@
+package local:log-process@0.3.0;
+
+// Parser-related types copied from the production wit/log_plugin.wit.
+interface pipeline-process {
+    record parsed-entry {
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+        targettag: string,
+    }
+
+    enum log-level {
+        debug,
+        info,
+        warn,
+        error,
+        crit,
+        alert,
+        emerg,
+    }
+
+    variant parse-error {
+        invalid-format(string),
+        unsupported-version(u16),
+        corrupted-data,
+    }
+}
+
+world parser-plugin {
+    use pipeline-process.{parsed-entry, parse-error};
+
+    // Benchmark-only instrumentation. The parse input and output signatures
+    // remain identical to the production parser-plugin world.
+    import time-sign: func();
+
+    export parse: func(raw-data: list<string>) -> result<list<parsed-entry>, parse-error>;
+    export report-usage: func() -> u64;
+}
+

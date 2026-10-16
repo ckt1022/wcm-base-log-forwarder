@@ -1,0 +1,158 @@
+date=2026-10-13T22:04:09+08:00
+dut=vector rate=10000 mode=lat tag=m2_vol1MiB image=timberio/vector:0.49.0-alpine
+image_id=sha256:30141ab1ce5a7f84ef63580863e4ec561291e7c43dd0d7252985c9f2bb87aa5e
+conf=/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/conf/vector_align.yaml
+load_secs=180 drain_secs=20 gen_mode=json-fields1k cpus=1 mem=512m
+FLUSH_INTERVAL=10 VECTOR_BATCH_MAX_BYTES= VECTOR_BATCH_MAX_EVENTS=410
+clocksource=tsc timesyncd=inactive
+----- conf -----
+# batch_alignment copy of vector/latency/conf/latency_tuned.yaml — only sink batch knobs are parameterised:
+#   batch.timeout_secs <- FLUSH_INTERVAL, batch.max_bytes <- VECTOR_BATCH_MAX_BYTES, batch.max_events <- VECTOR_BATCH_MAX_EVENTS
+# Vector — 延遲對比實驗（對應 test/ours/latency-benchmark-Rust）
+#
+# 固定變因見 test/ours/latency-benchmark-Rust/setting.md；
+# 本設定對齊 WCM forwarder 的 forwarder.yaml：
+#   - TCP input :5140（line-delimited JSON）
+#   - VRL remap 實作 parse/filter/format 同等邏輯（vector 原生機制，
+#     對應 fluentd 的 Ruby filter / fluent-bit 的 Lua filter）
+#   - HTTP POST http://127.0.0.1:8080/ingest（NDJSON）
+#   - batch.timeout_secs 由 FLUSH_INTERVAL 環境變數注入（latency.sh 第一個參數），
+#     預設 0.1 對齊 forwarder 的 max_wait_ms=100 批次窗。
+#     vector 的批次計時從「該批第一筆 event」起算且以連續時間比較，
+#     沒有 fluentd 整數秒截斷/輪詢相位的問題，首批不需特殊處理
+#   - batch.max_bytes 128MB 對齊 buffer_size_mb=128（大小觸發）
+#   - 不設 batch.max_events：forwarder 已移除行數觸發，flush 僅由大小/時間決定
+#   - request.concurrency 1 對齊單一 flush thread（fluentd flush_thread_count 1 /
+#     fluent-bit Workers 1）；vector 整體 runtime 仍是 tokio 多執行緒（DUT 差異）
+#   - DUT 差異：vector 一個 batch = 一個 POST（上限 128MB），
+#     forwarder 則另以 max_transport_bytes=128KB 切分 POST；
+#     vector 的 HTTP 連線由連線池重用，forwarder 每請求語意見其 transport plugin
+#   - DUT 差異：VRL 無跨事件狀態，id 欄位以常數 0 代替其他實作的遞增計數
+#     （id 僅為欄位對齊，值不影響量測；平均每筆比遞增 id 短 ~3 bytes）
+#
+# 由 latency.sh 以 docker（--network host）啟動
+
+sources:
+  tcp_in:
+    type: socket
+    mode: tcp
+    address: "0.0.0.0:5140"
+    decoding:
+      codec: json
+
+transforms:
+  latency_filter:
+    type: remap
+    inputs: ["tcp_in"]
+    # rank < warn 的 event 以 abort 丟棄
+    drop_on_abort: true
+    drop_on_error: false
+    source: |
+      # ── 邏輯對齊 latency_filter.lua / filter_latency_test.rb ──
+      # parse : ts 原字串搬到 timestamp、level 字串/數值映射、msg → message、
+      #         根層非保留欄位與 att.* 攤平成 tags
+      # filter: 只保留 level >= warn（MIN_KEEP_RANK = 2）
+      # format: json-flat 欄位集合 id/timestamp/level/message/lang/<tags>
+      # 關鍵約束：timestamp 必須是 gen 原始 ts 字串原封不動，
+      # 量測 server（tools/test/server.go）靠這個欄位計算延遲。
+
+      # level → rank（字串不分大小寫；數值 0~6 取整；缺失/未知 → info=1）
+      rank = 1
+      if is_string(.level) {
+        r = get!({"debug": 0, "info": 1, "warn": 2, "error": 3,
+                  "crit": 4, "alert": 5, "emerg": 6},
+                 [downcase(string!(.level))])
+        if r != null { rank = int!(r) }
+      } else if is_integer(.level) || is_float(.level) {
+        n = to_int(floor(to_float!(.level)))
+        if n >= 0 && n <= 6 { rank = n }
+      }
+
+      # filter：drop debug / info
+      if rank < 2 { abort }
+
+      level_name = string!(get!(["debug", "info", "warn", "error",
+                                 "crit", "alert", "emerg"], [rank]))
+
+      ts_val = ""
+      if is_string(.ts) { ts_val = string!(.ts) }
+      msg_val = ""
+      if is_string(.msg) { msg_val = string!(.msg) }
+
+      out = {
+        "id":        0,
+        "timestamp": ts_val,
+        "level":     level_name,
+        "message":   msg_val,
+        "lang":      "VRL"
+      }
+
+      # 根層非保留欄位攤平成 tags（對應 collect_all_tags 的第一段）。
+      # 除 gen record 的保留欄位外，還須排除 vector 對 event 注入的欄位
+      # （socket source：host/port/source_type；legacy namespace：timestamp）
+      for_each(object(.)) -> |k, v| {
+        if k != "ts" && k != "level" && k != "msg" && k != "att" &&
+           k != "timestamp" && k != "source_type" && k != "host" && k != "port" {
+          sv = ""
+          if is_string(v) {
+            sv = string!(v)
+          } else if is_object(v) || is_array(v) {
+            sv = encode_json(v)
+          } else {
+            sv = to_string!(v)
+          }
+          out = set!(out, [k], sv)
+        }
+      }
+
+      # att 物件內欄位攤平（對應 collect_all_tags 的第二段）
+      if is_object(.att) {
+        for_each(object!(.att)) -> |k, v| {
+          sv = ""
+          if is_string(v) {
+            sv = string!(v)
+          } else if is_object(v) || is_array(v) {
+            sv = encode_json(v)
+          } else {
+            sv = to_string!(v)
+          }
+          out = set!(out, [k], sv)
+        }
+      }
+
+      . = out
+
+sinks:
+  out_http:
+    type: http
+    inputs: ["latency_filter"]
+    uri: "http://127.0.0.1:8080/ingest"
+    method: "post"
+    # NDJSON：json codec + newline_delimited framing
+    # （Content-Type: application/x-ndjson）
+    encoding:
+      codec: "json"
+    framing:
+      method: "newline_delimited"
+    compression: "none"
+    batch:
+      # DUT 變因：批次窗，由 latency.sh 以 FLUSH_INTERVAL 注入（預設 0.1）
+      timeout_secs: ${FLUSH_INTERVAL:-0.1}
+      # 延遲實驗預設 128 MiB；容量實驗以 VECTOR_BATCH_MAX_BYTES=1048576
+      # 固定為 1 MiB，與 WCM／Fluentd 的正式容量配置相同。
+      max_bytes: ${VECTOR_BATCH_MAX_BYTES:-134217728}
+      max_events: ${VECTOR_BATCH_MAX_EVENTS:-100000000}
+    request:
+      # 單一 in-flight request，對齊單一 flush thread
+      concurrency: 1
+      # 對齊 forwarder transport plugin 的 request_timeout_ms=30000
+      timeout_secs: 30
+      # 對齊 fluentd retry_max_times 3
+      retry_attempts: 0
+    buffer:
+      type: memory
+      # 對齊 forwarder channel_capacity=150000
+      max_events: 150000
+    # server 只接受 POST /ingest，關閉啟動時的 GET healthcheck
+    healthcheck:
+      enabled: false

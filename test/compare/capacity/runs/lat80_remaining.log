@@ -1,0 +1,28 @@
+═══════ LAT80 vector @ 49600 ═══════
+[cap] dut=vector rate=49600 mode=lat load=300s flush=1s cpus=1 mem=512m
+PASS rate=49600 gen_avg=49600/s gen_mb_s=7.920 lag_p99=5ms lag_max=22.0ms sink_total=5951993 expected=5951992 backlog=9233 win_out_eps=19840 win_out_mb_s=3.866 oom=false
+[calc] ── 穩態延遲統計(第 30~230 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/vector/lat_rate_49600/latency_worker_1.csv
+[calc] 窗口內 3965652 筆 / 全部 5951993 筆
+[calc]   mean   =    576.612 ms
+[calc]   min    =     39.279 ms
+[calc]   p50    =    576.592 ms
+[calc]   p90    =    999.621 ms
+[calc]   p95    =   1052.500 ms
+[calc]   p99    =   1094.938 ms
+[calc]   p99.9  =   1114.762 ms
+[calc]   max    =   1138.484 ms
+═══════ LAT80 fbit-wasm @ 19200 ═══════
+[cap] dut=fbit-wasm rate=19200 mode=lat load=300s flush=1s cpus=1 mem=512m
+PASS rate=19200 gen_avg=19200/s gen_mb_s=3.062 lag_p99=5ms lag_max=2.8ms sink_total=2303994 expected=2303993 backlog=7362 win_out_eps=7680 win_out_mb_s=1.546 oom=false
+[calc] ── 穩態延遲統計(第 30~230 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/fbit-wasm/lat_rate_19200/latency_worker_1.csv
+[calc] 窗口內 1535954 筆 / 全部 2303994 筆
+[calc]   mean   =    524.493 ms
+[calc]   min    =     21.231 ms
+[calc]   p50    =    524.490 ms
+[calc]   p90    =    924.478 ms
+[calc]   p95    =    974.475 ms
+[calc]   p99    =   1014.470 ms
+[calc]   p99.9  =   1026.418 ms
+[calc]   max    =   1032.904 ms

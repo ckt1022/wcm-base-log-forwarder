@@ -1,0 +1,7 @@
+config,stage_timeout_ms,reuse,reps,host_alive,records_lost_values,stall_zero_sec_values,recovery_sec_median,recovery_sec_min,recovery_sec_max,recovery_over_T,isolation_calls,trap_calls,extra_cpu_core_sec_median,catchup_peak_per_sec_median
+t1000,1000,on,3,3,1 1 1,3 3 3,4.0,4.0,4.0,4.0,12,12,3.91,12149.0
+t2000,2000,on,3,3,1 1 1,7 7 7,8.0,8.0,8.0,4.0,12,12,7.35,22299.0
+t5000,5000,on,3,3,1 1 1,18 18 18,20.0,20.0,20.0,4.0,12,12,12.08,33414.0
+t30000,30000,on,3,3,1 1 1,118 118 118,119.0,119.0,119.0,3.97,12,12,12.04,35328.0
+noreuse,2000,off,3,3,1 1 1,7 7 7,8.0,8.0,8.0,4.0,12,12,7.26,21449.0
+noepoch (watchdog off),n/a,on,1,1,31700,59,,,,,0,0,11.29,2550

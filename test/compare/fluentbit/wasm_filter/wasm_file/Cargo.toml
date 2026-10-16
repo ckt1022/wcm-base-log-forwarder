@@ -1,0 +1,18 @@
+[workspace]
+members = [
+    "crash_loop",
+    "crash_io",
+    "crash_cpu",
+    "crash_mem",
+]
+resolver = "2"
+
+# Release profile: minimise WASM binary size.
+# panic = "abort" removes Rust's unwinding infrastructure (~saves 50-100 KB).
+# lto + opt-level "s" shrinks code further without sacrificing correctness.
+# strip = true drops the DWARF debug section from the .wasm file.
+[profile.release]
+opt-level = "s"
+lto        = true
+panic      = "abort"
+strip      = true

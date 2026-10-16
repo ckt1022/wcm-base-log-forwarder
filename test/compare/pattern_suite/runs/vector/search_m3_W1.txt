@@ -1,0 +1,5 @@
+trial rate=13750 PASS :: PASS rate=13750 gen_avg=13750/s gen_mb_s=14.093 lag_p99=5ms lag_max=5.9ms sink_total=329998 expected=329997 backlog=3010 win_out_eps=5406 win_out_mb_s=5.665 oom=false
+trial rate=15250 FAIL :: FAIL rate=15250 gen_avg=13972/s gen_mb_s=14.322 lag_p99=4699ms lag_max=4699.1ms sink_total=341031 expected=341030 backlog=7789 win_out_eps=5527 win_out_mb_s=5.793 oom=false reasons=gen_blocked(avg=13972/15250,lag_p99=4699.0ms)
+trial rate=14500 FAIL :: FAIL rate=14500 gen_avg=14129/s gen_mb_s=14.482 lag_p99=1554ms lag_max=1553.6ms sink_total=339274 expected=339273 backlog=4016 win_out_eps=5645 win_out_mb_s=5.916 oom=false reasons=gen_blocked(avg=14129/14500,lag_p99=1554.0ms)
+trial rate=14250 FAIL :: FAIL rate=14250 gen_avg=13995/s gen_mb_s=14.345 lag_p99=1000ms lag_max=1022.5ms sink_total=338159 expected=338158 backlog=6141 win_out_eps=5497 win_out_mb_s=5.760 oom=false reasons=gen_blocked(avg=13995/14250,lag_p99=1000.0ms)
+CAPACITY dut=vector tag=m3_W1 eps=13750 first_fail=14250

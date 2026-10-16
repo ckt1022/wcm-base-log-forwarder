@@ -1,0 +1,24 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=22000 mode=cap tag=g1_batch_W0.1_r1 load=60s conf=wcm_batch_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=9029 MB/s=9.53 total=257425
+[align] 進度 [httpsink] t=64s lines/s=8810 MB/s=9.30 total=521707
+PASS rate=22000 gen_avg=21999/s gen_mb_s=22.549 lag_p99=5ms lag_max=7.2ms sink_total=527993 expected=527992 backlog=-1 win_out_eps=8807 win_out_mb_s=9.300 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=24250 mode=cap tag=g1_batch_W0.1_r1 load=60s conf=wcm_batch_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=8756 MB/s=9.25 total=273961
+[align] 進度 [httpsink] t=64s lines/s=9755 MB/s=10.30 total=551566
+PASS rate=24250 gen_avg=24249/s gen_mb_s=24.856 lag_p99=5ms lag_max=5.0ms sink_total=581997 expected=581996 backlog=20826 win_out_eps=9315 win_out_mb_s=9.836 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=26750 mode=cap tag=g1_batch_W0.1_r1 load=60s conf=wcm_batch_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=9636 MB/s=10.18 total=266005
+[align] 進度 [httpsink] t=64s lines/s=9070 MB/s=9.58 total=538715
+FAIL rate=26750 gen_avg=26749/s gen_mb_s=27.418 lag_p99=5ms lag_max=7.6ms sink_total=641995 expected=641993 backlog=93298 win_out_eps=9114 win_out_mb_s=9.624 oom=false reasons=backlog=93298>32100
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=25500 mode=cap tag=g1_batch_W0.1_r1 load=60s conf=wcm_batch_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=6176 MB/s=6.52 total=199111
+FAIL reason=gen_no_done_line
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=25000 mode=cap tag=g1_batch_W0.1_r1 load=60s conf=wcm_batch_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=8328 MB/s=8.79 total=217203
+[align] 進度 [httpsink] t=64s lines/s=8936 MB/s=9.44 total=421287
+FAIL rate=25000 gen_avg=19181/s gen_mb_s=19.660 lag_p99=11418ms lag_max=11417.9ms sink_total=469155 expected=469153 backlog=36450 win_out_eps=7068 win_out_mb_s=7.463 oom=false reasons=gen_blocked(avg=19181/25000,lag_p99=11418.0ms);backlog=36450>30000

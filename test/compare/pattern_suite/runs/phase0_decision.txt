@@ -1,0 +1,13 @@
+BEST_K=256
+cap_batch_W0.1=21750
+cap_stream_k64_W0.1=21500
+cap_stream_k256_W0.1=25000
+best_stream_cap=25000
+ratio_best_stream_over_batch=1.149
+stream_ge_0.95x_batch=YES
+lat5000_stream_k64_W0.5: verdict=PASS p99_ms=514.634
+lat5000_stream_k64_W1: verdict=PASS p99_ms=1010.589
+lat5000_stream_k256_W0.5: verdict=PASS p99_ms=521.037
+lat5000_stream_k256_W1: verdict=PASS p99_ms=1014.911
+rule: BEST_K = streaming micro_batch_records with the higher W=0.1 capacity (tie -> 64); later phases use stream k=BEST_K as WCM-stream
+decided_at=2026-10-14T23:38:35+08:00

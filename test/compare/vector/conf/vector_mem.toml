@@ -1,0 +1,41 @@
+# Vector — 記憶體耗盡測試（mem）
+# 對應 Fluentd: plugins/filter_mem_test.rb
+#
+# 測試流程:
+#   1. loggen 持續輸入 → HTTP sink 轉發到 sink_server（建立基準吞吐量）
+#   2. 注入 {"inject":"memtest"} → mem_stress.lua 啟動 _G._leak 累積
+#   3. 預期結果：容器記憶體持續增長直到 OOM kill（exit 137）
+
+[sources.file_input]
+type = "file"
+include = ["/etc/vector/test-logs.log"]
+read_from = "beginning"
+
+[transforms.parse_json]
+type = "remap"
+inputs = ["file_input"]
+source = '''
+  result, err = parse_json(.message)
+  if err == null {
+    . = result
+  }
+'''
+
+[transforms.mem_stress]
+type = "lua"
+version = "2"
+inputs = ["parse_json"]
+source = 'dofile("/etc/vector/lua/mem_stress.lua")'
+hooks.process = "process"
+
+[sinks.http_output]
+type = "http"
+inputs = ["mem_stress"]
+uri = "http://127.0.0.1:8080/ingest"
+method = "post"
+framing.method = "newline_delimited"
+encoding.codec = "json"
+
+  [sinks.http_output.batch]
+  max_events = 10000
+  timeout_secs = 1

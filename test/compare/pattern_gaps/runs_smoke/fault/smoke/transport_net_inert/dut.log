@@ -1,0 +1,22 @@
+[config] processing_mode=streaming：輸入端 micro-batch（256 筆 或 第一筆後 5 ms 即送 parse）；輸出端 router 每 max_wait_ms=100 ms 週期 flush（同 Fluent Bit 全域 Flush），或 endpoint buffer 達 max_transport_bytes=134217728 B 時立即送出
+=== WCM Log Forwarder ===
+Memory Limit : 128 MB
+Buffer Size  : 1 MB
+Stages       : parse → filter → format → transport
+========================
+[config] epoch_interruption=true
+Stage impl   : parse=wcm filter=wcm format=wcm transport=wcm
+[mem-guard] disabled: cgroup memory.current/memory.max 不可讀或無上限
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:45846
+[tcp-input] 127.0.0.1:45846 disconnected
+[tcp-input] accepted 127.0.0.1:42590
+[SECURITY][transport] 拒絕 wasi:http 請求：127.0.0.1:8081 不在 forwarder.yaml 的 endpoint map 中
+[transport_chaos] PROBE net_http target=http://127.0.0.1:8081/ingest (not-listed-port) outcome=DENIED detail=PluginError::ProcessingFailed("outgoing-handler.handle() failed: ErrorCode::HttpRequestDenied")
+[SECURITY][transport] 拒絕 wasi:http 請求：localhost:8080 不在 forwarder.yaml 的 endpoint map 中
+[transport_chaos] PROBE net_http target=http://localhost:8080/ingest (not-listed-name-same-socket) outcome=DENIED detail=PluginError::ProcessingFailed("outgoing-handler.handle() failed: ErrorCode::HttpRequestDenied")
+[transport_chaos] PROBE net_tcp target=127.0.0.1:8080 (listed-endpoint) outcome=DENIED detail=kind=PermissionDenied err=Permission denied (os error 2)
+[transport_chaos] PROBE net_tcp target=127.0.0.1:8081 (not-listed) outcome=DENIED detail=kind=PermissionDenied err=Permission denied (os error 2)
+[transport_chaos] PROBE http_listed target=127.0.0.1:8080/ingest outcome=ACCEPTED detail=batch with marker delivered (264250 bytes)
+[tcp-input] 127.0.0.1:42590 disconnected

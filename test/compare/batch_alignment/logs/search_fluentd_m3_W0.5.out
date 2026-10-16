@@ -1,0 +1,20 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=52000 mode=cap tag=m3_W0.5 load=60s conf=fluentd_m3_W0.5.conf
+[align] 進度 [httpsink] t=35s lines/s=20466 MB/s=21.57 total=551277
+[align] 進度 [httpsink] t=65s lines/s=19706 MB/s=20.79 total=1123659
+FAIL rate=52000 gen_avg=47396/s gen_mb_s=48.581 lag_p99=5285ms lag_max=5284.8ms sink_total=1152647 expected=1152646 backlog=10433 win_out_eps=18957 win_out_mb_s=19.983 oom=false reasons=gen_blocked(avg=47396/52000,lag_p99=5285.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=46000 mode=cap tag=m3_W0.5 load=60s conf=fluentd_m3_W0.5.conf
+[align] 進度 [httpsink] t=35s lines/s=18434 MB/s=19.43 total=537229
+[align] 進度 [httpsink] t=65s lines/s=18686 MB/s=19.71 total=1089679
+PASS rate=46000 gen_avg=45999/s gen_mb_s=47.149 lag_p99=5ms lag_max=3.3ms sink_total=1103989 expected=1103988 backlog=14309 win_out_eps=18424 win_out_mb_s=19.421 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=49000 mode=cap tag=m3_W0.5 load=60s conf=fluentd_m3_W0.5.conf
+[align] 進度 [httpsink] t=35s lines/s=20055 MB/s=21.14 total=572002
+[align] 進度 [httpsink] t=65s lines/s=19424 MB/s=20.49 total=1160341
+FAIL rate=49000 gen_avg=48999/s gen_mb_s=50.224 lag_p99=50ms lag_max=81.6ms sink_total=1176001 expected=1176000 backlog=15659 win_out_eps=19625 win_out_mb_s=20.688 oom=false reasons=gen_blocked(avg=48999/49000,lag_p99=50.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=47500 mode=cap tag=m3_W0.5 load=60s conf=fluentd_m3_W0.5.conf
+[align] 進度 [httpsink] t=35s lines/s=19033 MB/s=20.06 total=554277
+[align] 進度 [httpsink] t=65s lines/s=19047 MB/s=20.09 total=1124870
+FAIL rate=47500 gen_avg=47499/s gen_mb_s=48.686 lag_p99=50ms lag_max=69.9ms sink_total=1139974 expected=1139973 backlog=15103 win_out_eps=19022 win_out_mb_s=20.052 oom=false reasons=gen_blocked(avg=47499/47500,lag_p99=50.0ms)

@@ -1,0 +1,6 @@
+case,marker,host_survived,records_sent,expected_received,records_received,records_lost,isolated_salvaged,isolated_rejected,isolation_calls,trap_calls,trap_retries,steady_recv_per_sec_median,stall_zero_sec,recovery_sec,catchup_peak_per_sec,cpu_pre_median_pct,cpu_fault_max_pct,cpu_fault_mean_pct,extra_cpu_core_sec,cpu_samples_excluded,rss_pre_median_mib_INVALID,rss_fault_max_minus_pre_mib_INVALID,error_txt_lines,error_txt_first,stderr_summary
+net_inert,FAULT_NET,alive,100000,50000,50000,0,0,0,0,0,0,2500.0,0,0.0,2500,15.4,16.4,13.6,0.02,0,31.6,1.0,0,,(no error lines)
+loop_noepoch,FAULT_LOOP,alive,100100,50050,20000,30050,0,0,0,0,0,2500.0,21,n/a,2500,14.4,101.6,96.0,11.86,0,30.7,52.8,0,,(no error lines)
+env_inert,FAULT_ENV,alive,100000,50000,50000,0,0,0,0,0,0,2500.0,0,0.0,2500,15.5,16.4,13.8,0.05,0,31.9,0.7,0,,(no error lines)
+loop_t1000,FAULT_LOOP,alive,150000,75000,74999,1,63,1,12,12,2,2500.0,3,4.0,12299,18.3,102.0,42.1,3.69,0,31.8,35.1,2,[parse-isolate] batch=800 拒絕 1/64 筆（index:原因）0:poison(trap/timeout),"[trap] exceeded retries, isolating batch N (64 lines) by bounded bisection | [trap n/m] x2 (wasm backtrace)"
+file_inert,FAULT_FILE,alive,100000,50000,50000,0,0,0,0,0,0,2500.0,0,0.0,2500,15.4,16.4,14.0,0.05,0,30.9,0.7,0,,(no error lines)

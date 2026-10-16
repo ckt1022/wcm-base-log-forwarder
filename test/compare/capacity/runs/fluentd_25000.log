@@ -1,0 +1,9 @@
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fluentd/lat_rate_25000/sink.log)
+[cap] dut=fluentd rate=25000 mode=lat load=90s flush=0.1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:25000 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fluentd/lat_rate_25000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fluentd/lat_rate_25000/sink.log)
+[cap] 進度 [httpsink] t=35s lines/s=9914 MB/s=1.99 total=293981
+[cap] 進度 [httpsink] t=65s lines/s=9910 MB/s=1.99 total=593835
+[cap] gen 完成,drain 10s 後關閉並判定
+[cap] 進度 [httpsink] t=95s lines/s=9894 MB/s=1.99 total=893733
+PASS rate=25000 gen_avg=25000/s gen_mb_s=3.995 lag_p99=5ms lag_max=6.5ms sink_total=899995 expected=899994 backlog=-1 win_out_eps=10003 win_out_mb_s=2.010 oom=false

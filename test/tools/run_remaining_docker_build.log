@@ -1,0 +1,201 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.19kB 0.0s done
+#1 DONE 0.1s
+
+#2 resolve image config for docker-image://docker.io/docker/dockerfile:1
+#2 DONE 1.6s
+
+#3 docker-image://docker.io/docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
+#3 CACHED
+
+#4 [internal] load metadata for docker.io/library/debian:bookworm-slim
+#4 ...
+
+#5 [internal] load metadata for docker.io/library/rust:1.93-slim-bookworm
+#5 DONE 0.0s
+
+#4 [internal] load metadata for docker.io/library/debian:bookworm-slim
+#4 DONE 1.3s
+
+#6 [internal] load .dockerignore
+#6 transferring context: 254B done
+#6 DONE 0.0s
+
+#7 [builder 1/6] FROM docker.io/library/rust:1.93-slim-bookworm
+#7 DONE 0.0s
+
+#8 [stage-1 1/4] FROM docker.io/library/debian:bookworm-slim@sha256:7c7b2c966bc9ee8cedfeef67e0e279108992c77681fa595db4a9d65c06ccc587
+#8 DONE 0.0s
+
+#9 [internal] load build context
+#9 transferring context: 339.76kB 0.0s done
+#9 DONE 0.1s
+
+#10 [builder 2/6] WORKDIR /build
+#10 CACHED
+
+#11 [builder 3/6] COPY Cargo.toml Cargo.lock ./
+#11 DONE 0.1s
+
+#12 [builder 4/6] COPY src ./src
+#12 DONE 0.1s
+
+#13 [builder 5/6] COPY wit ./wit
+#13 DONE 0.1s
+
+#14 [builder 6/6] RUN --mount=type=cache,target=/usr/local/cargo/registry     --mount=type=cache,target=/build/target     cargo build --release     && cp target/release/wcm-base-log-forwarder /build/wcm-base-log-forwarder
+#14 3.736    Compiling wcm-base-log-forwarder v0.1.0 (/build)
+#14 8.694 warning: unused variable: `ratio`
+#14 8.694   --> src/app.rs:86:13
+#14 8.694    |
+#14 8.694 86 |         let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
+#14 8.694    |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_ratio`
+#14 8.694    |
+#14 8.694    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+#14 8.694 
+#14 9.131 warning: method `print_max` is never used
+#14 9.131   --> src/app.rs:85:12
+#14 9.131    |
+#14 9.131 75 | impl MyLimiter {
+#14 9.131    | -------------- method in this implementation
+#14 9.131 ...
+#14 9.131 85 |     pub fn print_max(&self, type_of_max: &str) {
+#14 9.131    |            ^^^^^^^^^
+#14 9.131    |
+#14 9.131    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+#14 9.131 
+#14 9.131 warning: function `spawn_stdin_reader` is never used
+#14 9.131    --> src/app.rs:453:8
+#14 9.131     |
+#14 9.131 453 | pub fn spawn_stdin_reader(tx: SyncSender<String>) {
+#14 9.131     |        ^^^^^^^^^^^^^^^^^^
+#14 9.131 
+#14 9.131 warning: method `print_config_table` is never used
+#14 9.131    --> src/config.rs:492:12
+#14 9.131     |
+#14 9.131 380 | impl BatchConfig {
+#14 9.131     | ---------------- method in this implementation
+#14 9.131 ...
+#14 9.131 492 |     pub fn print_config_table(&self) {
+#14 9.131     |            ^^^^^^^^^^^^^^^^^^
+#14 9.131 
+#14 9.131 warning: struct `ChannelStats` is never constructed
+#14 9.131    --> src/config.rs:581:12
+#14 9.131     |
+#14 9.131 581 | pub struct ChannelStats {
+#14 9.131     |            ^^^^^^^^^^^^
+#14 9.131 
+#14 9.132 warning: associated items `new`, `on_send`, `on_recv`, and `snapshot` are never used
+#14 9.132    --> src/config.rs:587:12
+#14 9.132     |
+#14 9.132 586 | impl ChannelStats {
+#14 9.132     | ----------------- associated items in this implementation
+#14 9.132 587 |     pub fn new() -> Self {
+#14 9.132     |            ^^^
+#14 9.132 ...
+#14 9.132 595 |     pub fn on_send(&self, byte_len: usize) {
+#14 9.132     |            ^^^^^^^
+#14 9.132 ...
+#14 9.132 601 |     pub fn on_recv(&self, byte_len: usize) {
+#14 9.132     |            ^^^^^^^
+#14 9.132 ...
+#14 9.132 607 |     pub fn snapshot(&self) -> (usize, usize) {
+#14 9.132     |            ^^^^^^^^
+#14 9.132 
+#14 9.132 warning: fields `size`, `time`, and `eof` are never read
+#14 9.132    --> src/config.rs:650:9
+#14 9.132     |
+#14 9.132 649 | pub struct FlushReason {
+#14 9.132     |            ----------- fields in this struct
+#14 9.132 650 |     pub size: bool,
+#14 9.132     |         ^^^^
+#14 9.132 651 |     pub time: bool,
+#14 9.132     |         ^^^^
+#14 9.132 652 |     pub eof: bool,
+#14 9.132     |         ^^^
+#14 9.132 
+#14 9.132 warning: struct `ParseDiffTiming` is never constructed
+#14 9.132    --> src/config.rs:658:12
+#14 9.132     |
+#14 9.132 658 | pub struct ParseDiffTiming {
+#14 9.132     |            ^^^^^^^^^^^^^^^
+#14 9.132 
+#14 9.132 warning: fields `total_elapsed` and `total_component_ns` are never read
+#14 9.132    --> src/config.rs:710:9
+#14 9.132     |
+#14 9.132 706 | pub struct FormatStats {
+#14 9.132     |            ----------- fields in this struct
+#14 9.132 ...
+#14 9.132 710 |     pub total_elapsed: Duration,
+#14 9.132     |         ^^^^^^^^^^^^^
+#14 9.132 ...
+#14 9.132 714 |     pub total_component_ns: u64,
+#14 9.132     |         ^^^^^^^^^^^^^^^^^^
+#14 9.132 
+#14 9.132 warning: fields `total_elapsed` and `total_component_ns` are never read
+#14 9.132    --> src/config.rs:737:9
+#14 9.132     |
+#14 9.132 732 | pub struct FilterStats {
+#14 9.132     |            ----------- fields in this struct
+#14 9.132 ...
+#14 9.132 737 |     pub total_elapsed: Duration,
+#14 9.132     |         ^^^^^^^^^^^^^
+#14 9.132 738 |     pub wasm_mem_peak_max: usize,
+#14 9.132 739 |     pub total_component_ns: u64,
+#14 9.132     |         ^^^^^^^^^^^^^^^^^^
+#14 9.132 
+#14 9.132 warning: method `salvaged` is never used
+#14 9.132    --> src/isolation.rs:104:12
+#14 9.132     |
+#14 9.132 102 | impl<T> IsolationReport<T> {
+#14 9.132     | -------------------------- method in this implementation
+#14 9.132 103 |     /// 被保留下來（salvaged）的輸出筆數
+#14 9.132 104 |     pub fn salvaged(&self) -> usize {
+#14 9.132     |            ^^^^^^^^
+#14 9.132 
+#14 9.132 warning: function `parse_batch_strict` is never used
+#14 9.132    --> src/native.rs:112:8
+#14 9.132     |
+#14 9.132 112 | pub fn parse_batch_strict(lines: &[String]) -> Result<Vec<ParsedEntry>, String> {
+#14 9.132     |        ^^^^^^^^^^^^^^^^^^
+#14 9.132 
+#14 9.132 warning: fields `seq` and `total_bytes` are never read
+#14 9.132   --> src/runtime.rs:59:5
+#14 9.132    |
+#14 9.132 56 | struct FormattedBatch {
+#14 9.132    |        -------------- fields in this struct
+#14 9.132 ...
+#14 9.132 59 |     seq: u64,
+#14 9.132    |     ^^^
+#14 9.132 60 |     total_bytes: usize,
+#14 9.132    |     ^^^^^^^^^^^
+#14 9.132 
+#14 9.132 warning: field `id` is never read
+#14 9.132    --> src/runtime.rs:118:5
+#14 9.132     |
+#14 9.132 117 | struct ParseInstance {
+#14 9.132     |        ------------- field in this struct
+#14 9.132 118 |     id: u8,
+#14 9.132     |     ^^
+#14 9.132 
+#14 34.43 warning: `wcm-base-log-forwarder` (bin "wcm-base-log-forwarder") generated 14 warnings (run `cargo fix --bin "wcm-base-log-forwarder" -p wcm-base-log-forwarder` to apply 1 suggestion)
+#14 34.43     Finished `release` profile [optimized] target(s) in 32.45s
+#14 DONE 35.2s
+
+#15 [stage-1 2/4] RUN apt-get update     && apt-get install -y --no-install-recommends ca-certificates     && rm -rf /var/lib/apt/lists/*
+#15 CACHED
+
+#16 [stage-1 3/4] COPY --from=builder /build/wcm-base-log-forwarder /usr/local/bin/wcm-base-log-forwarder
+#16 DONE 0.4s
+
+#17 [stage-1 4/4] WORKDIR /app
+#17 DONE 0.1s
+
+#18 exporting to image
+#18 exporting layers
+#18 exporting layers 0.3s done
+#18 writing image sha256:02ee1a41333117d5468e5060378332bb17cf076d66bc860427c2e5686999e5f3 done
+#18 naming to docker.io/library/wcm-base-log-forwarder:isolation 0.0s done
+#18 DONE 0.4s

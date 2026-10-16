@@ -1,0 +1,6 @@
+stage,lang,mode,call_size,samples,ns_per_record_median,ns_per_record_min,ns_per_record_max,note
+parse,go,fresh-pre,1,9,38695832.000,36973431.200,39561037.900,每次呼叫新 instance（InstancePre）
+parse,go,reuse,1,90,158326.150,140429.500,239571.900,reuse: B=64 起 wasm trap（out of bounds memory access），無 B≥64 資料
+parse,go,reuse,4,90,40147.400,34559.700,128568.100,reuse: B=64 起 wasm trap（out of bounds memory access），無 B≥64 資料
+parse,go,reuse,16,90,5571.650,4130.800,76810.300,reuse: B=64 起 wasm trap（out of bounds memory access），無 B≥64 資料
+parse,go,reuse,64,12,5486.000,4866.200,8552.100,reuse: B=64 起 wasm trap（out of bounds memory access），無 B≥64 資料

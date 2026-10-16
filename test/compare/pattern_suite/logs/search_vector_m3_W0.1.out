@@ -1,0 +1,20 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=vector rate=15500 mode=cap tag=m3_W0.1 load=60s conf=vector_align.yaml
+[align] 進度 [httpsink] t=34s lines/s=5292 MB/s=5.55 total=166329
+[align] 進度 [httpsink] t=64s lines/s=5997 MB/s=6.28 total=339201
+FAIL rate=15500 gen_avg=14450/s gen_mb_s=14.811 lag_p99=3661ms lag_max=3661.4ms sink_total=352877 expected=352876 backlog=13675 win_out_eps=5749 win_out_mb_s=6.024 oom=false reasons=gen_blocked(avg=14450/15500,lag_p99=3661.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=vector rate=13750 mode=cap tag=m3_W0.1 load=60s conf=vector_align.yaml
+[align] 進度 [httpsink] t=34s lines/s=5049 MB/s=5.29 total=159497
+[align] 進度 [httpsink] t=64s lines/s=5468 MB/s=5.73 total=325310
+PASS rate=13750 gen_avg=13750/s gen_mb_s=14.093 lag_p99=5ms lag_max=5.3ms sink_total=329995 expected=329994 backlog=-1 win_out_eps=5502 win_out_mb_s=5.766 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=vector rate=14750 mode=cap tag=m3_W0.1 load=60s conf=vector_align.yaml
+[align] 進度 [httpsink] t=34s lines/s=5292 MB/s=5.55 total=169211
+[align] 進度 [httpsink] t=64s lines/s=5292 MB/s=5.55 total=341730
+FAIL rate=14750 gen_avg=14574/s gen_mb_s=14.939 lag_p99=1000ms lag_max=642.4ms sink_total=353237 expected=353236 backlog=6214 win_out_eps=5731 win_out_mb_s=6.006 oom=false reasons=gen_blocked(avg=14574/14750,lag_p99=1000.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=vector rate=14250 mode=cap tag=m3_W0.1 load=60s conf=vector_align.yaml
+[align] 進度 [httpsink] t=34s lines/s=5292 MB/s=5.55 total=165493
+[align] 進度 [httpsink] t=64s lines/s=5710 MB/s=5.98 total=338381
+PASS rate=14250 gen_avg=14250/s gen_mb_s=14.606 lag_p99=5ms lag_max=4.8ms sink_total=341995 expected=341994 backlog=-1 win_out_eps=5711 win_out_mb_s=5.985 oom=false

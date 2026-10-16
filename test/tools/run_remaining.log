@@ -1,0 +1,728 @@
+[remaining] 2026-10-13T23:54:38+08:00 per_record_invocation system_all 已結束
+[remaining] 2026-10-13T23:54:38+08:00 cargo build --release
+[remaining] 2026-10-13T23:54:40+08:00 cargo test
+[remaining] 2026-10-13T23:55:08+08:00 cargo test 通過
+[remaining] 2026-10-13T23:55:08+08:00 baseline lat 5000 (RUN_ID=system_20261013_235508)
+[system] ===== variant=wcm mode=lat rate=5000 load=150s =====
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=12.7ms sink_total=299999 expected=299998 backlog=539 win_out_eps=1998 win_out_mb_s=2.110 oom=false
+[calc] ── 穩態延遲統計(第 30~140 秒,0 點 = 第一筆 receive)──
+[calc] 來源:/home/ckt1022/wcm-base-log-forwarder/test/ours/baselines/results/system_system_20261013_235508/wcm_lat_5000/latency_worker_1.csv
+[calc] 窗口內 219955 筆 / 全部 299999 筆
+[calc]   mean   =    159.379 ms
+[calc]   min    =     40.151 ms
+[calc]   p50    =    159.393 ms
+[calc]   p90    =    241.309 ms
+[calc]   p95    =    251.760 ms
+[calc]   p99    =    265.090 ms
+[calc]   p99.9  =    295.475 ms
+[calc]   max    =    319.550 ms
+[stats] samples=138 cpu_mean=21.69% cpu_max=27.60% rss_mean=40.04MiB rss_max=44.17MiB
+[system] ===== variant=native mode=lat rate=5000 load=150s =====
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=6.0ms sink_total=300001 expected=299999 backlog=131 win_out_eps=2001 win_out_mb_s=2.113 oom=false
+[calc] ── 穩態延遲統計(第 30~140 秒,0 點 = 第一筆 receive)──
+[calc] 來源:/home/ckt1022/wcm-base-log-forwarder/test/ours/baselines/results/system_system_20261013_235508/native_lat_5000/latency_worker_1.csv
+[calc] 窗口內 219954 筆 / 全部 300001 筆
+[calc]   mean   =    125.656 ms
+[calc]   min    =     11.650 ms
+[calc]   p50    =    125.646 ms
+[calc]   p90    =    207.570 ms
+[calc]   p95    =    217.813 ms
+[calc]   p99    =    229.300 ms
+[calc]   p99.9  =    236.206 ms
+[calc]   max    =    241.318 ms
+[stats] samples=138 cpu_mean=8.25% cpu_max=11.80% rss_mean=17.34MiB rss_max=17.34MiB
+[system] done: /home/ckt1022/wcm-base-log-forwarder/test/ours/baselines/results/system_system_20261013_235508
+[remaining] 2026-10-14T00:00:58+08:00 baseline cap ladder
+[system] ===== variant=wcm mode=cap rate=10000 load=60s =====
+PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=4.5ms sink_total=239999 expected=239998 backlog=300 win_out_eps=4006 win_out_mb_s=4.230 oom=false
+[stats] samples=49 cpu_mean=29.13% cpu_max=50.20% rss_mean=40.61MiB rss_max=44.16MiB
+[system] ===== variant=wcm mode=cap rate=15000 load=60s =====
+PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=19.2ms sink_total=359997 expected=359995 backlog=654 win_out_eps=5997 win_out_mb_s=6.332 oom=false
+[stats] samples=49 cpu_mean=43.13% cpu_max=72.90% rss_mean=41.10MiB rss_max=44.82MiB
+[system] ===== variant=wcm mode=cap rate=20000 load=60s =====
+PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=3.3ms sink_total=479991 expected=479990 backlog=732 win_out_eps=8004 win_out_mb_s=8.453 oom=false
+[stats] samples=49 cpu_mean=55.98% cpu_max=98.40% rss_mean=42.81MiB rss_max=45.68MiB
+[system] ===== variant=wcm mode=cap rate=25000 load=60s =====
+FAIL rate=25000 gen_avg=24999/s gen_mb_s=25.624 lag_p99=5ms lag_max=3.5ms sink_total=599997 expected=599996 backlog=48879 win_out_eps=9208 win_out_mb_s=9.726 oom=false reasons=backlog=48879>30000
+[stats] samples=49 cpu_mean=71.54% cpu_max=101.30% rss_mean=148.07MiB rss_max=168.39MiB
+[system] ===== variant=wcm mode=cap rate=30000 load=60s =====
+FAIL rate=30000 gen_avg=25084/s gen_mb_s=25.711 lag_p99=9432ms lag_max=9432.0ms sink_total=619481 expected=619479 backlog=48706 win_out_eps=9284 win_out_mb_s=9.807 oom=false reasons=gen_blocked(avg=25084/30000,lag_p99=9432.0ms);backlog=48706>36000
+[stats] samples=51 cpu_mean=72.53% cpu_max=101.50% rss_mean=145.94MiB rss_max=164.98MiB
+[system] ===== variant=wcm mode=cap rate=40000 load=60s =====
+FAIL rate=40000 gen_avg=25158/s gen_mb_s=25.787 lag_p99=21414ms lag_max=21413.9ms sink_total=605701 expected=605700 backlog=52714 win_out_eps=9306 win_out_mb_s=9.830 oom=false reasons=gen_blocked(avg=25158/40000,lag_p99=21414.0ms);backlog=52714>48000
+[stats] samples=49 cpu_mean=72.43% cpu_max=101.30% rss_mean=160.94MiB rss_max=166.57MiB
+[system] ===== variant=wcm mode=cap rate=50000 load=60s =====
+FAIL rate=50000 gen_avg=25615/s gen_mb_s=26.255 lag_p99=29234ms lag_max=29234.4ms sink_total=635094 expected=635093 backlog=50978 win_out_eps=9547 win_out_mb_s=10.085 oom=false reasons=gen_blocked(avg=25615/50000,lag_p99=29234.0ms)
+[stats] samples=51 cpu_mean=72.52% cpu_max=100.50% rss_mean=145.91MiB rss_max=164.83MiB
+[system] ===== variant=wcm mode=cap rate=70000 load=60s =====
+FAIL rate=70000 gen_avg=27294/s gen_mb_s=27.976 lag_p99=36009ms lag_max=36009.0ms sink_total=669725 expected=669724 backlog=54069 win_out_eps=10200 win_out_mb_s=10.775 oom=false reasons=gen_blocked(avg=27294/70000,lag_p99=36009.0ms)
+[stats] samples=51 cpu_mean=71.47% cpu_max=100.50% rss_mean=162.64MiB rss_max=164.95MiB
+[system] ===== variant=wcm mode=cap rate=100000 load=60s =====
+FAIL rate=100000 gen_avg=27280/s gen_mb_s=27.962 lag_p99=43554ms lag_max=43554.1ms sink_total=676239 expected=676238 backlog=50578 win_out_eps=10153 win_out_mb_s=10.726 oom=false reasons=gen_blocked(avg=27280/100000,lag_p99=43554.0ms)
+[stats] samples=51 cpu_mean=72.62% cpu_max=100.50% rss_mean=145.57MiB rss_max=164.66MiB
+[system] ===== variant=native mode=cap rate=10000 load=60s =====
+PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=4.0ms sink_total=239997 expected=239996 backlog=297 win_out_eps=3998 win_out_mb_s=4.222 oom=false
+[stats] samples=49 cpu_mean=10.90% cpu_max=20.60% rss_mean=17.63MiB rss_max=17.63MiB
+[system] ===== variant=native mode=cap rate=15000 load=60s =====
+PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=14.6ms sink_total=359997 expected=359996 backlog=341 win_out_eps=6005 win_out_mb_s=6.341 oom=false
+[stats] samples=49 cpu_mean=16.34% cpu_max=28.60% rss_mean=17.57MiB rss_max=17.57MiB
+[system] ===== variant=native mode=cap rate=20000 load=60s =====
+PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=2.4ms sink_total=479999 expected=479998 backlog=599 win_out_eps=7995 win_out_mb_s=8.445 oom=false
+[stats] samples=49 cpu_mean=20.61% cpu_max=35.50% rss_mean=17.98MiB rss_max=17.98MiB
+[system] ===== variant=native mode=cap rate=25000 load=60s =====
+PASS rate=25000 gen_avg=24999/s gen_mb_s=25.624 lag_p99=5ms lag_max=5.6ms sink_total=599994 expected=599993 backlog=536 win_out_eps=10002 win_out_mb_s=10.566 oom=false
+[stats] samples=49 cpu_mean=24.67% cpu_max=41.40% rss_mean=17.95MiB rss_max=17.95MiB
+[system] ===== variant=native mode=cap rate=30000 load=60s =====
+PASS rate=30000 gen_avg=29999/s gen_mb_s=30.749 lag_p99=5ms lag_max=5.6ms sink_total=719992 expected=719991 backlog=532 win_out_eps=12001 win_out_mb_s=12.680 oom=false
+[stats] samples=49 cpu_mean=28.59% cpu_max=49.30% rss_mean=18.16MiB rss_max=18.16MiB
+[system] ===== variant=native mode=cap rate=40000 load=60s =====
+PASS rate=40000 gen_avg=39999/s gen_mb_s=40.999 lag_p99=5ms lag_max=4.4ms sink_total=959989 expected=959988 backlog=913 win_out_eps=15991 win_out_mb_s=16.897 oom=false
+[stats] samples=49 cpu_mean=37.37% cpu_max=65.10% rss_mean=18.07MiB rss_max=18.18MiB
+[system] ===== variant=native mode=cap rate=50000 load=60s =====
+PASS rate=50000 gen_avg=49999/s gen_mb_s=51.249 lag_p99=5ms lag_max=6.8ms sink_total=1199985 expected=1199984 backlog=884 win_out_eps=19997 win_out_mb_s=21.132 oom=false
+[stats] samples=49 cpu_mean=45.43% cpu_max=78.80% rss_mean=19.70MiB rss_max=19.85MiB
+[system] ===== variant=native mode=cap rate=70000 load=60s =====
+PASS rate=70000 gen_avg=69998/s gen_mb_s=71.748 lag_p99=5ms lag_max=3.4ms sink_total=1679983 expected=1679982 backlog=831 win_out_eps=28008 win_out_mb_s=29.602 oom=false
+[stats] samples=49 cpu_mean=55.68% cpu_max=96.40% rss_mean=23.40MiB rss_max=24.28MiB
+[system] ===== variant=native mode=cap rate=100000 load=60s =====
+FAIL rate=100000 gen_avg=96944/s gen_mb_s=99.368 lag_p99=1797ms lag_max=1797.1ms sink_total=2342429 expected=2342428 backlog=66489 win_out_eps=38191 win_out_mb_s=40.367 oom=false reasons=gen_blocked(avg=96944/100000,lag_p99=1797.0ms)
+[stats] samples=50 cpu_mean=63.52% cpu_max=101.40% rss_mean=140.22MiB rss_max=146.25MiB
+[system] done: /home/ckt1022/wcm-base-log-forwarder/test/ours/baselines/results/system_system_20261013_235508
+[remaining] 2026-10-14T00:26:19+08:00 docker build wcm-base-log-forwarder:isolation
+[remaining] 2026-10-14T00:27:04+08:00 correctness C3 x3 (RUN_ID=isolation_docker_20261014_002704)
+[correctness] ===== C3 rep=1 rate=2500 count=100000 malformed=true =====
+[correctgen] phase=flat sent=2499/100000 lag=0.940ms
+[correctgen] phase=flat sent=4999/100000 lag=1.049ms
+[correctgen] phase=flat sent=7501/100000 lag=0.800ms
+[correctgen] phase=flat sent=10001/100000 lag=0.966ms
+[correctgen] phase=flat sent=12503/100000 lag=1.002ms
+[correctgen] phase=flat sent=15004/100000 lag=0.920ms
+[correctgen] phase=flat sent=17505/100000 lag=0.989ms
+[correctgen] phase=flat sent=20008/100000 lag=0.817ms
+[correctgen] phase=flat sent=22509/100000 lag=0.825ms
+[correctgen] phase=flat sent=25011/100000 lag=0.872ms
+[correctgen] phase=flat sent=27513/100000 lag=0.752ms
+[correctgen] phase=flat sent=30014/100000 lag=0.926ms
+[correctgen] phase=flat sent=32516/100000 lag=0.954ms
+[correctgen] phase=flat sent=35017/100000 lag=1.073ms
+[correctgen] phase=flat sent=37520/100000 lag=0.794ms
+[correctgen] phase=flat sent=40020/100000 lag=1.056ms
+[correctgen] phase=flat sent=42523/100000 lag=0.759ms
+[correctgen] phase=flat sent=45025/100000 lag=1.055ms
+[correctgen] phase=flat sent=47526/100000 lag=1.096ms
+[correctgen] phase=flat sent=50027/100000 lag=0.747ms
+[correctgen] phase=flat sent=52528/100000 lag=0.954ms
+[correctgen] phase=flat sent=55029/100000 lag=0.938ms
+[correctgen] phase=flat sent=57529/100000 lag=1.072ms
+[correctgen] phase=flat sent=60032/100000 lag=0.945ms
+[correctgen] phase=flat sent=62533/100000 lag=0.762ms
+[correctgen] phase=flat sent=65035/100000 lag=1.105ms
+[correctgen] phase=flat sent=67537/100000 lag=0.906ms
+[correctgen] phase=flat sent=70038/100000 lag=0.944ms
+[correctgen] phase=flat sent=72539/100000 lag=1.015ms
+[correctgen] phase=flat sent=75042/100000 lag=0.866ms
+[correctgen] phase=flat sent=77543/100000 lag=0.827ms
+[correctgen] phase=flat sent=80043/100000 lag=1.022ms
+[correctgen] phase=flat sent=82544/100000 lag=1.087ms
+[correctgen] phase=flat sent=85046/100000 lag=1.021ms
+[correctgen] phase=flat sent=87547/100000 lag=0.875ms
+[correctgen] phase=flat sent=90048/100000 lag=0.715ms
+[correctgen] phase=flat sent=92549/100000 lag=0.890ms
+[correctgen] phase=flat sent=95051/100000 lag=0.999ms
+[correctgen] phase=flat sent=97552/100000 lag=0.916ms
+[correctgen] done count=100000 malformed=5000 elapsed=40.001s avg=2500/s lag_p99=1.112ms
+[correctness] generator done; drain 20s
+PASS expected=38000 received=38000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2499.9 lag_p99=1.112ms oom=false
+[correctness] ===== C3 rep=2 rate=2500 count=100000 malformed=true =====
+[correctgen] phase=flat sent=2498/100000 lag=0.941ms
+[correctgen] phase=flat sent=5000/100000 lag=1.099ms
+[correctgen] phase=flat sent=7501/100000 lag=1.060ms
+[correctgen] phase=flat sent=10004/100000 lag=0.808ms
+[correctgen] phase=flat sent=12505/100000 lag=1.015ms
+[correctgen] phase=flat sent=15006/100000 lag=1.043ms
+[correctgen] phase=flat sent=17508/100000 lag=0.934ms
+[correctgen] phase=flat sent=20010/100000 lag=0.902ms
+[correctgen] phase=flat sent=22512/100000 lag=0.990ms
+[correctgen] phase=flat sent=25013/100000 lag=1.097ms
+[correctgen] phase=flat sent=27514/100000 lag=0.927ms
+[correctgen] phase=flat sent=30016/100000 lag=0.897ms
+[correctgen] phase=flat sent=32517/100000 lag=0.726ms
+[correctgen] phase=flat sent=35018/100000 lag=0.772ms
+[correctgen] phase=flat sent=37520/100000 lag=0.847ms
+[correctgen] phase=flat sent=40020/100000 lag=1.077ms
+[correctgen] phase=flat sent=42522/100000 lag=1.105ms
+[correctgen] phase=flat sent=45025/100000 lag=1.004ms
+[correctgen] phase=flat sent=47526/100000 lag=0.732ms
+[correctgen] phase=flat sent=50028/100000 lag=0.832ms
+[correctgen] phase=flat sent=52528/100000 lag=0.863ms
+[correctgen] phase=flat sent=55030/100000 lag=0.714ms
+[correctgen] phase=flat sent=57530/100000 lag=1.024ms
+[correctgen] phase=flat sent=60032/100000 lag=1.011ms
+[correctgen] phase=flat sent=62534/100000 lag=0.770ms
+[correctgen] phase=flat sent=65034/100000 lag=0.851ms
+[correctgen] phase=flat sent=67534/100000 lag=0.980ms
+[correctgen] phase=flat sent=70036/100000 lag=1.082ms
+[correctgen] phase=flat sent=72539/100000 lag=1.069ms
+[correctgen] phase=flat sent=75040/100000 lag=1.001ms
+[correctgen] phase=flat sent=77542/100000 lag=0.752ms
+[correctgen] phase=flat sent=80042/100000 lag=0.969ms
+[correctgen] phase=flat sent=82542/100000 lag=1.109ms
+[correctgen] phase=flat sent=85043/100000 lag=1.039ms
+[correctgen] phase=flat sent=87546/100000 lag=0.961ms
+[correctgen] phase=flat sent=90048/100000 lag=0.803ms
+[correctgen] phase=flat sent=92549/100000 lag=0.908ms
+[correctgen] phase=flat sent=95051/100000 lag=0.743ms
+[correctgen] phase=flat sent=97551/100000 lag=0.816ms
+[correctgen] done count=100000 malformed=5000 elapsed=40.001s avg=2500/s lag_p99=1.115ms
+[correctness] generator done; drain 20s
+PASS expected=38000 received=38000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2500.0 lag_p99=1.115ms oom=false
+[correctness] ===== C3 rep=3 rate=2500 count=100000 malformed=true =====
+[correctgen] phase=flat sent=2498/100000 lag=0.967ms
+[correctgen] phase=flat sent=5000/100000 lag=0.811ms
+[correctgen] phase=flat sent=7502/100000 lag=1.056ms
+[correctgen] phase=flat sent=10004/100000 lag=0.899ms
+[correctgen] phase=flat sent=12506/100000 lag=0.886ms
+[correctgen] phase=flat sent=15008/100000 lag=0.687ms
+[correctgen] phase=flat sent=17510/100000 lag=1.045ms
+[correctgen] phase=flat sent=20013/100000 lag=0.970ms
+[correctgen] phase=flat sent=22514/100000 lag=1.127ms
+[correctgen] phase=flat sent=25015/100000 lag=0.789ms
+[correctgen] phase=flat sent=27516/100000 lag=0.757ms
+[correctgen] phase=flat sent=30018/100000 lag=0.688ms
+[correctgen] phase=flat sent=32518/100000 lag=0.782ms
+[correctgen] phase=flat sent=35020/100000 lag=1.025ms
+[correctgen] phase=flat sent=37521/100000 lag=0.898ms
+[correctgen] phase=flat sent=40021/100000 lag=0.984ms
+[correctgen] phase=flat sent=42524/100000 lag=1.392ms
+[correctgen] phase=flat sent=45027/100000 lag=0.834ms
+[correctgen] phase=flat sent=47529/100000 lag=0.908ms
+[correctgen] phase=flat sent=50032/100000 lag=0.724ms
+[correctgen] phase=flat sent=52532/100000 lag=1.015ms
+[correctgen] phase=flat sent=55032/100000 lag=1.054ms
+[correctgen] phase=flat sent=57535/100000 lag=0.932ms
+[correctgen] phase=flat sent=60036/100000 lag=1.007ms
+[correctgen] phase=flat sent=62537/100000 lag=0.700ms
+[correctgen] phase=flat sent=65039/100000 lag=0.789ms
+[correctgen] phase=flat sent=67539/100000 lag=0.894ms
+[correctgen] phase=flat sent=70041/100000 lag=0.954ms
+[correctgen] phase=flat sent=72542/100000 lag=0.947ms
+[correctgen] phase=flat sent=75045/100000 lag=0.814ms
+[correctgen] phase=flat sent=77547/100000 lag=0.864ms
+[correctgen] phase=flat sent=80049/100000 lag=0.960ms
+[correctgen] phase=flat sent=82551/100000 lag=0.970ms
+[correctgen] phase=flat sent=85054/100000 lag=0.713ms
+[correctgen] phase=flat sent=87555/100000 lag=1.054ms
+[correctgen] phase=flat sent=90057/100000 lag=0.779ms
+[correctgen] phase=flat sent=92559/100000 lag=1.069ms
+[correctgen] phase=flat sent=95060/100000 lag=0.717ms
+[correctgen] phase=flat sent=97562/100000 lag=0.724ms
+[correctgen] done count=100000 malformed=5000 elapsed=40.000s avg=2500/s lag_p99=1.112ms
+[correctness] generator done; drain 20s
+PASS expected=38000 received=38000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2500.0 lag_p99=1.112ms oom=false
+[correctness] completed run root: /home/ckt1022/wcm-base-log-forwarder/test/compare/correctness/runs/isolation_docker_20261014_002704
+[remaining] 2026-10-14T00:31:07+08:00 correctness C1 x3 (RUN_ID=isolation_docker_20261014_002704)
+[correctness] ===== C1 rep=1 rate=2500 count=100000 malformed=false =====
+[correctgen] phase=flat sent=2499/100000 lag=0.722ms
+[correctgen] phase=flat sent=5000/100000 lag=1.029ms
+[correctgen] phase=flat sent=7501/100000 lag=0.773ms
+[correctgen] phase=flat sent=10001/100000 lag=0.988ms
+[correctgen] phase=flat sent=12503/100000 lag=0.942ms
+[correctgen] phase=flat sent=15004/100000 lag=0.856ms
+[correctgen] phase=flat sent=17506/100000 lag=0.932ms
+[correctgen] phase=flat sent=20007/100000 lag=0.874ms
+[correctgen] phase=flat sent=22508/100000 lag=0.832ms
+[correctgen] phase=flat sent=25010/100000 lag=0.860ms
+[correctgen] phase=flat sent=27511/100000 lag=0.896ms
+[correctgen] phase=flat sent=30012/100000 lag=0.917ms
+[correctgen] phase=flat sent=32514/100000 lag=0.799ms
+[correctgen] phase=flat sent=35014/100000 lag=0.886ms
+[correctgen] phase=flat sent=37515/100000 lag=0.975ms
+[correctgen] phase=flat sent=40016/100000 lag=1.058ms
+[correctgen] phase=flat sent=42518/100000 lag=0.826ms
+[correctgen] phase=flat sent=45021/100000 lag=0.715ms
+[correctgen] phase=flat sent=47521/100000 lag=1.045ms
+[correctgen] phase=flat sent=50022/100000 lag=0.845ms
+[correctgen] phase=flat sent=52523/100000 lag=0.760ms
+[correctgen] phase=flat sent=55025/100000 lag=0.033ms
+[correctgen] phase=flat sent=57523/100000 lag=0.948ms
+[correctgen] phase=flat sent=60023/100000 lag=1.080ms
+[correctgen] phase=flat sent=62526/100000 lag=0.784ms
+[correctgen] phase=flat sent=65026/100000 lag=0.953ms
+[correctgen] phase=flat sent=67529/100000 lag=0.788ms
+[correctgen] phase=flat sent=70030/100000 lag=0.741ms
+[correctgen] phase=flat sent=72531/100000 lag=1.001ms
+[correctgen] phase=flat sent=75034/100000 lag=0.860ms
+[correctgen] phase=flat sent=77536/100000 lag=1.003ms
+[correctgen] phase=flat sent=80037/100000 lag=0.847ms
+[correctgen] phase=flat sent=82537/100000 lag=1.086ms
+[correctgen] phase=flat sent=85040/100000 lag=0.976ms
+[correctgen] phase=flat sent=87541/100000 lag=0.819ms
+[correctgen] phase=flat sent=90043/100000 lag=1.136ms
+[correctgen] phase=flat sent=92545/100000 lag=0.783ms
+[correctgen] phase=flat sent=95045/100000 lag=0.906ms
+[correctgen] phase=flat sent=97546/100000 lag=0.716ms
+[correctgen] done count=100000 malformed=0 elapsed=40.000s avg=2500/s lag_p99=1.116ms
+[correctness] generator done; drain 20s
+PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2500.0 lag_p99=1.116ms oom=false
+[correctness] ===== C1 rep=2 rate=2500 count=100000 malformed=false =====
+[correctgen] phase=flat sent=2499/100000 lag=1.057ms
+[correctgen] phase=flat sent=5000/100000 lag=0.906ms
+[correctgen] phase=flat sent=7502/100000 lag=0.805ms
+[correctgen] phase=flat sent=10004/100000 lag=1.015ms
+[correctgen] phase=flat sent=12507/100000 lag=0.927ms
+[correctgen] phase=flat sent=15008/100000 lag=1.088ms
+[correctgen] phase=flat sent=17511/100000 lag=0.734ms
+[correctgen] phase=flat sent=20010/100000 lag=1.379ms
+[correctgen] phase=flat sent=22511/100000 lag=1.070ms
+[correctgen] phase=flat sent=25012/100000 lag=0.993ms
+[correctgen] phase=flat sent=27513/100000 lag=1.118ms
+[correctgen] phase=flat sent=30015/100000 lag=0.730ms
+[correctgen] phase=flat sent=32515/100000 lag=0.817ms
+[correctgen] phase=flat sent=35016/100000 lag=0.836ms
+[correctgen] phase=flat sent=37518/100000 lag=0.750ms
+[correctgen] phase=flat sent=40020/100000 lag=0.938ms
+[correctgen] phase=flat sent=42522/100000 lag=0.946ms
+[correctgen] phase=flat sent=45024/100000 lag=1.087ms
+[correctgen] phase=flat sent=47527/100000 lag=0.750ms
+[correctgen] phase=flat sent=50027/100000 lag=1.005ms
+[correctgen] phase=flat sent=52529/100000 lag=1.014ms
+[correctgen] phase=flat sent=55031/100000 lag=0.986ms
+[correctgen] phase=flat sent=57532/100000 lag=0.939ms
+[correctgen] phase=flat sent=60034/100000 lag=0.990ms
+[correctgen] phase=flat sent=62535/100000 lag=0.818ms
+[correctgen] phase=flat sent=65036/100000 lag=0.765ms
+[correctgen] phase=flat sent=67536/100000 lag=0.944ms
+[correctgen] phase=flat sent=70036/100000 lag=1.066ms
+[correctgen] phase=flat sent=72538/100000 lag=0.938ms
+[correctgen] phase=flat sent=75041/100000 lag=0.739ms
+[correctgen] phase=flat sent=77542/100000 lag=1.062ms
+[correctgen] phase=flat sent=80043/100000 lag=1.112ms
+[correctgen] phase=flat sent=82544/100000 lag=1.128ms
+[correctgen] phase=flat sent=85046/100000 lag=0.739ms
+[correctgen] phase=flat sent=87548/100000 lag=0.906ms
+[correctgen] phase=flat sent=90050/100000 lag=1.058ms
+[correctgen] phase=flat sent=92551/100000 lag=1.081ms
+[correctgen] phase=flat sent=95052/100000 lag=1.007ms
+[correctgen] phase=flat sent=97554/100000 lag=0.800ms
+[correctgen] done count=100000 malformed=0 elapsed=40.001s avg=2500/s lag_p99=1.113ms
+[correctness] generator done; drain 20s
+PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2500.0 lag_p99=1.113ms oom=false
+[correctness] ===== C1 rep=3 rate=2500 count=100000 malformed=false =====
+[correctgen] phase=flat sent=2498/100000 lag=0.856ms
+[correctgen] phase=flat sent=5000/100000 lag=0.916ms
+[correctgen] phase=flat sent=7500/100000 lag=1.031ms
+[correctgen] phase=flat sent=10003/100000 lag=0.900ms
+[correctgen] phase=flat sent=12505/100000 lag=1.091ms
+[correctgen] phase=flat sent=15008/100000 lag=0.896ms
+[correctgen] phase=flat sent=17508/100000 lag=1.041ms
+[correctgen] phase=flat sent=20010/100000 lag=0.768ms
+[correctgen] phase=flat sent=22511/100000 lag=1.028ms
+[correctgen] phase=flat sent=25014/100000 lag=0.839ms
+[correctgen] phase=flat sent=27515/100000 lag=1.099ms
+[correctgen] phase=flat sent=30018/100000 lag=0.987ms
+[correctgen] phase=flat sent=32519/100000 lag=0.876ms
+[correctgen] phase=flat sent=35021/100000 lag=0.780ms
+[correctgen] phase=flat sent=37524/100000 lag=0.694ms
+[correctgen] phase=flat sent=40026/100000 lag=0.996ms
+[correctgen] phase=flat sent=42527/100000 lag=1.079ms
+[correctgen] phase=flat sent=45028/100000 lag=0.908ms
+[correctgen] phase=flat sent=47530/100000 lag=1.030ms
+[correctgen] phase=flat sent=50031/100000 lag=0.791ms
+[correctgen] phase=flat sent=52533/100000 lag=0.800ms
+[correctgen] phase=flat sent=55036/100000 lag=0.728ms
+[correctgen] phase=flat sent=57538/100000 lag=0.840ms
+[correctgen] phase=flat sent=60040/100000 lag=1.173ms
+[correctgen] phase=flat sent=62542/100000 lag=0.905ms
+[correctgen] phase=flat sent=65044/100000 lag=0.728ms
+[correctgen] phase=flat sent=67544/100000 lag=0.962ms
+[correctgen] phase=flat sent=70046/100000 lag=0.759ms
+[correctgen] phase=flat sent=72547/100000 lag=1.017ms
+[correctgen] phase=flat sent=75048/100000 lag=0.986ms
+[correctgen] phase=flat sent=77551/100000 lag=0.878ms
+[correctgen] phase=flat sent=80051/100000 lag=0.961ms
+[correctgen] phase=flat sent=82553/100000 lag=1.011ms
+[correctgen] phase=flat sent=85056/100000 lag=0.685ms
+[correctgen] phase=flat sent=87558/100000 lag=0.722ms
+[correctgen] phase=flat sent=90059/100000 lag=0.884ms
+[correctgen] phase=flat sent=92561/100000 lag=0.879ms
+[correctgen] phase=flat sent=95064/100000 lag=0.799ms
+[correctgen] phase=flat sent=97566/100000 lag=0.620ms
+[correctgen] done count=100000 malformed=0 elapsed=40.001s avg=2500/s lag_p99=1.117ms
+[correctness] generator done; drain 20s
+PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2500.0 lag_p99=1.117ms oom=false
+[correctness] completed run root: /home/ckt1022/wcm-base-log-forwarder/test/compare/correctness/runs/isolation_docker_20261014_002704
+[remaining] 2026-10-14T00:34:56+08:00 correctness C2 x3 (RUN_ID=isolation_docker_20261014_002704)
+[correctness] ===== C2 rep=1 rate=17500 count=1000000 malformed=false =====
+[correctgen] phase=flat sent=17485/1000000 lag=1.038ms
+[correctgen] phase=flat sent=35002/1000000 lag=1.061ms
+[correctgen] phase=flat sent=52518/1000000 lag=0.938ms
+[correctgen] phase=flat sent=70019/1000000 lag=1.019ms
+[correctgen] phase=flat sent=87525/1000000 lag=0.709ms
+[correctgen] phase=flat sent=105028/1000000 lag=1.095ms
+[correctgen] phase=flat sent=122547/1000000 lag=1.008ms
+[correctgen] phase=flat sent=140057/1000000 lag=1.044ms
+[correctgen] phase=flat sent=157559/1000000 lag=1.083ms
+[correctgen] phase=flat sent=175077/1000000 lag=1.069ms
+[correctgen] phase=flat sent=192595/1000000 lag=1.080ms
+[correctgen] phase=flat sent=210108/1000000 lag=1.049ms
+[correctgen] phase=flat sent=227620/1000000 lag=1.042ms
+[correctgen] phase=flat sent=245131/1000000 lag=1.091ms
+[correctgen] phase=flat sent=262649/1000000 lag=1.135ms
+[correctgen] phase=flat sent=280159/1000000 lag=1.148ms
+[correctgen] phase=flat sent=297669/1000000 lag=0.748ms
+[correctgen] phase=flat sent=315163/1000000 lag=1.056ms
+[correctgen] phase=flat sent=332687/1000000 lag=0.045ms
+[correctgen] phase=flat sent=350188/1000000 lag=0.020ms
+[correctgen] phase=flat sent=367682/1000000 lag=1.079ms
+[correctgen] phase=flat sent=385193/1000000 lag=0.794ms
+[correctgen] phase=flat sent=402689/1000000 lag=1.060ms
+[correctgen] phase=flat sent=420200/1000000 lag=1.028ms
+[correctgen] phase=flat sent=437707/1000000 lag=1.092ms
+[correctgen] phase=flat sent=455223/1000000 lag=1.104ms
+[correctgen] phase=flat sent=472733/1000000 lag=1.055ms
+[correctgen] phase=flat sent=490238/1000000 lag=1.083ms
+[correctgen] phase=flat sent=507748/1000000 lag=0.969ms
+[correctgen] phase=flat sent=525257/1000000 lag=1.089ms
+[correctgen] phase=flat sent=542763/1000000 lag=0.809ms
+[correctgen] phase=flat sent=560272/1000000 lag=1.066ms
+[correctgen] phase=flat sent=577791/1000000 lag=0.038ms
+[correctgen] phase=flat sent=595291/1000000 lag=1.092ms
+[correctgen] phase=flat sent=612801/1000000 lag=1.104ms
+[correctgen] phase=flat sent=630309/1000000 lag=1.091ms
+[correctgen] phase=flat sent=647826/1000000 lag=1.068ms
+[correctgen] phase=flat sent=665345/1000000 lag=0.054ms
+[correctgen] phase=flat sent=682840/1000000 lag=0.913ms
+[correctgen] phase=flat sent=700352/1000000 lag=1.035ms
+[correctgen] phase=flat sent=717863/1000000 lag=1.070ms
+[correctgen] phase=flat sent=735379/1000000 lag=1.045ms
+[correctgen] phase=flat sent=752886/1000000 lag=0.971ms
+[correctgen] phase=flat sent=770387/1000000 lag=0.992ms
+[correctgen] phase=flat sent=787903/1000000 lag=1.054ms
+[correctgen] phase=flat sent=805416/1000000 lag=0.982ms
+[correctgen] phase=flat sent=822932/1000000 lag=1.082ms
+[correctgen] phase=flat sent=840452/1000000 lag=1.097ms
+[correctgen] phase=flat sent=857954/1000000 lag=1.057ms
+[correctgen] phase=flat sent=875457/1000000 lag=1.069ms
+[correctgen] phase=flat sent=892969/1000000 lag=1.073ms
+[correctgen] phase=flat sent=910474/1000000 lag=0.938ms
+[correctgen] phase=flat sent=927986/1000000 lag=1.074ms
+[correctgen] phase=flat sent=945498/1000000 lag=0.998ms
+[correctgen] phase=flat sent=963012/1000000 lag=0.966ms
+[correctgen] phase=flat sent=980527/1000000 lag=1.046ms
+[correctgen] phase=flat sent=998040/1000000 lag=1.098ms
+[correctgen] done count=1000000 malformed=0 elapsed=57.143s avg=17500/s lag_p99=1.129ms
+[correctness] generator done; drain 20s
+PASS expected=400000 received=400000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=17499.9 lag_p99=1.129ms oom=false
+[correctness] ===== C2 rep=2 rate=17500 count=1000000 malformed=false =====
+[correctgen] phase=flat sent=17499/1000000 lag=0.054ms
+[correctgen] phase=flat sent=34985/1000000 lag=1.053ms
+[correctgen] phase=flat sent=52487/1000000 lag=1.064ms
+[correctgen] phase=flat sent=69988/1000000 lag=1.075ms
+[correctgen] phase=flat sent=87490/1000000 lag=0.995ms
+[correctgen] phase=flat sent=104991/1000000 lag=1.102ms
+[correctgen] phase=flat sent=122502/1000000 lag=1.118ms
+[correctgen] phase=flat sent=140020/1000000 lag=1.054ms
+[correctgen] phase=flat sent=157527/1000000 lag=1.033ms
+[correctgen] phase=flat sent=175042/1000000 lag=1.047ms
+[correctgen] phase=flat sent=192545/1000000 lag=1.088ms
+[correctgen] phase=flat sent=210047/1000000 lag=1.068ms
+[correctgen] phase=flat sent=227566/1000000 lag=0.067ms
+[correctgen] phase=flat sent=245067/1000000 lag=0.058ms
+[correctgen] phase=flat sent=262560/1000000 lag=1.029ms
+[correctgen] phase=flat sent=280056/1000000 lag=1.115ms
+[correctgen] phase=flat sent=297566/1000000 lag=1.064ms
+[correctgen] phase=flat sent=315077/1000000 lag=0.988ms
+[correctgen] phase=flat sent=332591/1000000 lag=1.003ms
+[correctgen] phase=flat sent=350092/1000000 lag=0.988ms
+[correctgen] phase=flat sent=367610/1000000 lag=1.056ms
+[correctgen] phase=flat sent=385115/1000000 lag=1.057ms
+[correctgen] phase=flat sent=402632/1000000 lag=1.072ms
+[correctgen] phase=flat sent=420154/1000000 lag=0.978ms
+[correctgen] phase=flat sent=437666/1000000 lag=1.104ms
+[correctgen] phase=flat sent=455184/1000000 lag=1.059ms
+[correctgen] phase=flat sent=472697/1000000 lag=1.042ms
+[correctgen] phase=flat sent=490204/1000000 lag=1.086ms
+[correctgen] phase=flat sent=507721/1000000 lag=1.117ms
+[correctgen] phase=flat sent=525224/1000000 lag=1.109ms
+[correctgen] phase=flat sent=542739/1000000 lag=0.807ms
+[correctgen] phase=flat sent=560244/1000000 lag=1.042ms
+[correctgen] phase=flat sent=577763/1000000 lag=1.078ms
+[correctgen] phase=flat sent=595283/1000000 lag=0.038ms
+[correctgen] phase=flat sent=612769/1000000 lag=1.003ms
+[correctgen] phase=flat sent=630267/1000000 lag=1.053ms
+[correctgen] phase=flat sent=647782/1000000 lag=0.974ms
+[correctgen] phase=flat sent=665294/1000000 lag=1.106ms
+[correctgen] phase=flat sent=682803/1000000 lag=1.043ms
+[correctgen] phase=flat sent=700316/1000000 lag=1.065ms
+[correctgen] phase=flat sent=717834/1000000 lag=1.089ms
+[correctgen] phase=flat sent=735340/1000000 lag=1.075ms
+[correctgen] phase=flat sent=752841/1000000 lag=1.071ms
+[correctgen] phase=flat sent=770341/1000000 lag=1.169ms
+[correctgen] phase=flat sent=787861/1000000 lag=1.117ms
+[correctgen] phase=flat sent=805379/1000000 lag=1.074ms
+[correctgen] phase=flat sent=822889/1000000 lag=1.123ms
+[correctgen] phase=flat sent=840410/1000000 lag=1.081ms
+[correctgen] phase=flat sent=857930/1000000 lag=0.020ms
+[correctgen] phase=flat sent=875427/1000000 lag=1.056ms
+[correctgen] phase=flat sent=892933/1000000 lag=1.081ms
+[correctgen] phase=flat sent=910436/1000000 lag=1.113ms
+[correctgen] phase=flat sent=927956/1000000 lag=1.045ms
+[correctgen] phase=flat sent=945459/1000000 lag=1.076ms
+[correctgen] phase=flat sent=962979/1000000 lag=1.085ms
+[correctgen] phase=flat sent=980479/1000000 lag=1.065ms
+[correctgen] phase=flat sent=998001/1000000 lag=0.979ms
+[correctgen] done count=1000000 malformed=0 elapsed=57.143s avg=17500/s lag_p99=1.126ms
+[correctness] generator done; drain 20s
+PASS expected=400000 received=400000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=17500.0 lag_p99=1.126ms oom=false
+[correctness] ===== C2 rep=3 rate=17500 count=1000000 malformed=false =====
+[correctgen] phase=flat sent=17487/1000000 lag=1.111ms
+[correctgen] phase=flat sent=34997/1000000 lag=1.066ms
+[correctgen] phase=flat sent=52508/1000000 lag=1.040ms
+[correctgen] phase=flat sent=70027/1000000 lag=1.060ms
+[correctgen] phase=flat sent=87528/1000000 lag=1.072ms
+[correctgen] phase=flat sent=105041/1000000 lag=1.026ms
+[correctgen] phase=flat sent=122547/1000000 lag=0.736ms
+[correctgen] phase=flat sent=140047/1000000 lag=1.108ms
+[correctgen] phase=flat sent=157556/1000000 lag=0.974ms
+[correctgen] phase=flat sent=175069/1000000 lag=1.030ms
+[correctgen] phase=flat sent=192577/1000000 lag=1.059ms
+[correctgen] phase=flat sent=210078/1000000 lag=1.115ms
+[correctgen] phase=flat sent=227582/1000000 lag=1.085ms
+[correctgen] phase=flat sent=245103/1000000 lag=0.974ms
+[correctgen] phase=flat sent=262610/1000000 lag=0.918ms
+[correctgen] phase=flat sent=280123/1000000 lag=1.083ms
+[correctgen] phase=flat sent=297643/1000000 lag=0.006ms
+[correctgen] phase=flat sent=315131/1000000 lag=1.131ms
+[correctgen] phase=flat sent=332645/1000000 lag=1.069ms
+[correctgen] phase=flat sent=350157/1000000 lag=1.037ms
+[correctgen] phase=flat sent=367676/1000000 lag=0.004ms
+[correctgen] phase=flat sent=385166/1000000 lag=1.039ms
+[correctgen] phase=flat sent=402681/1000000 lag=1.102ms
+[correctgen] phase=flat sent=420186/1000000 lag=1.085ms
+[correctgen] phase=flat sent=437706/1000000 lag=0.045ms
+[correctgen] phase=flat sent=455207/1000000 lag=1.029ms
+[correctgen] phase=flat sent=472715/1000000 lag=1.034ms
+[correctgen] phase=flat sent=490230/1000000 lag=1.773ms
+[correctgen] phase=flat sent=507748/1000000 lag=1.158ms
+[correctgen] phase=flat sent=525266/1000000 lag=1.076ms
+[correctgen] phase=flat sent=542776/1000000 lag=1.064ms
+[correctgen] phase=flat sent=560293/1000000 lag=1.062ms
+[correctgen] phase=flat sent=577803/1000000 lag=1.091ms
+[correctgen] phase=flat sent=595315/1000000 lag=1.095ms
+[correctgen] phase=flat sent=612818/1000000 lag=0.976ms
+[correctgen] phase=flat sent=630334/1000000 lag=1.054ms
+[correctgen] phase=flat sent=647849/1000000 lag=1.056ms
+[correctgen] phase=flat sent=665358/1000000 lag=1.081ms
+[correctgen] phase=flat sent=682874/1000000 lag=1.121ms
+[correctgen] phase=flat sent=700395/1000000 lag=1.067ms
+[correctgen] phase=flat sent=717902/1000000 lag=0.981ms
+[correctgen] phase=flat sent=735415/1000000 lag=1.079ms
+[correctgen] phase=flat sent=752924/1000000 lag=1.064ms
+[correctgen] phase=flat sent=770438/1000000 lag=1.040ms
+[correctgen] phase=flat sent=787940/1000000 lag=0.963ms
+[correctgen] phase=flat sent=805454/1000000 lag=1.064ms
+[correctgen] phase=flat sent=822967/1000000 lag=0.976ms
+[correctgen] phase=flat sent=840472/1000000 lag=1.047ms
+[correctgen] phase=flat sent=857989/1000000 lag=1.095ms
+[correctgen] phase=flat sent=875492/1000000 lag=1.055ms
+[correctgen] phase=flat sent=893000/1000000 lag=1.060ms
+[correctgen] phase=flat sent=910513/1000000 lag=1.121ms
+[correctgen] phase=flat sent=928021/1000000 lag=1.070ms
+[correctgen] phase=flat sent=945537/1000000 lag=1.087ms
+[correctgen] phase=flat sent=963060/1000000 lag=0.043ms
+[correctgen] phase=flat sent=980546/1000000 lag=0.964ms
+[correctgen] phase=flat sent=998049/1000000 lag=1.118ms
+[correctgen] done count=1000000 malformed=0 elapsed=57.143s avg=17500/s lag_p99=1.125ms
+[correctness] generator done; drain 20s
+PASS expected=400000 received=400000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=17499.9 lag_p99=1.125ms oom=false
+[correctness] completed run root: /home/ckt1022/wcm-base-log-forwarder/test/compare/correctness/runs/isolation_docker_20261014_002704
+[remaining] 2026-10-14T00:39:37+08:00 correctness C4 x3 (RUN_ID=isolation_docker_20261014_002704)
+[correctness] ===== C4 rep=1 rate=2500 count=100000 malformed=false =====
+[correctgen] phase=flat sent=2500/100000 lag=1.054ms
+[correctgen] phase=flat sent=5001/100000 lag=0.760ms
+[correctgen] phase=flat sent=7502/100000 lag=0.959ms
+[correctgen] phase=flat sent=10003/100000 lag=0.917ms
+[correctgen] phase=flat sent=12505/100000 lag=1.004ms
+[correctgen] phase=flat sent=15006/100000 lag=0.664ms
+[correctgen] phase=flat sent=17507/100000 lag=0.779ms
+[correctgen] phase=flat sent=20008/100000 lag=0.789ms
+[correctgen] phase=flat sent=22510/100000 lag=0.762ms
+[correctgen] phase=flat sent=25010/100000 lag=0.962ms
+[correctgen] phase=flat sent=27512/100000 lag=0.895ms
+[correctgen] phase=flat sent=30014/100000 lag=0.826ms
+[correctgen] phase=flat sent=32515/100000 lag=0.964ms
+[correctgen] phase=flat sent=35016/100000 lag=1.024ms
+[correctgen] phase=flat sent=37518/100000 lag=0.889ms
+[correctgen] phase=flat sent=40019/100000 lag=1.049ms
+[correctgen] phase=flat sent=42521/100000 lag=0.900ms
+[correctgen] phase=flat sent=45022/100000 lag=1.103ms
+[correctgen] phase=flat sent=47525/100000 lag=0.833ms
+[correctgen] phase=flat sent=50025/100000 lag=1.033ms
+[correctgen] phase=flat sent=52527/100000 lag=0.751ms
+[correctgen] phase=flat sent=55029/100000 lag=0.034ms
+[correctgen] phase=flat sent=57530/100000 lag=0.759ms
+[correctgen] phase=flat sent=60032/100000 lag=0.968ms
+[correctgen] phase=flat sent=62535/100000 lag=0.796ms
+[correctgen] phase=flat sent=65035/100000 lag=0.910ms
+[correctgen] phase=flat sent=67536/100000 lag=0.901ms
+[correctgen] phase=flat sent=70037/100000 lag=0.865ms
+[correctgen] phase=flat sent=72540/100000 lag=0.777ms
+[correctgen] phase=flat sent=75042/100000 lag=0.984ms
+[correctgen] phase=flat sent=77542/100000 lag=1.094ms
+[correctgen] phase=flat sent=80045/100000 lag=0.776ms
+[correctgen] phase=flat sent=82547/100000 lag=0.933ms
+[correctgen] phase=flat sent=85048/100000 lag=1.009ms
+[correctgen] phase=flat sent=87550/100000 lag=1.023ms
+[correctgen] phase=flat sent=90051/100000 lag=0.922ms
+[correctgen] phase=flat sent=92552/100000 lag=0.704ms
+[correctgen] phase=flat sent=95053/100000 lag=1.059ms
+[correctgen] phase=flat sent=97554/100000 lag=0.814ms
+[correctgen] done count=100000 malformed=0 elapsed=40.001s avg=2500/s lag_p99=1.142ms
+[correctness] generator done; drain 20s
+PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2499.9 lag_p99=1.142ms oom=false
+[correctness] ===== C4 rep=2 rate=2500 count=100000 malformed=false =====
+[correctgen] phase=flat sent=2498/100000 lag=1.085ms
+[correctgen] phase=flat sent=5001/100000 lag=1.041ms
+[correctgen] phase=flat sent=7503/100000 lag=0.847ms
+[correctgen] phase=flat sent=10003/100000 lag=0.914ms
+[correctgen] phase=flat sent=12505/100000 lag=1.022ms
+[correctgen] phase=flat sent=15007/100000 lag=0.943ms
+[correctgen] phase=flat sent=17509/100000 lag=0.859ms
+[correctgen] phase=flat sent=20009/100000 lag=0.917ms
+[correctgen] phase=flat sent=22511/100000 lag=1.067ms
+[correctgen] phase=flat sent=25013/100000 lag=1.115ms
+[correctgen] phase=flat sent=27515/100000 lag=0.972ms
+[correctgen] phase=flat sent=30016/100000 lag=0.833ms
+[correctgen] phase=flat sent=32517/100000 lag=0.775ms
+[correctgen] phase=flat sent=35017/100000 lag=1.059ms
+[correctgen] phase=flat sent=37518/100000 lag=1.136ms
+[correctgen] phase=flat sent=40020/100000 lag=1.059ms
+[correctgen] phase=flat sent=42520/100000 lag=1.098ms
+[correctgen] phase=flat sent=45021/100000 lag=1.022ms
+[correctgen] phase=flat sent=47523/100000 lag=1.029ms
+[correctgen] phase=flat sent=50024/100000 lag=0.943ms
+[correctgen] phase=flat sent=52525/100000 lag=0.802ms
+[correctgen] phase=flat sent=55025/100000 lag=1.095ms
+[correctgen] phase=flat sent=57527/100000 lag=0.720ms
+[correctgen] phase=flat sent=60027/100000 lag=1.076ms
+[correctgen] phase=flat sent=62530/100000 lag=0.924ms
+[correctgen] phase=flat sent=65031/100000 lag=1.000ms
+[correctgen] phase=flat sent=67533/100000 lag=0.770ms
+[correctgen] phase=flat sent=70035/100000 lag=0.789ms
+[correctgen] phase=flat sent=72535/100000 lag=0.914ms
+[correctgen] phase=flat sent=75036/100000 lag=1.043ms
+[correctgen] phase=flat sent=77538/100000 lag=1.893ms
+[correctgen] phase=flat sent=80042/100000 lag=1.037ms
+[correctgen] phase=flat sent=82544/100000 lag=0.748ms
+[correctgen] phase=flat sent=85045/100000 lag=0.705ms
+[correctgen] phase=flat sent=87546/100000 lag=0.754ms
+[correctgen] phase=flat sent=90046/100000 lag=1.164ms
+[correctgen] phase=flat sent=92545/100000 lag=1.661ms
+[correctgen] phase=flat sent=95048/100000 lag=0.972ms
+[correctgen] phase=flat sent=97550/100000 lag=1.058ms
+[correctgen] done count=100000 malformed=0 elapsed=40.000s avg=2500/s lag_p99=3.038ms
+[correctness] generator done; drain 20s
+PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2500.0 lag_p99=3.038ms oom=false
+[correctness] ===== C4 rep=3 rate=2500 count=100000 malformed=false =====
+[correctgen] phase=flat sent=2500/100000 lag=1.117ms
+[correctgen] phase=flat sent=4996/100000 lag=2.780ms
+[correctgen] phase=flat sent=7503/100000 lag=0.943ms
+[correctgen] phase=flat sent=10004/100000 lag=1.068ms
+[correctgen] phase=flat sent=12507/100000 lag=0.924ms
+[correctgen] phase=flat sent=15008/100000 lag=1.137ms
+[correctgen] phase=flat sent=17510/100000 lag=0.790ms
+[correctgen] phase=flat sent=20009/100000 lag=1.462ms
+[correctgen] phase=flat sent=22511/100000 lag=0.793ms
+[correctgen] phase=flat sent=25011/100000 lag=0.867ms
+[correctgen] phase=flat sent=27512/100000 lag=0.717ms
+[correctgen] phase=flat sent=30014/100000 lag=0.701ms
+[correctgen] phase=flat sent=32516/100000 lag=0.889ms
+[correctgen] phase=flat sent=35019/100000 lag=0.792ms
+[correctgen] phase=flat sent=37521/100000 lag=1.325ms
+[correctgen] phase=flat sent=40023/100000 lag=0.767ms
+[correctgen] phase=flat sent=42523/100000 lag=0.999ms
+[correctgen] phase=flat sent=45026/100000 lag=0.938ms
+[correctgen] phase=flat sent=47526/100000 lag=1.073ms
+[correctgen] phase=flat sent=50028/100000 lag=0.749ms
+[correctgen] phase=flat sent=52530/100000 lag=1.029ms
+[correctgen] phase=flat sent=55031/100000 lag=0.778ms
+[correctgen] phase=flat sent=57532/100000 lag=0.892ms
+[correctgen] phase=flat sent=60033/100000 lag=0.900ms
+[correctgen] phase=flat sent=62534/100000 lag=0.788ms
+[correctgen] phase=flat sent=65034/100000 lag=1.013ms
+[correctgen] phase=flat sent=67536/100000 lag=1.798ms
+[correctgen] phase=flat sent=70041/100000 lag=0.908ms
+[correctgen] phase=flat sent=72542/100000 lag=0.838ms
+[correctgen] phase=flat sent=75043/100000 lag=0.859ms
+[correctgen] phase=flat sent=77543/100000 lag=0.961ms
+[correctgen] phase=flat sent=80044/100000 lag=1.079ms
+[correctgen] phase=flat sent=82546/100000 lag=0.884ms
+[correctgen] phase=flat sent=85046/100000 lag=0.983ms
+[correctgen] phase=flat sent=87548/100000 lag=1.120ms
+[correctgen] phase=flat sent=90050/100000 lag=0.961ms
+[correctgen] phase=flat sent=92551/100000 lag=1.082ms
+[correctgen] phase=flat sent=95052/100000 lag=0.749ms
+[correctgen] phase=flat sent=97554/100000 lag=1.029ms
+[correctgen] done count=100000 malformed=0 elapsed=40.000s avg=2500/s lag_p99=3.164ms
+[correctness] generator done; drain 20s
+PASS expected=40000 received=40000 missing=0 duplicate=0 corrupt=0 unexpected=0 reorder=0 bad_json=0 gen_avg=2500.0 lag_p99=3.164ms oom=false
+[correctness] completed run root: /home/ckt1022/wcm-base-log-forwarder/test/compare/correctness/runs/isolation_docker_20261014_002704
+[remaining] 2026-10-14T00:43:27+08:00 batch_alignment run_rest.sh
+[queue] skip (done) fbit-lua 5000 lat m2_vol1MiB
+[queue] skip (done) fluentd 5000 lat m2_vol1MiB
+[queue] skip (done) vector 5000 lat m2_vol1MiB
+[queue] skip (done) fbit-wasm 5000 lat m2_vol1MiB
+[queue] skip (done) wcm 10000 lat m2_vol1MiB
+[queue] skip (done) fbit-lua 10000 lat m2_vol1MiB
+[queue] skip (done) fluentd 10000 lat m2_vol1MiB
+[queue] skip (done) vector 10000 lat m2_vol1MiB
+[queue] skip (done) wcm 15000 lat m2_vol1MiB
+[queue] skip (done) fbit-lua 15000 lat m2_vol1MiB
+[queue] skip (done) fluentd 15000 lat m2_vol1MiB
+[queue] skip (done) vector 15000 lat m2_vol1MiB
+[queue] skip (done) wcm 20000 lat m2_vol1MiB
+[queue] skip (done) fbit-lua 20000 lat m2_vol1MiB
+[queue] skip (done) fluentd 20000 lat m2_vol1MiB
+[rest] 2026-10-14T00:43:27+08:00 search fbit-lua m3_W1 start=67500
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fluentd m3_W1 start=52000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search vector m3_W1 start=15000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fbit-wasm m3_W1 start=5400
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fbit-lua m3_W0.5 start=67500
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fluentd m3_W0.5 start=52000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search vector m3_W0.5 start=15000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search wcm m3_W0.5 start=25000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fbit-wasm m3_W0.5 start=5400
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fbit-lua m3_W0.1 start=62000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fluentd m3_W0.1 start=50000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search vector m3_W0.1 start=14000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search wcm m3_W0.1 start=24000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fbit-wasm m3_W0.1 start=5200
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fbit-lua m3_W0.01 start=45000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fluentd m3_W0.01 start=40000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search vector m3_W0.01 start=10000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search wcm m3_W0.01 start=18000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search fbit-wasm m3_W0.01 start=4500
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 search wcm m3_W1 start=25000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-14T00:43:27+08:00 all searches done
+[queue] skip (done) wcm 5000 lat m3_W1
+[remaining] 2026-10-14T00:43:27+08:00 全部完成

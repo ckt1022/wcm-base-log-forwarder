@@ -1,0 +1,15 @@
+trial rate=2000 PASS
+trial rate=4000 PASS
+trial rate=8000 PASS
+trial rate=16000 PASS
+trial rate=32000 PASS
+trial rate=64000 PASS
+trial rate=128000 PASS
+trial rate=256000 FAIL
+trial rate=192000 FAIL
+trial rate=160000 FAIL
+trial rate=144000 FAIL
+trial rate=136000 FAIL
+trial rate=132000 PASS
+trial rate=132000 FAIL
+CAPACITY dut=wcm eps=132000 first_fail=136000 confirmed=NO(重跑失敗,需人工檢視)

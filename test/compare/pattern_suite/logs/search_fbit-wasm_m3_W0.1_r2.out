@@ -1,0 +1,20 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-wasm rate=5000 mode=cap tag=m3_W0.1_r2 load=60s conf=fbit_wasm_flush_0.1.conf
+[align] 進度 [httpsink] t=33s lines/s=1690 MB/s=1.78 total=50341
+[align] 進度 [httpsink] t=63s lines/s=1721 MB/s=1.81 total=101883
+FAIL rate=5000 gen_avg=4329/s gen_mb_s=4.437 lag_p99=7044ms lag_max=7043.7ms sink_total=106140 expected=106139 backlog=943 win_out_eps=1714 win_out_mb_s=1.805 oom=false reasons=gen_blocked(avg=4329/5000,lag_p99=7044.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-wasm rate=4400 mode=cap tag=m3_W0.1_r2 load=60s conf=fbit_wasm_flush_0.1.conf
+[align] 進度 [httpsink] t=33s lines/s=1724 MB/s=1.82 total=50241
+[align] 進度 [httpsink] t=63s lines/s=1674 MB/s=1.76 total=100783
+FAIL rate=4400 gen_avg=4313/s gen_mb_s=4.420 lag_p99=1000ms lag_max=996.2ms sink_total=103995 expected=103994 backlog=1475 win_out_eps=1698 win_out_mb_s=1.788 oom=false reasons=gen_blocked(avg=4313/4400,lag_p99=1000.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-wasm rate=3900 mode=cap tag=m3_W0.1_r2 load=60s conf=fbit_wasm_flush_0.1.conf
+[align] 進度 [httpsink] t=33s lines/s=1573 MB/s=1.66 total=45753
+[align] 進度 [httpsink] t=63s lines/s=1574 MB/s=1.66 total=92513
+PASS rate=3900 gen_avg=3900/s gen_mb_s=3.997 lag_p99=5ms lag_max=17.3ms sink_total=93601 expected=93600 backlog=-1 win_out_eps=1559 win_out_mb_s=1.642 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-wasm rate=4200 mode=cap tag=m3_W0.1_r2 load=60s conf=fbit_wasm_flush_0.1.conf
+[align] 進度 [httpsink] t=33s lines/s=1689 MB/s=1.78 total=49309
+[align] 進度 [httpsink] t=63s lines/s=1730 MB/s=1.82 total=99679
+PASS rate=4200 gen_avg=4200/s gen_mb_s=4.305 lag_p99=5ms lag_max=19.6ms sink_total=100799 expected=100798 backlog=-1 win_out_eps=1681 win_out_mb_s=1.770 oom=false

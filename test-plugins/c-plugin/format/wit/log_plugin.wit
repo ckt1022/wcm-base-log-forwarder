@@ -87,7 +87,29 @@ interface pipeline-process {
 // [length1][內容1][length2][內容2][length3][內容3]
 world format-plugin {
     use pipeline-process.{log-entry, plugin-error};
-    include wasi:cli/imports@0.2.0;
+
+    // filesystem/* and cli/environment are declared but host provides no
+    // preopened dirs and no env vars. wasi:sockets intentionally omitted.
+    import wasi:clocks/monotonic-clock@0.2.0;
+    import wasi:clocks/wall-clock@0.2.0;
+    import wasi:filesystem/types@0.2.0;
+    import wasi:filesystem/preopens@0.2.0;
+    import wasi:io/error@0.2.0;
+    import wasi:io/poll@0.2.0;
+    import wasi:io/streams@0.2.0;
+    import wasi:cli/environment@0.2.0;
+    import wasi:cli/exit@0.2.0;
+    import wasi:cli/stdin@0.2.0;
+    import wasi:cli/stdout@0.2.0;
+    import wasi:cli/stderr@0.2.0;
+    import wasi:cli/terminal-input@0.2.0;
+    import wasi:cli/terminal-output@0.2.0;
+    import wasi:cli/terminal-stdin@0.2.0;
+    import wasi:cli/terminal-stdout@0.2.0;
+    import wasi:cli/terminal-stderr@0.2.0;
+    import wasi:random/random@0.2.0;
+    import wasi:random/insecure@0.2.0;
+    import wasi:random/insecure-seed@0.2.0;
 
     export format: func(
         struct-data: list<log-entry>
