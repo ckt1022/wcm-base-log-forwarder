@@ -1,0 +1,43 @@
+package local:log-process@0.3.0;
+
+// Format-related types copied from the production wit/log_plugin.wit.
+interface pipeline-process {
+    record log-entry {
+        id: u64,
+        timestamp: string,
+        level: log-level,
+        message: string,
+        tags: list<tuple<string, string>>,
+    }
+
+    enum log-level {
+        debug,
+        info,
+        warn,
+        error,
+        crit,
+        alert,
+        emerg,
+    }
+
+    variant plugin-error {
+        invalid-input(string),
+        processing-failed(string),
+        config-error(string),
+        unknown-id(u64),
+        internal-error,
+    }
+}
+
+world format-plugin {
+    use pipeline-process.{log-entry, plugin-error};
+
+    // Benchmark-only markers; the production format signature is unchanged.
+    import time-sign: func();
+
+    export format: func(
+        struct-data: list<log-entry>
+    ) -> result<list<u8>, plugin-error>;
+
+    export report-usage: func() -> u64;
+}

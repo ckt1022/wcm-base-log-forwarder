@@ -1,0 +1,13 @@
+trial rate=33000 PASS
+trial rate=66000 FAIL
+trial rate=49500 FAIL
+trial rate=41200 FAIL
+trial rate=37100 FAIL
+trial rate=35000 FAIL
+trial rate=34000 PASS
+trial rate=34000 FAIL
+CAPACITY dut=fbit-lua eps=34000 first_fail=35000 confirmed=NO(重跑失敗,需人工檢視)
+trial rate=33000 FAIL (fallback confirmation; one earlier PASS)
+trial rate=32000 PASS
+trial rate=32000 PASS
+CAPACITY dut=fbit-lua eps=32000 first_unstable=33000 confirmed=yes

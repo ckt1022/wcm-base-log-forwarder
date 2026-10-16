@@ -2163,7 +2163,7 @@ extern void wasi_random_insecure_seed_insecure_seed(transport_plugin_tuple2_u64_
 
 // Exported Functions from `transport-plugin`
 bool exports_transport_plugin_init(transport_plugin_transport_config_t *config, transport_plugin_plugin_error_t *err);
-bool exports_transport_plugin_send(transport_plugin_list_list_u8_t *output_data, transport_plugin_plugin_error_t *err);
+bool exports_transport_plugin_transport(transport_plugin_list_list_u8_t *output_data, transport_plugin_plugin_error_t *err);
 uint64_t exports_transport_plugin_report_usage(void);
 
 // Helper Functions

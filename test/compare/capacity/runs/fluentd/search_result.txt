@@ -1,0 +1,14 @@
+trial rate=2000 PASS
+trial rate=4000 PASS
+trial rate=8000 PASS
+trial rate=16000 PASS
+trial rate=32000 PASS
+trial rate=64000 PASS
+trial rate=128000 PASS
+trial rate=256000 FAIL
+trial rate=192000 FAIL
+trial rate=160000 PASS
+trial rate=176000 PASS
+trial rate=184000 FAIL
+trial rate=176000 PASS
+CAPACITY dut=fluentd eps=176000 first_fail=184000 confirmed=yes

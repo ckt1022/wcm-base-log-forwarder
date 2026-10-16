@@ -1,0 +1,9 @@
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/lat_rate_20000/sink.log)
+[cap] dut=vector rate=20000 mode=lat load=90s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:20000 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/lat_rate_20000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/vector/lat_rate_20000/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=7884 MB/s=1.54 total=235107
+[cap] 進度 [httpsink] t=64s lines/s=7896 MB/s=1.54 total=475073
+[cap] gen 完成,drain 10s 後關閉並判定
+[cap] 進度 [httpsink] t=94s lines/s=8034 MB/s=1.57 total=715185
+PASS rate=20000 gen_avg=20000/s gen_mb_s=3.196 lag_p99=5ms lag_max=2.0ms sink_total=719994 expected=719993 backlog=-1 win_out_eps=8000 win_out_mb_s=1.560 oom=false

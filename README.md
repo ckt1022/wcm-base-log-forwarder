@@ -70,6 +70,8 @@ go run tools/gen/main.go -rate 5000 -duration 30 | ./target/debug/wcm-base-log-f
 | `json-simple` | 固定格式 JSON，少量欄位（基本效能測試） |
 | `json-complex` | JSON 含多欄位與較長訊息（壓力測試） |
 | `json-mixed` | simple + complex 混合（接近真實情況） |
+| `json-fixed1k` | 固定 1024-byte JSON，與 json-fixed5 使用相同 level 分布（大 log 容量/延遲比較） |
+| `json-fixed2k` | 固定 2048-byte JSON，與 json-fixed5 使用相同五條循環與 level 分布 |
 | `invalid` | 混入無法解析的行（測試 parser 錯誤處理） |
 | `logfmt-simple` | 扁平 key=value 格式 |
 | `logfmt-complex` | logfmt 含較多欄位與較長訊息 |

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="600" viewBox="0 0 1400 600" role="img" aria-labelledby="title desc">
+  <title id="title">WCM 元件呼叫成本量測區間</title>
+  <desc id="desc">以 H0 至 H3 表示 Host 傳入資料、Guest 完成輸入轉換、Guest 完成業務邏輯與輸出建構，以及 Host 完成輸出取回，並分為輸入邊界、Guest 業務邏輯與輸出邊界三個成本區間。</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect width="1400" height="600" fill="#ffffff"/>
+
+  <g font-family="Noto Sans TC, Microsoft JhengHei, sans-serif">
+    <text x="700" y="60" text-anchor="middle" font-size="34" font-weight="700" fill="#0f172a">
+      WCM 元件呼叫成本量測區間
+    </text>
+
+    <!-- 三個量測區間 -->
+    <rect x="150" y="125" width="335" height="82" rx="8" fill="#eff6ff"/>
+    <rect x="485" y="125" width="430" height="82" rx="8" fill="#f1f5f9"/>
+    <rect x="915" y="125" width="335" height="82" rx="8" fill="#eff6ff"/>
+
+    <text x="317.5" y="158" text-anchor="middle" font-size="22" font-weight="700" fill="#1d4ed8">Copy-in</text>
+    <text x="317.5" y="186" text-anchor="middle" font-size="17" fill="#475569">H1 − H0｜輸入邊界成本</text>
+
+    <text x="700" y="158" text-anchor="middle" font-size="22" font-weight="700" fill="#334155">Guest Logic</text>
+    <text x="700" y="186" text-anchor="middle" font-size="17" fill="#475569">H2 − H1｜業務邏輯成本</text>
+
+    <text x="1082.5" y="158" text-anchor="middle" font-size="22" font-weight="700" fill="#1d4ed8">Copy-out</text>
+    <text x="1082.5" y="186" text-anchor="middle" font-size="17" fill="#475569">H3 − H2｜輸出邊界成本</text>
+
+    <!-- 時間軸與量測點 -->
+    <line x1="150" y1="270" x2="1300" y2="270" stroke="#334155" stroke-width="4" marker-end="url(#arrow)"/>
+
+    <g fill="#2563eb">
+      <circle cx="150" cy="270" r="23"/>
+      <circle cx="485" cy="270" r="23"/>
+      <circle cx="915" cy="270" r="23"/>
+      <circle cx="1250" cy="270" r="23"/>
+    </g>
+
+    <g text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">
+      <text x="150" y="276">H0</text>
+      <text x="485" y="276">H1</text>
+      <text x="915" y="276">H2</text>
+      <text x="1250" y="276">H3</text>
+    </g>
+
+    <!-- 各時間點定義 -->
+    <g text-anchor="middle" fill="#0f172a">
+      <text x="150" y="330" font-size="19" font-weight="700">Host 開始</text>
+      <text x="150" y="358" font-size="17" fill="#475569">傳入資料</text>
+
+      <text x="485" y="330" font-size="19" font-weight="700">Guest 完成</text>
+      <text x="485" y="358" font-size="17" fill="#475569">輸入資料轉換</text>
+
+      <text x="915" y="330" font-size="19" font-weight="700">Guest 完成</text>
+      <text x="915" y="358" font-size="17" fill="#475569">業務邏輯與輸出建構</text>
+
+      <text x="1250" y="330" font-size="19" font-weight="700">Host 完成</text>
+      <text x="1250" y="358" font-size="17" fill="#475569">輸出資料取回</text>
+    </g>
+
+    <!-- 完整呼叫時間 -->
+    <line x1="158" y1="435" x2="1242" y2="435" stroke="#334155" stroke-width="2.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+    <rect x="480" y="411" width="440" height="48" fill="#ffffff"/>
+    <text x="700" y="442" text-anchor="middle" font-size="21" font-weight="700" fill="#0f172a">
+      Total Latency ＝ H3 − H0
+    </text>
+
+    <text x="700" y="520" text-anchor="middle" font-size="20" fill="#1d4ed8">
+      WCM 邊界成本 ＝ (H1 − H0) ＋ (H3 − H2)
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+Fluentd 160 B final stable-capacity assessment
+profile=capacity_1m_1s.conf
+trial rate=152000 PASS
+trial rate=152000 PASS
+trial rate=160000 UNSTABLE (one PASS, one FAIL)
+trial rate=168000 FAIL
+trial rate=176000 UNSTABLE (one PASS, confirmation FAIL)
+trial rate=184000 FAIL
+trial rate=192000 FAIL
+trial rate=256000 FAIL
+CAPACITY dut=fluentd size=160b eps=152000 first_unstable=160000 confirmed=yes

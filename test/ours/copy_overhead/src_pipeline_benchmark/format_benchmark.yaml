@@ -1,0 +1,35 @@
+plugins:
+  parse: "/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/c_component/parser_c_benchmark.wasm"
+  parse_noop: ~
+  filter: "/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm"
+  format: "__FORMAT_COMPONENT__"
+  transport: "/home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/transport/latency_c_transport.wasm"
+
+stages:
+  filter: false
+  format: true
+  transport: false
+
+input:
+  mode: tail
+  tcp: ~
+  tail:
+    path: "/tmp/src-pipeline-benchmark-unused.log"
+
+batch:
+  processing_mode: batch   # 明確指定整批模式（2026-10-15 程式預設將改為 streaming）
+  mem_limit_mb: 512
+  buffer_size_mb: 64
+  max_wait_ms: 60000
+  channel_capacity: 20000
+  max_format_chunk: 50000
+  max_transport_bytes: 131072
+  transport_workers: 1
+  pipeline_channel_capacity: 128
+  stage_timeout_ms: 30000
+  plugin_instance_reuse: false
+
+endpoint:
+  A: "http://127.0.0.1:8080/unused"
+
+config_reload_secs: 3600

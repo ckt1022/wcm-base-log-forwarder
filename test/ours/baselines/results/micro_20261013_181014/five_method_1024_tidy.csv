@@ -1,0 +1,16 @@
+stage,method,method_label,batch_count,copy_in_ms,logic_ms,copy_out_ms,total_median_ms,total_p95_ms,boundary_share_pct,total_over_native,data_date
+parse,wcm,WCM Canonical ABI,1024,0.863,2.126,1.354,4.399,6.465,50.3,2.1,2026-08-15..17 (copy_overhead)
+parse,core_json,Core Wasm JSON ABI,1024,3.085,2.235,5.689,11.122,12.433,79.6,5.2,2026-08-15..17 (copy_overhead)
+parse,core_direct,Core Wasm Direct Memory,1024,0.803,2.304,1.09,4.22,5.143,45.1,2.0,2026-08-15..17 (copy_overhead)
+parse,native,Native Rust (in-process),1024,0.0,2.119,0.0,2.119,2.925,0.0,1.0,2026-10-13
+parse,subprocess,Subprocess + pipe,1024,1.668,1.95,3.564,7.307,9.078,72.7,3.4,2026-10-13
+filter,wcm,WCM Canonical ABI,1024,1.79,0.002,0.143,1.945,4.759,99.9,2349.5,2026-08-15..17 (copy_overhead)
+filter,core_json,Core Wasm JSON ABI,1024,3.036,0.131,0.345,3.515,4.248,96.2,4245.7,2026-08-15..17 (copy_overhead)
+filter,core_direct,Core Wasm Direct Memory,1024,0.7,0.11,0.015,0.828,0.987,86.2,999.5,2026-08-15..17 (copy_overhead)
+filter,native,Native Rust (in-process),1024,0.0,0.001,0.0,0.001,0.001,0.0,1.0,2026-10-13
+filter,subprocess,Subprocess + pipe,1024,3.077,0.014,0.036,3.308,4.588,99.6,3995.6,2026-10-13
+format,wcm,WCM Canonical ABI,1024,1.961,10.646,0.269,14.833,21.458,15.3,7.7,2026-08-15..17 (copy_overhead)
+format,core_json,Core Wasm JSON ABI,1024,3.924,4.099,5.514,13.619,14.983,69.6,7.1,2026-08-15..17 (copy_overhead)
+format,core_direct,Core Wasm Direct Memory,1024,0.808,4.473,0.044,5.315,5.704,16.1,2.8,2026-08-15..17 (copy_overhead)
+format,native,Native Rust (in-process),1024,0.0,1.926,0.0,1.926,2.584,0.0,1.0,2026-10-13
+format,subprocess,Subprocess + pipe,1024,1.503,1.696,0.91,4.25,6.593,58.4,2.2,2026-10-13

@@ -1,0 +1,25 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=22000 mode=cap tag=stream_k256_W0.1 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=8720 MB/s=9.22 total=258913
+[align] 進度 [httpsink] t=64s lines/s=8700 MB/s=9.20 total=522927
+PASS rate=22000 gen_avg=21999/s gen_mb_s=22.549 lag_p99=5ms lag_max=7.5ms sink_total=527994 expected=527993 backlog=-1 win_out_eps=8799 win_out_mb_s=9.301 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=24250 mode=cap tag=stream_k256_W0.1 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=9319 MB/s=9.85 total=276471
+[align] 進度 [httpsink] t=64s lines/s=9524 MB/s=10.07 total=560631
+PASS rate=24250 gen_avg=24249/s gen_mb_s=24.856 lag_p99=5ms lag_max=5.8ms sink_total=582001 expected=581999 backlog=12255 win_out_eps=9418 win_out_mb_s=9.955 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=26750 mode=cap tag=stream_k256_W0.1 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=8806 MB/s=9.31 total=274177
+[align] 進度 [httpsink] t=64s lines/s=8089 MB/s=8.55 total=530689
+FAIL rate=26750 gen_avg=23570/s gen_mb_s=24.159 lag_p99=6590ms lag_max=6589.7ms sink_total=567451 expected=567450 backlog=28569 win_out_eps=8851 win_out_mb_s=9.356 oom=false reasons=gen_blocked(avg=23570/26750,lag_p99=6590.0ms)
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=25500 mode=cap tag=stream_k256_W0.1 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=9523 MB/s=10.07 total=277295
+[align] 進度 [httpsink] t=64s lines/s=8295 MB/s=8.77 total=545379
+FAIL rate=25500 gen_avg=24129/s gen_mb_s=24.732 lag_p99=2867ms lag_max=2866.8ms sink_total=588481 expected=588480 backlog=35627 win_out_eps=9134 win_out_mb_s=9.654 oom=false reasons=gen_blocked(avg=24129/25500,lag_p99=2867.0ms);backlog=35627>30600
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=25000 mode=cap tag=stream_k256_W0.1 load=60s conf=wcm_stream_k256_W0.1.yaml
+[align] 進度 [httpsink] t=34s lines/s=9216 MB/s=9.74 total=280419
+[align] 進度 [httpsink] t=64s lines/s=9011 MB/s=9.52 total=567446
+PASS rate=25000 gen_avg=24999/s gen_mb_s=25.624 lag_p99=5ms lag_max=7.1ms sink_total=599995 expected=599994 backlog=23332 win_out_eps=9592 win_out_mb_s=10.138 oom=false

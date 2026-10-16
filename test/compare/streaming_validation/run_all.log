@@ -1,0 +1,38 @@
+[2026-10-14T21:08:22+08:00] run_all.sh start pid=46509 stream_image=wcm-base-log-forwarder:streaming
+[2026-10-14T21:08:23+08:00] streaming image 不存在，於鎖內建置 wcm-base-log-forwarder:streaming
+2026-10-14T21:09:03+08:00 wcm-base-log-forwarder:streaming sha256:f4b148521df608ebc6e94805db09d2c8d283de88b5cd046e6901281b18f3bebe
+2026-10-14T21:09:04+08:00 wcm-base-log-forwarder:memguard sha256:6365acbf5f7f95c2a1ace3ce8e3600e45babe9f3d859a560e85b93f0c8086fba
+2026-10-14T21:09:04+08:00 fluent/fluent-bit:5.0.9 sha256:bbce9a7b36b0ddd4fcb01a5320815808d1b8b5e1e100725ac95c2b6714d64964
+[2026-10-14T21:09:05+08:00] correctness C1 rep1
+[2026-10-14T21:10:23+08:00] correctness C1 rep2
+[2026-10-14T21:11:41+08:00] correctness C1 rep3
+[2026-10-14T21:12:59+08:00] correctness C2 rep1
+[2026-10-14T21:14:34+08:00] correctness C2 rep2
+[2026-10-14T21:16:09+08:00] correctness C2 rep3
+[2026-10-14T21:17:44+08:00] correctness C3 rep1
+[2026-10-14T21:19:02+08:00] correctness C3 rep2
+[2026-10-14T21:20:20+08:00] correctness C3 rep3
+[2026-10-14T21:21:37+08:00] correctness C4 rep1
+[2026-10-14T21:22:55+08:00] correctness C4 rep2
+[2026-10-14T21:24:13+08:00] correctness C4 rep3
+[2026-10-14T21:25:30+08:00] lat wcm 5000 stream_W0.01 conf=wcm_stream_W0.01.yaml
+[2026-10-14T21:29:12+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=6.2ms sink_total=360001 expected=360000 backlog=-1 win_out_eps=2000 win_out_mb_s=2.115 oom=false | [calc] p99 = 32.397 ms
+[2026-10-14T21:29:12+08:00] lat wcm 5000 stream_W0.1 conf=wcm_stream_W0.1.yaml
+[2026-10-14T21:32:50+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=5.7ms sink_total=360001 expected=360000 backlog=-1 win_out_eps=2000 win_out_mb_s=2.115 oom=false | [calc] p99 = 129.590 ms
+[2026-10-14T21:32:50+08:00] lat wcm 5000 stream_W0.5 conf=wcm_stream_W0.5.yaml
+[2026-10-14T21:36:28+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=20.1ms sink_total=360001 expected=359999 backlog=-2 win_out_eps=2000 win_out_mb_s=2.115 oom=false | [calc] p99 = 510.283 ms
+[2026-10-14T21:36:28+08:00] lat wcm 5000 stream_W1 conf=wcm_stream_W1.yaml
+[2026-10-14T21:40:08+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=3.4ms sink_total=359999 expected=359998 backlog=-1 win_out_eps=2000 win_out_mb_s=2.115 oom=false | [calc] p99 = 510.656 ms
+[2026-10-14T21:40:08+08:00] lat wcm 5000 ctrl_batch_W0.1 conf=wcm_tw128_wait100.yaml
+[2026-10-14T21:43:48+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=5.9ms sink_total=359999 expected=359998 backlog=-1 win_out_eps=1999 win_out_mb_s=2.112 oom=false | [calc] p99 = 159.098 ms
+[2026-10-14T21:43:48+08:00] lat fbit-lua 5000 ctrl_W0.1 conf=fbit_lua_flush_0.1.conf
+[2026-10-14T21:47:19+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=9.2ms sink_total=360001 expected=360000 backlog=-1 win_out_eps=2000 win_out_mb_s=2.106 oom=false | [calc] p99 = 115.765 ms
+[2026-10-14T21:47:19+08:00] capacity search W=0.01 start=22000
+[2026-10-14T21:54:02+08:00]   -> CAPACITY dut=wcm tag=stream_W0.01 eps=22000 first_fail=22750
+[2026-10-14T21:54:02+08:00] capacity search W=0.1 start=22000
+[2026-10-14T22:00:36+08:00]   -> CAPACITY dut=wcm tag=stream_W0.1 eps=22000 first_fail=22750
+[2026-10-14T22:00:36+08:00] capacity search W=0.5 start=22000
+[2026-10-14T22:07:12+08:00]   -> CAPACITY dut=wcm tag=stream_W0.5 eps=22000 first_fail=22750
+[2026-10-14T22:07:12+08:00] capacity search W=1 start=22000
+[2026-10-14T22:13:47+08:00]   -> CAPACITY dut=wcm tag=stream_W1 eps=22000 first_fail=22750
+[2026-10-14T22:13:47+08:00] DONE 2026-10-14T22:13:47+08:00 correctness_pass=12/12 W0.01:p99=32.397ms,cap=22000 W0.1:p99=129.590ms,cap=22000 W0.5:p99=510.283ms,cap=22000 W1:p99=510.656ms,cap=22000 wcm_ctrl:p99=159.098ms fbit-lua_ctrl:p99=115.765ms

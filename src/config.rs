@@ -9,6 +9,8 @@ use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 
+use crate::capability::{CapabilityConfig, Stage};
+
 // ── App-level config (YAML) ───────────────────────────────────────────────────
 
 /// Top-level configuration loaded from forwarder.yaml.
@@ -21,6 +23,9 @@ pub struct AppConfig {
     pub endpoint: EndpointSet,
     #[serde(default = "default_reload_secs")]
     pub config_reload_secs: u64,
+    /// 每個 stage 的 WASI 能力明確授權（未設定＝全部拒絕，見 capability.rs）。
+    #[serde(default)]
+    pub capabilities: CapabilityConfig,
 }
 
 fn default_reload_secs() -> u64 { 10 }
@@ -28,13 +33,30 @@ fn default_pipeline_channel_capacity() -> usize { 20_000 }
 fn default_stage_timeout_ms() -> u64 { 30_000 }
 
 /// Paths to each WASM plugin. Relative paths are resolved against the config file's directory.
+///
+/// 欄位留空、省略或填 `native` 時，該 stage 改用 host 內建的 Rust 原生實作
+/// （native.rs，邏輯與 test-plugins/rust-plugin 相同、不經過 WASM 邊界）；
+/// 有填 .wasm 路徑時維持原本的 WCM plugin 路徑，行為完全不變。
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct PluginsConfig {
+    #[serde(default)]
     pub parse: String,
     pub parse_noop: Option<String>,
+    #[serde(default)]
     pub filter: String,
+    #[serde(default)]
     pub format: String,
+    #[serde(default)]
     pub transport: String,
+}
+
+/// 代表「使用 host 內建原生 stage」的保留字。
+pub const NATIVE_STAGE: &str = "native";
+
+/// plugin 欄位是否代表內建原生 stage（空字串或 `native`，不分大小寫）。
+pub fn is_native_stage(path: &str) -> bool {
+    let p = path.trim();
+    p.is_empty() || p.eq_ignore_ascii_case(NATIVE_STAGE)
 }
 
 /// Which pipeline stages are active.
@@ -78,9 +100,10 @@ pub struct TailInputConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct BatchConfigRaw {
     pub mem_limit_mb: usize,
-    pub safe_data_ratio: f64,
+    /// parse dispatcher 累積 buffer 的觸發閾值（MB），達到即 flush。
+    /// 必須比 mem_limit_mb 小 30% 以上，保留 WASM parse 中間配置空間。
+    pub buffer_size_mb: usize,
     pub max_wait_ms: u64,
-    pub max_batch_lines: usize,
     pub channel_capacity: usize,
     pub max_format_chunk: usize,
     #[serde(default)]
@@ -93,15 +116,65 @@ pub struct BatchConfigRaw {
     /// 每個階段 WASM 呼叫的超時上限（毫秒）；超過後自動重試，重試 2 次均失敗則寫入 error.txt。
     #[serde(default = "default_stage_timeout_ms")]
     pub stage_timeout_ms: u64,
+    /// format / transport 是否重複使用 WASM 實例（parse/filter 一律重用）。
+    /// true（預設）＝常駐重用，省去每批 instantiate 開銷；
+    /// false ＝每批用完即銷毀重建，防止 GC 語言插件（Go/C# 等）記憶體累積導致 OOM。
+    #[serde(default = "default_plugin_instance_reuse")]
+    pub plugin_instance_reuse: bool,
+    /// parse 失敗時是否以二分法逐筆隔離（isolation.rs）。
+    /// true（預設）＝只拒絕真正 malformed／poison 的行，其餘照常輸出；
+    /// false ＝舊行為（parse-error 整批丟棄、trap 重試後整批寫入 error.txt），
+    /// 保留此開關只為了在同一個 binary 上重現修正前的 C3 結果做前後對照。
+    #[serde(default = "default_parse_isolation")]
+    pub parse_isolation: bool,
+    /// 處理模式：batch（預設，舊行為）＝累積原始輸入到 buffer_size_mb／max_wait_ms 才整批處理；
+    /// streaming ＝輸入端以 micro-batch 立即處理，輸出端在 router 依 max_wait_ms 週期 flush。
+    #[serde(default)]
+    pub processing_mode: ProcessingMode,
+    /// streaming 模式下每個 micro-batch 的最大筆數（達到即送 parse）。
+    #[serde(default = "default_micro_batch_records")]
+    pub micro_batch_records: usize,
+    /// streaming 模式下 micro-batch 自第一筆到達起最多等待的毫秒數。
+    #[serde(default = "default_micro_batch_max_wait_ms")]
+    pub micro_batch_max_wait_ms: u64,
+    /// 是否以 epoch interruption 作為 stage watchdog（預設 true，行為不變）。
+    /// false ＝ engine 不開啟 epoch interruption（不插入 epoch 檢查、不啟動 ticker、
+    /// 不設任何 deadline），stage_timeout_ms 因此失效（可設 0）。只供量測 epoch 開銷
+    /// 與「無 watchdog」消融實驗使用：此時卡死的 plugin 會讓該 stage 永久停住。
+    #[serde(default = "default_epoch_interruption")]
+    pub epoch_interruption: bool,
+}
+
+/// 處理模式（見 BatchConfigRaw::processing_mode）。
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ProcessingMode {
+    #[default]
+    Batch,
+    Streaming,
+}
+
+fn default_micro_batch_records() -> usize { 64 }
+fn default_micro_batch_max_wait_ms() -> u64 { 5 }
+
+fn default_plugin_instance_reuse() -> bool {
+   true
+}
+
+fn default_parse_isolation() -> bool {
+    true
+}
+
+fn default_epoch_interruption() -> bool {
+    true
 }
 
 impl From<BatchConfigRaw> for BatchConfig {
     fn from(r: BatchConfigRaw) -> Self {
         BatchConfig {
             mem_limit_mb: r.mem_limit_mb,
-            safe_data_ratio: r.safe_data_ratio,
+            buffer_size_mb: r.buffer_size_mb,
             max_wait: Duration::from_millis(r.max_wait_ms),
-            max_batch_lines: r.max_batch_lines,
             channel_capacity: r.channel_capacity,
             max_format_chunk: r.max_format_chunk,
             // transport_endpoint: r.transport_endpoint,
@@ -109,6 +182,12 @@ impl From<BatchConfigRaw> for BatchConfig {
             transport_workers: r.transport_workers,
             pipeline_channel_capacity: r.pipeline_channel_capacity,
             stage_timeout_ms: r.stage_timeout_ms,
+            plugin_instance_reuse: r.plugin_instance_reuse,
+            parse_isolation: r.parse_isolation,
+            processing_mode: r.processing_mode,
+            micro_batch_records: r.micro_batch_records,
+            micro_batch_max_wait: Duration::from_millis(r.micro_batch_max_wait_ms),
+            epoch_interruption: r.epoch_interruption,
         }
     }
 }
@@ -120,14 +199,19 @@ pub struct EndpointSet(pub HashMap<String, String>);
 pub fn load_app_config(path: &str) -> Result<AppConfig, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read config '{}': {}", path, e))?;
-    serde_yaml::from_str(&content)
-        .map_err(|e| format!("cannot parse config '{}': {}", path, e))
+    let cfg: AppConfig = serde_yaml::from_str(&content)
+        .map_err(|e| format!("cannot parse config '{}': {}", path, e))?;
+    cfg.capabilities
+        .validate()
+        .map_err(|e| format!("invalid config '{}': {}", path, e))?;
+    Ok(cfg)
 }
 
 /// Shared references to each plugin's live runtime slot.
 /// Passed to `spawn_config_watcher` so it can rebuild plugins in-place on path change.
+/// 使用內建原生 stage 的欄位為 None，watcher 不會對它熱更換。
 pub struct PluginSlots {
-    pub parse: crate::app::SharedPlugin,
+    pub parse: Option<crate::app::SharedPlugin>,
     pub parse_noop: Option<crate::app::SharedPlugin>,
     pub filter: Option<crate::app::SharedPlugin>,
     pub format: Option<crate::app::SharedPlugin>,
@@ -187,7 +271,13 @@ pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots:
 
             match load_app_config(&path) {
                 Ok(new_cfg) => {
+                    // 先驗證新設定，通過才套用；否則印出錯誤並繼續以舊設定執行。
+                    if let Err(e) = BatchConfig::from(new_cfg.batch.clone()).validate_and_describe() {
+                        eprintln!("[config] reload rejected（沿用舊設定）: {}", e);
+                        continue;
+                    }
                     let new_plugins = new_cfg.plugins.clone();
+                    let caps = new_cfg.capabilities.clone();
                     *shared.write().unwrap() = new_cfg;
 
                     let mut any_plugin_changed = false;
@@ -196,9 +286,9 @@ pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots:
                     {
                         let new = resolve(&new_plugins.parse);
                         let new_mt = file_mtime(&new);
-                        if new != cur_parse || new_mt != mt_parse {
+                        if let Some(slot) = slots.parse.as_ref().filter(|_| new != cur_parse || new_mt != mt_parse) {
                             any_plugin_changed = true;
-                            if crate::app::rebuild_shared_slot(&slots.parse, &new, false, "parse") {
+                            if crate::app::rebuild_shared_slot(slot, &new, Stage::Parse, caps.parse, "parse") {
                                 cur_parse = new;
                                 mt_parse = new_mt;
                             }
@@ -214,7 +304,7 @@ pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots:
                         let old = cur_parse_noop.as_deref().unwrap_or("");
                         if new != old || new_mt != mt_parse_noop {
                             any_plugin_changed = true;
-                            if crate::app::rebuild_shared_slot(slot, &new, false, "parse_noop") {
+                            if crate::app::rebuild_shared_slot(slot, &new, Stage::Parse, caps.parse, "parse_noop") {
                                 cur_parse_noop = Some(new);
                                 mt_parse_noop = new_mt;
                             }
@@ -227,7 +317,7 @@ pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots:
                         let new_mt = file_mtime(&new);
                         if new != cur_filter || new_mt != mt_filter {
                             any_plugin_changed = true;
-                            if crate::app::rebuild_shared_slot(slot, &new, false, "filter") {
+                            if crate::app::rebuild_shared_slot(slot, &new, Stage::Filter, caps.filter, "filter") {
                                 cur_filter = new;
                                 mt_filter = new_mt;
                             }
@@ -240,7 +330,7 @@ pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots:
                         let new_mt = file_mtime(&new);
                         if new != cur_format || new_mt != mt_format {
                             any_plugin_changed = true;
-                            if crate::app::rebuild_shared_slot(slot, &new, false, "format") {
+                            if crate::app::rebuild_shared_slot(slot, &new, Stage::Format, caps.format, "format") {
                                 cur_format = new;
                                 mt_format = new_mt;
                             }
@@ -253,7 +343,7 @@ pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots:
                         let new_mt = file_mtime(&new);
                         if new != cur_transport || new_mt != mt_transport {
                             any_plugin_changed = true;
-                            if crate::app::rebuild_shared_slot(slot, &new, true, "transport") {
+                            if crate::app::rebuild_shared_slot(slot, &new, Stage::Transport, caps.transport, "transport") {
                                 cur_transport = new;
                                 mt_transport = new_mt;
                             }
@@ -275,9 +365,9 @@ pub fn spawn_config_watcher(path: String, shared: Arc<RwLock<AppConfig>>, slots:
 #[derive(Debug, Clone)]
 pub struct BatchConfig {
     pub mem_limit_mb: usize,
-    pub safe_data_ratio: f64,
+    /// parse dispatcher 累積 buffer 的觸發閾值（MB），達到即 flush。
+    pub buffer_size_mb: usize,
     pub max_wait: Duration,
-    pub max_batch_lines: usize,
     pub channel_capacity: usize,
     /// 每次呼叫 format plugin 的最大 entry 數。
     /// TinyGo GC 在大批次時無法及時回收中間字串緩衝區，需分批呼叫。
@@ -297,15 +387,27 @@ pub struct BatchConfig {
     pub pipeline_channel_capacity: usize,
     /// 每個階段 WASM 呼叫的超時上限（毫秒）；超過後自動重試（最多 2 次），均失敗則寫入 error.txt。
     pub stage_timeout_ms: u64,
+    /// format / transport 是否重複使用 WASM 實例（parse/filter 一律重用）。
+    /// true（預設）＝常駐重用；false ＝每批銷毀重建（GC 語言插件防 OOM 用）。
+    pub plugin_instance_reuse: bool,
+    /// parse 失敗時是否以二分法逐筆隔離（false ＝舊版整批丟棄，僅供前後對照）。
+    pub parse_isolation: bool,
+    /// batch（預設）或 streaming（micro-batch 輸入 + router 週期 flush）。
+    pub processing_mode: ProcessingMode,
+    /// streaming：micro-batch 筆數上限。
+    pub micro_batch_records: usize,
+    /// streaming：micro-batch 自第一筆起的等待上限。
+    pub micro_batch_max_wait: Duration,
+    /// epoch interruption watchdog（false ＝ 停用，stage_timeout_ms 失效；僅供消融實驗）。
+    pub epoch_interruption: bool,
 }
 
 impl Default for BatchConfig {
     fn default() -> Self {
         Self {
             mem_limit_mb: 256,
-            safe_data_ratio: 0.5,
+            buffer_size_mb: 128,
             max_wait: Duration::from_millis(5000),
-            max_batch_lines: 50_000,
             channel_capacity: 150_000,
             max_format_chunk: 50_000,
             // transport_endpoint: None,
@@ -313,6 +415,12 @@ impl Default for BatchConfig {
             transport_workers: 5,
             pipeline_channel_capacity: 20_000,
             stage_timeout_ms: 30_000,
+            plugin_instance_reuse: true,
+            parse_isolation: true,
+            processing_mode: ProcessingMode::Batch,
+            micro_batch_records: 64,
+            micro_batch_max_wait: Duration::from_millis(5),
+            epoch_interruption: true,
         }
     }
 }
@@ -329,7 +437,6 @@ impl BatchConfig {
         // mem_limit_mb
         // used at: runtime.rs run_pipeline → mem_limit_bytes = mem_limit_mb * 1024 * 1024
         //          → MyLimiter::new(mem_limit_bytes) 限制每個 WASM store 的線性記憶體上限
-        // BUG: main.rs:44 用了 cfg.mem_limit_mb 而非 * 1024*1024，safe_data_budget 計算錯誤
         if self.mem_limit_mb < 64 {
             return Err(format!(
                 "mem_limit_mb={} 過小（建議 >= 64 MB）",
@@ -337,15 +444,22 @@ impl BatchConfig {
             ));
         }
 
-        // safe_data_ratio
-        // used at: runtime.rs parse_loop → safe_data_budget = mem_limit_bytes * ratio
-        //          → 當 batch 累積 bytes > safe_data_budget 時觸發提前 flush（size trigger）
-        // 注意: main.rs 也計算了 safe_data_budget 但因 mem_limit_bytes bug 導致實際為 179 bytes，
-        //       該值只用於 print_startup，不影響 parse_loop 的判斷。
-        if !(0.0 < self.safe_data_ratio && self.safe_data_ratio < 1.0) {
+        // buffer_size_mb
+        // used at: runtime.rs parse_dispatcher → buffer_budget = buffer_size_mb * 1024 * 1024
+        //          → 當 batch 累積 bytes > buffer_budget 時觸發 flush（size trigger）
+        // 必須比 mem_limit_mb 小 30% 以上：整個 batch 會送進單一 WASM store parse，
+        // 需保留空間給 parse 過程的中間配置，否則 memory.grow 被 MyLimiter 拒絕導致 trap。
+        if self.buffer_size_mb == 0 {
+            return Err("buffer_size_mb 不能為 0".to_string());
+        }
+        if (self.buffer_size_mb as f64) > (self.mem_limit_mb as f64) * 0.7 {
             return Err(format!(
-                "safe_data_ratio={} 必須在 (0.0, 1.0) 之間",
-                self.safe_data_ratio
+                "buffer_size_mb={} 與 mem_limit_mb={} 差距不足 30%，\
+                 buffer_size_mb 需 <= mem_limit_mb 的 70%（本例上限 {} MB），\
+                 以保留 WASM parse 中間配置空間",
+                self.buffer_size_mb,
+                self.mem_limit_mb,
+                (self.mem_limit_mb as f64 * 0.7) as usize
             ));
         }
 
@@ -356,24 +470,13 @@ impl BatchConfig {
             return Err("max_wait 不能為 0（parse loop 會無限 spin）".to_string());
         }
 
-        // max_batch_lines
-        // used at: runtime.rs parse_loop → batch.len() >= max_batch_lines 時觸發 line-count flush
-        //          → 限制單次傳入 WASM parser 的最大行數，防止 WASM 堆積太多資料
-        if self.max_batch_lines == 0 {
-            return Err("max_batch_lines 不能為 0".to_string());
-        }
-
         // channel_capacity
         // used at: main.rs → sync_channel::<LineItem>(channel_capacity)
         //          → 只控制 stdin→parse 的 LineItem channel 容量
         // 警告: ParsedBatch channel (parse→format) 和 FormattedBatch channel (format→transport)
         //       目前在 runtime.rs:56-57 硬編碼為 20_000，不受此參數控制。
-        if self.channel_capacity < self.max_batch_lines {
-            eprintln!(
-                "[config-warn] channel_capacity={} < max_batch_lines={}，\
-                 stdin channel 可能在單個 batch 積滿前就阻塞",
-                self.channel_capacity, self.max_batch_lines
-            );
+        if self.channel_capacity == 0 {
+            return Err("channel_capacity 不能為 0".to_string());
         }
 
         // max_format_chunk
@@ -382,13 +485,6 @@ impl BatchConfig {
         //          → 目的：避免 TinyGo GC 在大批次時無法回收中間字串，導致 WASM OOM
         if self.max_format_chunk == 0 {
             return Err("max_format_chunk 不能為 0".to_string());
-        }
-        if self.max_format_chunk > self.max_batch_lines {
-            eprintln!(
-                "[config-warn] max_format_chunk={} > max_batch_lines={}，\
-                 format 拆塊無實際效果（每批只有一塊）",
-                self.max_format_chunk, self.max_batch_lines
-            );
         }
 
         // transport_endpoint（選填，路由改由 endpoint map 負責）
@@ -430,11 +526,54 @@ impl BatchConfig {
             return Err("pipeline_channel_capacity 不能為 0".to_string());
         }
 
-        // stage_timeout_ms
+        // stage_timeout_ms / epoch_interruption
         // used at: runtime.rs filter_loop / format_loop / transport_worker
         //          → 每個 WASM 呼叫的超時上限；超過後重試（最多 2 次），均失敗則寫入 error.txt
-        if self.stage_timeout_ms == 0 {
-            return Err("stage_timeout_ms 不能為 0".to_string());
+        //          app.rs build_runtime / build_transport_runtime → Config::epoch_interruption
+        // 停用 watchdog 的唯一開關是 epoch_interruption: false；此時 stage_timeout_ms 不被使用
+        // （可為 0）。epoch_interruption: true 時 stage_timeout_ms 必須 > 0（deadline 0 tick 會立即 trap）。
+        if self.epoch_interruption {
+            if self.stage_timeout_ms == 0 {
+                return Err("stage_timeout_ms 不能為 0（要停用 watchdog 請設 epoch_interruption: false）".to_string());
+            }
+        } else {
+            eprintln!(
+                "[config] WARNING epoch_interruption=false：stage watchdog 停用（無 epoch 檢查、無 deadline），\
+                 stage_timeout_ms={} 不生效；卡死的 plugin 會讓該 stage 永久停住（僅供消融實驗）",
+                self.stage_timeout_ms
+            );
+        }
+
+        // processing_mode / micro_batch_records / micro_batch_max_wait_ms
+        // used at: runtime.rs DispatchParams::from_config → parse_dispatcher 的 flush 條件
+        //          runtime.rs transport_router → streaming 時改為每 max_wait_ms 週期 flush
+        // batch 模式下兩個 micro_batch_* 欄位不被使用。
+        if self.processing_mode == ProcessingMode::Streaming {
+            if self.micro_batch_records == 0 || self.micro_batch_records as u64 >= 100_000 {
+                return Err(format!(
+                    "micro_batch_records={} 需介於 1..100000（host id 每批跨距 100,000）",
+                    self.micro_batch_records
+                ));
+            }
+            if self.micro_batch_max_wait.is_zero() {
+                return Err("micro_batch_max_wait_ms 不能為 0".to_string());
+            }
+            eprintln!(
+                "[config] processing_mode=streaming：輸入端 micro-batch（{} 筆 或 第一筆後 {} ms 即送 parse）；\
+                 輸出端 router 每 max_wait_ms={} ms 週期 flush（同 Fluent Bit 全域 Flush），\
+                 或 endpoint buffer 達 max_transport_bytes={} B 時立即送出",
+                self.micro_batch_records,
+                self.micro_batch_max_wait.as_millis(),
+                self.max_wait.as_millis(),
+                self.max_transport_bytes,
+            );
+        } else {
+            eprintln!(
+                "[config] processing_mode=batch：累積原始輸入至 buffer_size_mb={} MB 或 max_wait_ms={} ms 後整批處理\
+                 （micro_batch_* 不使用）",
+                self.buffer_size_mb,
+                self.max_wait.as_millis(),
+            );
         }
 
         Ok(())
@@ -451,22 +590,16 @@ impl BatchConfig {
                 self.mem_limit_mb == default.mem_limit_mb,
             ),
             (
-                "safe_data_ratio",
-                format!("{:.0}%", self.safe_data_ratio * 100.0),
-                "parse batch size 觸發提前 flush 的閾值 (runtime.rs parse_loop)",
-                self.safe_data_ratio == default.safe_data_ratio,
+                "buffer_size_mb",
+                format!("{} MB", self.buffer_size_mb),
+                "parse buffer 大小觸發 flush 的閾值 (runtime.rs parse_dispatcher)",
+                self.buffer_size_mb == default.buffer_size_mb,
             ),
             (
                 "max_wait",
                 format!("{} ms", self.max_wait.as_millis()),
                 "parse 時間觸發 flush 的等待上限 (runtime.rs parse_loop recv_timeout)",
                 self.max_wait == default.max_wait,
-            ),
-            (
-                "max_batch_lines",
-                format!("{}", self.max_batch_lines),
-                "parse 行數觸發 flush 的上限 (runtime.rs parse_loop)",
-                self.max_batch_lines == default.max_batch_lines,
             ),
             (
                 "channel_capacity",
@@ -511,6 +644,12 @@ impl BatchConfig {
                 format!("{} ms", self.stage_timeout_ms),
                 "每階段 WASM 呼叫超時上限，超過後重試 2 次，均失敗寫 error.txt",
                 self.stage_timeout_ms == default.stage_timeout_ms,
+            ),
+            (
+                "epoch_interruption",
+                format!("{}", self.epoch_interruption),
+                "epoch watchdog；false 時 stage_timeout_ms 不生效（消融實驗用）",
+                self.epoch_interruption == default.epoch_interruption,
             ),
         ];
 
@@ -607,7 +746,6 @@ impl Batch {
 pub struct FlushReason {
     pub size: bool,
     pub time: bool,
-    pub line_count: bool,
     pub eof: bool,
 }
 
@@ -649,6 +787,16 @@ pub struct ParseStats {
     pub total_copy_in_ns: u64,
     /// 差分估算的 WCM→host copy-out 時間。
     pub total_copy_out_ns: u64,
+    /// 觸發逐筆隔離（二分法）的批次數。
+    pub total_isolated_batches: u64,
+    /// 隔離後被保留下來、正常往下游送的行數（只計入有錯誤的批次）。
+    pub total_salvaged_lines: u64,
+    /// 隔離後被拒絕、寫入 error.txt 的行數（malformed／poison／預算耗盡）。
+    pub total_rejected_lines: u64,
+    /// 隔離過程額外呼叫 parse 的次數（不含最初失敗的整批呼叫）。
+    pub total_isolation_calls: u64,
+    /// trap 隔離預算耗盡、整段拒絕的次數。
+    pub total_isolation_budget_exhausted: u64,
 }
 
 #[derive(Default)]
@@ -686,4 +834,40 @@ pub struct FilterStats {
     pub total_elapsed: Duration,
     pub wasm_mem_peak_max: usize,
     pub total_component_ns: u64,
+}
+
+#[cfg(test)]
+mod epoch_switch_tests {
+    use super::*;
+
+    const BASE: &str = "mem_limit_mb: 256\nbuffer_size_mb: 128\nmax_wait_ms: 100\nchannel_capacity: 1000\n\
+max_format_chunk: 1000\nmax_transport_bytes: 1048576\ntransport_workers: 1\n";
+
+    fn parse(extra: &str) -> BatchConfig {
+        let raw: BatchConfigRaw = serde_yaml::from_str(&format!("{}{}", BASE, extra)).unwrap();
+        BatchConfig::from(raw)
+    }
+
+    #[test]
+    fn epoch_interruption_defaults_to_true() {
+        let b = parse("");
+        assert!(b.epoch_interruption);
+        assert_eq!(b.stage_timeout_ms, 30_000);
+        assert!(BatchConfig::default().epoch_interruption);
+        assert!(b.validate_and_describe().is_ok());
+    }
+
+    #[test]
+    fn zero_stage_timeout_rejected_while_watchdog_on() {
+        let b = parse("stage_timeout_ms: 0\n");
+        let err = b.validate_and_describe().unwrap_err();
+        assert!(err.contains("epoch_interruption"), "{}", err);
+    }
+
+    #[test]
+    fn zero_stage_timeout_allowed_when_watchdog_off() {
+        let b = parse("stage_timeout_ms: 0\nepoch_interruption: false\n");
+        assert!(!b.epoch_interruption);
+        assert!(b.validate_and_describe().is_ok());
+    }
 }

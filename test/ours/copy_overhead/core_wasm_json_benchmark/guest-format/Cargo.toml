@@ -1,0 +1,19 @@
+[package]
+name = "core-wasm-json-format"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+base64 = "0.22"
+core-wasm-json-common = { path = "../guest-common" }
+serde_json = "1"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"

@@ -617,8 +617,8 @@ void __wasm_export_exports_transport_plugin_init_post_return(uint8_t * arg0) {
   }
 }
 
-__attribute__((__weak__, __export_name__("cabi_post_send")))
-void __wasm_export_exports_transport_plugin_send_post_return(uint8_t * arg0) {
+__attribute__((__weak__, __export_name__("cabi_post_transport")))
+void __wasm_export_exports_transport_plugin_transport_post_return(uint8_t * arg0) {
   switch ((int32_t) (int32_t) *((uint8_t*) (arg0 + 0))) {
     case 0: {
       break;
@@ -9432,12 +9432,12 @@ uint8_t * __wasm_export_exports_transport_plugin_init(uint8_t * arg) {
   return ptr;
 }
 
-__attribute__((__export_name__("send")))
-uint8_t * __wasm_export_exports_transport_plugin_send(uint8_t * arg, size_t arg0) {
+__attribute__((__export_name__("transport")))
+uint8_t * __wasm_export_exports_transport_plugin_transport(uint8_t * arg, size_t arg0) {
   transport_plugin_list_list_u8_t arg1 = (transport_plugin_list_list_u8_t) { (transport_plugin_list_u8_t*)(arg), (arg0) };
   transport_plugin_result_void_plugin_error_t ret;
   transport_plugin_plugin_error_t err;
-  ret.is_err = !exports_transport_plugin_send(&arg1, &err);
+  ret.is_err = !exports_transport_plugin_transport(&arg1, &err);
   if (ret.is_err) {
     ret.val.err = err;
   }

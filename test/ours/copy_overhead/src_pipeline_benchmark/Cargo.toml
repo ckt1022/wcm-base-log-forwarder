@@ -1,0 +1,16 @@
+[package]
+name = "wcm-base-log-forwarder"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# mem-guard 暫停期間用 malloc_trim(0) 把空閒 heap 還給 OS(glibc),
+# 否則 cgroup memory.current 停在高水位,輸入永遠不會恢復
+libc = "0.2"
+wasmtime = "42.0.1"
+wasmtime-wasi = "42.0.1"
+wasmtime-wasi-http = "42.0.1"
+wit-bindgen = "0.55.0"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "time", "net", "io-util"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"

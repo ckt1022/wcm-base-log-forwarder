@@ -1,0 +1,16 @@
+[package]
+name = "core-wasm-json-host"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+core-wasm-json-common = { path = "../guest-common" }
+serde_json = "1"
+wasmtime = "=42.0.1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

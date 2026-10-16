@@ -1,0 +1,176 @@
+   Compiling core-wasm-binary-common v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-common)
+   Compiling core-wasm-binary-parse v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-parse)
+    Finished `release` profile [optimized] target(s) in 1.29s
+   Compiling core-wasm-binary-common v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-common)
+   Compiling core-wasm-binary-filter v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-filter)
+    Finished `release` profile [optimized] target(s) in 0.91s
+   Compiling core-wasm-binary-common v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-common)
+   Compiling core-wasm-binary-format v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-format)
+    Finished `release` profile [optimized] target(s) in 0.94s
+   Compiling core-wasm-binary-common v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-common)
+   Compiling core-wasm-binary-host v0.1.0 (/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/host)
+    Finished `release` profile [optimized] target(s) in 51.24s
+Output directory: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626
+Experiments: 9; interval: 20s; CPU: 2
+[1/9] stage=parse language=rust run=1/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: parse
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-parse/target/wasm32-unknown-unknown/release/core_wasm_binary_parse.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.253 ms p95=0.459 ms
+batch=  128 total median=0.494 ms p95=0.660 ms
+batch=  256 total median=0.955 ms p95=1.701 ms
+batch=  512 total median=1.964 ms p95=6.492 ms
+batch= 1024 total median=4.437 ms p95=11.087 ms
+batch= 2048 total median=9.176 ms p95=15.148 ms
+batch= 4096 total median=21.259 ms p95=39.974 ms
+batch= 8192 total median=42.211 ms p95=63.571 ms
+batch=16384 total median=81.270 ms p95=125.233 ms
+batch=32768 total median=160.594 ms p95=233.321 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/parse_rust_core_wasm_direct_memory_run1.csv
+  cooling down for 20s...
+[2/9] stage=parse language=rust run=2/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: parse
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-parse/target/wasm32-unknown-unknown/release/core_wasm_binary_parse.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.289 ms p95=0.547 ms
+batch=  128 total median=0.567 ms p95=1.030 ms
+batch=  256 total median=1.325 ms p95=3.746 ms
+batch=  512 total median=1.889 ms p95=3.289 ms
+batch= 1024 total median=4.207 ms p95=9.376 ms
+batch= 2048 total median=8.293 ms p95=15.223 ms
+batch= 4096 total median=20.765 ms p95=33.519 ms
+batch= 8192 total median=40.532 ms p95=66.481 ms
+batch=16384 total median=80.336 ms p95=128.954 ms
+batch=32768 total median=160.642 ms p95=207.640 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/parse_rust_core_wasm_direct_memory_run2.csv
+  cooling down for 20s...
+[3/9] stage=parse language=rust run=3/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: parse
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-parse/target/wasm32-unknown-unknown/release/core_wasm_binary_parse.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.304 ms p95=0.538 ms
+batch=  128 total median=0.515 ms p95=0.907 ms
+batch=  256 total median=1.009 ms p95=1.680 ms
+batch=  512 total median=1.893 ms p95=3.998 ms
+batch= 1024 total median=3.896 ms p95=7.640 ms
+batch= 2048 total median=8.616 ms p95=14.050 ms
+batch= 4096 total median=20.228 ms p95=27.109 ms
+batch= 8192 total median=40.351 ms p95=64.922 ms
+batch=16384 total median=80.661 ms p95=132.306 ms
+batch=32768 total median=162.423 ms p95=217.792 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/parse_rust_core_wasm_direct_memory_run3.csv
+  cooling down for 20s...
+[4/9] stage=filter language=rust run=1/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: filter
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-filter/target/wasm32-unknown-unknown/release/core_wasm_binary_filter.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.090 ms p95=0.182 ms
+batch=  128 total median=0.145 ms p95=0.270 ms
+batch=  256 total median=0.258 ms p95=0.349 ms
+batch=  512 total median=0.484 ms p95=0.917 ms
+batch= 1024 total median=0.824 ms p95=1.522 ms
+batch= 2048 total median=1.802 ms p95=4.903 ms
+batch= 4096 total median=3.992 ms p95=6.322 ms
+batch= 8192 total median=8.873 ms p95=14.405 ms
+batch=16384 total median=20.386 ms p95=30.941 ms
+batch=32768 total median=40.382 ms p95=63.757 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/filter_rust_core_wasm_direct_memory_run1.csv
+  cooling down for 20s...
+[5/9] stage=filter language=rust run=2/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: filter
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-filter/target/wasm32-unknown-unknown/release/core_wasm_binary_filter.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.087 ms p95=0.170 ms
+batch=  128 total median=0.142 ms p95=0.226 ms
+batch=  256 total median=0.247 ms p95=0.465 ms
+batch=  512 total median=0.420 ms p95=0.654 ms
+batch= 1024 total median=0.832 ms p95=1.781 ms
+batch= 2048 total median=1.890 ms p95=4.107 ms
+batch= 4096 total median=3.908 ms p95=7.300 ms
+batch= 8192 total median=8.442 ms p95=14.779 ms
+batch=16384 total median=20.258 ms p95=30.517 ms
+batch=32768 total median=39.927 ms p95=66.629 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/filter_rust_core_wasm_direct_memory_run2.csv
+  cooling down for 20s...
+[6/9] stage=filter language=rust run=3/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: filter
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-filter/target/wasm32-unknown-unknown/release/core_wasm_binary_filter.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.074 ms p95=0.093 ms
+batch=  128 total median=0.121 ms p95=0.140 ms
+batch=  256 total median=0.218 ms p95=0.257 ms
+batch=  512 total median=0.425 ms p95=0.756 ms
+batch= 1024 total median=0.824 ms p95=1.002 ms
+batch= 2048 total median=1.884 ms p95=2.663 ms
+batch= 4096 total median=3.810 ms p95=4.279 ms
+batch= 8192 total median=8.373 ms p95=9.375 ms
+batch=16384 total median=16.689 ms p95=18.825 ms
+batch=32768 total median=33.743 ms p95=35.279 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/filter_rust_core_wasm_direct_memory_run3.csv
+  cooling down for 20s...
+[7/9] stage=format language=rust run=1/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: format
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-format/target/wasm32-unknown-unknown/release/core_wasm_binary_format.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.358 ms p95=0.490 ms
+batch=  128 total median=0.696 ms p95=0.837 ms
+batch=  256 total median=1.332 ms p95=1.463 ms
+batch=  512 total median=2.620 ms p95=2.824 ms
+batch= 1024 total median=5.579 ms p95=6.668 ms
+batch= 2048 total median=11.210 ms p95=12.517 ms
+batch= 4096 total median=22.958 ms p95=23.822 ms
+batch= 8192 total median=46.267 ms p95=48.663 ms
+batch=16384 total median=97.689 ms p95=109.885 ms
+batch=32768 total median=230.084 ms p95=261.860 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/format_rust_core_wasm_direct_memory_run1.csv
+  cooling down for 20s...
+[8/9] stage=format language=rust run=2/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: format
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-format/target/wasm32-unknown-unknown/release/core_wasm_binary_format.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.352 ms p95=0.426 ms
+batch=  128 total median=0.739 ms p95=0.855 ms
+batch=  256 total median=1.317 ms p95=1.454 ms
+batch=  512 total median=2.614 ms p95=2.846 ms
+batch= 1024 total median=5.466 ms p95=5.997 ms
+batch= 2048 total median=11.563 ms p95=12.915 ms
+batch= 4096 total median=22.868 ms p95=24.408 ms
+batch= 8192 total median=46.974 ms p95=51.817 ms
+batch=16384 total median=98.009 ms p95=108.204 ms
+batch=32768 total median=226.057 ms p95=266.474 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/format_rust_core_wasm_direct_memory_run2.csv
+  cooling down for 20s...
+[9/9] stage=format language=rust run=3/3
+Rust Core Wasm direct-memory ABI benchmark
+stage: format
+module: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/guest-format/target/wasm32-unknown-unknown/release/core_wasm_binary_format.wasm
+fresh pool: 3
+rounds: 100 (+ 10 warm-up per batch)
+batch=   64 total median=0.347 ms p95=0.404 ms
+batch=  128 total median=0.736 ms p95=0.950 ms
+batch=  256 total median=1.298 ms p95=1.374 ms
+batch=  512 total median=2.630 ms p95=2.764 ms
+batch= 1024 total median=5.420 ms p95=5.959 ms
+batch= 2048 total median=11.147 ms p95=11.672 ms
+batch= 4096 total median=22.876 ms p95=23.955 ms
+batch= 8192 total median=46.174 ms p95=49.408 ms
+batch=16384 total median=100.041 ms p95=103.599 ms
+batch=32768 total median=225.588 ms p95=272.941 ms
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626/format_rust_core_wasm_direct_memory_run3.csv
+All 9 experiments completed: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/core_wasm_binary_benchmark/results/core_wasm_direct_memory_20260822_194626

@@ -1,0 +1,5 @@
+trial rate=5000 FAIL :: FAIL rate=5000 gen_avg=4329/s gen_mb_s=4.437 lag_p99=7044ms lag_max=7043.7ms sink_total=106140 expected=106139 backlog=943 win_out_eps=1714 win_out_mb_s=1.805 oom=false reasons=gen_blocked(avg=4329/5000,lag_p99=7044.0ms)
+trial rate=4400 FAIL :: FAIL rate=4400 gen_avg=4313/s gen_mb_s=4.420 lag_p99=1000ms lag_max=996.2ms sink_total=103995 expected=103994 backlog=1475 win_out_eps=1698 win_out_mb_s=1.788 oom=false reasons=gen_blocked(avg=4313/4400,lag_p99=1000.0ms)
+trial rate=3900 PASS :: PASS rate=3900 gen_avg=3900/s gen_mb_s=3.997 lag_p99=5ms lag_max=17.3ms sink_total=93601 expected=93600 backlog=-1 win_out_eps=1559 win_out_mb_s=1.642 oom=false
+trial rate=4200 PASS :: PASS rate=4200 gen_avg=4200/s gen_mb_s=4.305 lag_p99=5ms lag_max=19.6ms sink_total=100799 expected=100798 backlog=-1 win_out_eps=1681 win_out_mb_s=1.770 oom=false
+CAPACITY dut=fbit-wasm tag=m3_W0.1_r2 eps=4200 first_fail=4400

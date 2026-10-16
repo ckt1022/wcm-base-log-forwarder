@@ -1,0 +1,17 @@
+[package]
+name = "marker-call-component"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = { version = "0.55.0", default-features = false, features = ["macros", "realloc"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+

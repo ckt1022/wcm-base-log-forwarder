@@ -1,0 +1,9 @@
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/lat_rate_50000/sink.log)
+[cap] dut=fbit-lua rate=50000 mode=lat load=90s flush=0.01s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:50000 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/lat_rate_50000/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/fbit-lua/lat_rate_50000/sink.log)
+[cap] 進度 [httpsink] t=33s lines/s=19958 MB/s=3.99 total=587707
+[cap] 進度 [httpsink] t=63s lines/s=19951 MB/s=4.01 total=1187674
+[cap] 進度 [httpsink] t=93s lines/s=20154 MB/s=4.05 total=1787793
+[cap] gen 完成,drain 10s 後關閉並判定
+PASS rate=50000 gen_avg=49999/s gen_mb_s=7.990 lag_p99=5ms lag_max=4.7ms sink_total=1799991 expected=1799990 backlog=-1 win_out_eps=20001 win_out_mb_s=4.010 oom=false

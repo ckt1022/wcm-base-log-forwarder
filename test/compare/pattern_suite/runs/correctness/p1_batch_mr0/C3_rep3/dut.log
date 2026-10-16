@@ -1,0 +1,15 @@
+[config] processing_mode=batch：累積原始輸入至 buffer_size_mb=128 MB 或 max_wait_ms=100 ms 後整批處理（micro_batch_* 不使用）
+=== WCM Log Forwarder ===
+Memory Limit : 256 MB
+Buffer Size  : 128 MB
+Stages       : parse → filter → format → transport
+========================
+[config] epoch_interruption=true
+Stage impl   : parse=wcm filter=wcm format=wcm transport=wcm
+[mem-guard] enabled: limit=512MB high=70% low=55% current=10MB
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:38090
+[tcp-input] 127.0.0.1:38090 disconnected
+[tcp-input] accepted 127.0.0.1:38098
+[tcp-input] 127.0.0.1:38098 disconnected

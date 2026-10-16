@@ -1,0 +1,39 @@
+=== WCM Log Forwarder ===
+Memory Limit : 256 MB
+Buffer Size  : 128 MB
+Stages       : parse → filter → format → transport
+========================
+[mem-guard] enabled: limit=512MB high=70% low=55% current=11MB
+[tcp-input] listening on 0.0.0.0:5140
+[pool] pre-warmed 3/3 parse instances (plugin v0)
+[tcp-input] accepted 127.0.0.1:49408
+[tcp-input] 127.0.0.1:49408 disconnected
+[tcp-input] accepted 127.0.0.1:38040
+[mem-guard] PAUSE input: mem=378MB (74% of 512MB)
+[mem-guard] RESUME input: mem=280MB (55%)
+[mem-guard] PAUSE input: mem=379MB (74% of 512MB)
+memory allocation of 1536 bytes failed
+[worker0][trap 1/2] batch=6: error while executing at wasm backtrace:
+    0:  0x113b3 - <unknown>!<wasm function 266>
+    1:   0xc072 - <unknown>!<wasm function 190>
+    2:   0xe2d4 - <unknown>!<wasm function 241>
+    3:  0x1b337 - <unknown>!allocate_stack
+    4:  0x1affe - <unknown>!environ_sizes_get
+    5:  0x1bb55 - <unknown>!<wasm function 3>
+    6:  0x11399 - <unknown>!<wasm function 264>
+    7:  0x112e3 - <unknown>!<wasm function 262>
+    8:  0x112b7 - <unknown>!<wasm function 261>
+    9:  0x1146d - <unknown>!<wasm function 269>
+   10:   0xbe25 - <unknown>!<wasm function 188>
+   11:   0xc699 - <unknown>!<wasm function 199>
+   12:   0xc4ec - <unknown>!<wasm function 198>
+   13:   0xc317 - <unknown>!<wasm function 195>
+   14:   0xc2e7 - <unknown>!<wasm function 194>
+   15:   0xaccf - <unknown>!<wasm function 165>
+   16:   0xac9f - <unknown>!<wasm function 164>
+   17:  0x119d8 - <unknown>!<wasm function 277>
+   18:  0x11a17 - <unknown>!<wasm function 280>
+   19:   0xe377 - <unknown>!<wasm function 244>
+   20:   0x15aa - <unknown>!<wasm function 22>
+[mem-guard] RESUME input: mem=259MB (51%)
+[mem-guard] PAUSE input: mem=373MB (73% of 512MB)

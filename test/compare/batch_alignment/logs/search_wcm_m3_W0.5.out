@@ -1,0 +1,19 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=25000 mode=cap tag=m3_W0.5 load=60s conf=wcm_tw128_wait500.yaml
+[align] 進度 [httpsink] t=34s lines/s=9971 MB/s=10.52 total=250192
+FAIL reason=gen_no_done_line
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=22000 mode=cap tag=m3_W0.5 load=60s conf=wcm_tw128_wait500.yaml
+[align] 進度 [httpsink] t=34s lines/s=8816 MB/s=9.30 total=255403
+[align] 進度 [httpsink] t=64s lines/s=8662 MB/s=9.15 total=519361
+PASS rate=22000 gen_avg=21999/s gen_mb_s=22.549 lag_p99=5ms lag_max=5.4ms sink_total=528000 expected=527999 backlog=8638 win_out_eps=8888 win_out_mb_s=9.379 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=23500 mode=cap tag=m3_W0.5 load=60s conf=wcm_tw128_wait500.yaml
+[align] 進度 [httpsink] t=34s lines/s=8245 MB/s=8.70 total=250164
+[align] 進度 [httpsink] t=64s lines/s=8500 MB/s=8.98 total=513015
+FAIL rate=23500 gen_avg=23499/s gen_mb_s=24.087 lag_p99=5ms lag_max=4.5ms sink_total=563991 expected=563990 backlog=50975 win_out_eps=8755 win_out_mb_s=9.237 oom=false reasons=backlog=50975>28200
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=22750 mode=cap tag=m3_W0.5 load=60s conf=wcm_tw128_wait500.yaml
+[align] 進度 [httpsink] t=34s lines/s=9098 MB/s=9.60 total=250339
+[align] 進度 [httpsink] t=64s lines/s=9099 MB/s=9.61 total=514666
+FAIL rate=22750 gen_avg=22749/s gen_mb_s=23.318 lag_p99=5ms lag_max=5.0ms sink_total=545995 expected=545994 backlog=31328 win_out_eps=8833 win_out_mb_s=9.321 oom=false reasons=backlog=31328>27300

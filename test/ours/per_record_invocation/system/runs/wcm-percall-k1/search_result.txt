@@ -1,0 +1,10 @@
+trial rate=3125 PASS t=1
+trial rate=6250 PASS t=2
+trial rate=12500 PASS t=3
+trial rate=25000 FAIL t=4
+trial rate=18700 PASS t=5
+trial rate=21800 FAIL t=6
+trial rate=20200 PASS t=7
+trial rate=21000 FAIL t=8
+trial rate=20200 PASS t=9
+CAPACITY dut=wcm-percall-k1 eps=20200 first_fail=21000 confirmed=yes

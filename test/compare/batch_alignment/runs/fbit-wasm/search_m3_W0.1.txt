@@ -1,0 +1,4 @@
+trial rate=5200 PASS :: PASS rate=5200 gen_avg=5200/s gen_mb_s=5.330 lag_p99=5ms lag_max=2.7ms sink_total=124801 expected=124799 backlog=-2 win_out_eps=2080 win_out_mb_s=2.191 oom=false
+trial rate=5700 FAIL :: FAIL rate=5700 gen_avg=5496/s gen_mb_s=5.633 lag_p99=1965ms lag_max=1965.4ms sink_total=132705 expected=132704 backlog=543 win_out_eps=2190 win_out_mb_s=2.307 oom=false reasons=gen_blocked(avg=5496/5700,lag_p99=1965.0ms)
+trial rate=5500 PASS :: PASS rate=5500 gen_avg=5500/s gen_mb_s=5.637 lag_p99=5ms lag_max=2.6ms sink_total=131999 expected=131998 backlog=-1 win_out_eps=2202 win_out_mb_s=2.319 oom=false
+CAPACITY dut=fbit-wasm tag=m3_W0.1 eps=5500 first_fail=5700

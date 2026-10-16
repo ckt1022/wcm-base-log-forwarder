@@ -1,0 +1,843 @@
+diff --git a/src/config.rs b/src/config.rs
+index 00fc590..b28b3cd 100644
+--- a/src/config.rs
++++ b/src/config.rs
+@@ -99,6 +99,12 @@ pub struct BatchConfigRaw {
+     /// false ＝每批用完即銷毀重建，防止 GC 語言插件（Go/C# 等）記憶體累積導致 OOM。
+     #[serde(default = "default_plugin_instance_reuse")]
+     pub plugin_instance_reuse: bool,
++    /// parse / filter / format 每次呼叫 plugin 時最多帶幾筆記錄。
++    /// 省略或 0 ＝維持原行為（整個 batch 一次呼叫）；k>0 ＝ host 照常累積與 flush batch，
++    /// 但把每個 batch 切成最多 k 筆的子呼叫，並在同一個 instance 上連續呼叫。
++    /// k=1 時 parse 錯誤只影響該筆記錄（逐筆錯誤隔離）。僅在啟動時讀取。
++    #[serde(default)]
++    pub plugin_call_size: usize,
+ }
+ 
+ fn default_plugin_instance_reuse() -> bool {
+@@ -119,6 +125,7 @@ impl From<BatchConfigRaw> for BatchConfig {
+             pipeline_channel_capacity: r.pipeline_channel_capacity,
+             stage_timeout_ms: r.stage_timeout_ms,
+             plugin_instance_reuse: r.plugin_instance_reuse,
++            plugin_call_size: r.plugin_call_size,
+         }
+     }
+ }
+@@ -315,6 +322,8 @@ pub struct BatchConfig {
+     /// format / transport 是否重複使用 WASM 實例（parse/filter 一律重用）。
+     /// true（預設）＝常駐重用；false ＝每批銷毀重建（GC 語言插件防 OOM 用）。
+     pub plugin_instance_reuse: bool,
++    /// 每次 parse / filter / format plugin 呼叫的最大記錄數；0 ＝整個 batch 一次呼叫。
++    pub plugin_call_size: usize,
+ }
+ 
+ impl Default for BatchConfig {
+@@ -331,6 +340,7 @@ impl Default for BatchConfig {
+             pipeline_channel_capacity: 20_000,
+             stage_timeout_ms: 30_000,
+             plugin_instance_reuse: true,
++            plugin_call_size: 0,
+         }
+     }
+ }
+@@ -512,6 +522,16 @@ impl BatchConfig {
+                 "每階段 WASM 呼叫超時上限，超過後重試 2 次，均失敗寫 error.txt",
+                 self.stage_timeout_ms == default.stage_timeout_ms,
+             ),
++            (
++                "plugin_call_size",
++                if self.plugin_call_size == 0 {
++                    "0 (batch)".to_string()
++                } else {
++                    format!("{}", self.plugin_call_size)
++                },
++                "parse/filter/format 每次 plugin 呼叫最大筆數，0=整批一次",
++                self.plugin_call_size == default.plugin_call_size,
++            ),
+         ];
+ 
+         eprintln!("┌{:─<28}┬{:─<14}┬{:─<7}┬{:─<58}┐", "", "", "", "");
+@@ -686,3 +706,41 @@ pub struct FilterStats {
+     pub wasm_mem_peak_max: usize,
+     pub total_component_ns: u64,
+ }
++
++#[cfg(test)]
++mod plugin_call_size_tests {
++    use super::*;
++
++    const BASE: &str = r#"
++plugins: { parse: "p.wasm", parse_noop: ~, filter: "f.wasm", format: "fm.wasm", transport: "t.wasm" }
++stages: { filter: true, format: true, transport: true }
++input: { mode: tcp, tcp: { host: "0.0.0.0", port: 5140 } }
++endpoint: { A: "http://127.0.0.1:8080/ingest" }
++batch:
++  mem_limit_mb: 128
++  buffer_size_mb: 1
++  max_wait_ms: 1000
++  channel_capacity: 50000
++  max_format_chunk: 10000
++  max_transport_bytes: 1048576
++  transport_workers: 1
++"#;
++
++    #[test]
++    fn absent_means_whole_batch() {
++        let cfg: AppConfig = serde_yaml::from_str(BASE).unwrap();
++        assert_eq!(cfg.batch.plugin_call_size, 0);
++        assert_eq!(BatchConfig::from(cfg.batch).plugin_call_size, 0);
++    }
++
++    #[test]
++    fn explicit_value_is_kept() {
++        for k in [0usize, 1, 16, 256] {
++            let yaml = format!("{BASE}  plugin_call_size: {k}\n");
++            let cfg: AppConfig = serde_yaml::from_str(&yaml).unwrap();
++            let b = BatchConfig::from(cfg.batch);
++            assert_eq!(b.plugin_call_size, k);
++            assert!(b.validate_and_describe().is_ok());
++        }
++    }
++}
+diff --git a/src/output.rs b/src/output.rs
+index 4db3241..de94c90 100644
+--- a/src/output.rs
++++ b/src/output.rs
+@@ -19,6 +19,11 @@ pub fn print_startup(cfg: &BatchConfig, stages: &PipelineStages) {
+     eprintln!("Memory Limit : {} MB", cfg.mem_limit_mb);
+     eprintln!("Buffer Size  : {} MB", cfg.buffer_size_mb);
+     eprintln!("Stages       : {}", stage_str);
++    if cfg.plugin_call_size == 0 {
++        eprintln!("Call Size    : whole batch per plugin call");
++    } else {
++        eprintln!("Call Size    : <= {} records per plugin call (instance reused)", cfg.plugin_call_size);
++    }
+     /*
+     if stages.transport {
+         eprintln!("Endpoint     : {}", cfg.transport_endpoint.as_deref().unwrap_or("(via endpoint map)"));
+diff --git a/src/runtime.rs b/src/runtime.rs
+index ed0512b..30c96a1 100644
+--- a/src/runtime.rs
++++ b/src/runtime.rs
+@@ -289,7 +289,7 @@ pub fn run_pipeline(
+ ) -> wasmtime::Result<()> {
+     // 從初始 config 快照中取出啟動後即固定的參數。
+     let (mem_limit_bytes, max_format_chunk, max_transport_bytes, transport_workers,
+-         pipeline_channel_capacity, stage_timeout, instance_reuse) = {
++         pipeline_channel_capacity, stage_timeout, instance_reuse, call_size) = {
+         let c = cfg.read().unwrap();
+         let b = BatchConfig::from(c.batch.clone());
+         (
+@@ -300,6 +300,7 @@ pub fn run_pipeline(
+             b.pipeline_channel_capacity,
+             Duration::from_millis(b.stage_timeout_ms),
+             b.plugin_instance_reuse,
++            b.plugin_call_size,
+         )
+     };
+     // 每個 epoch tick = 10 ms；deadline = 卡住的 plugin 被中止前可經過的 tick 數。
+@@ -332,6 +333,7 @@ pub fn run_pipeline(
+                 cfg_for_parse,
+                 mem_limit_bytes,
+                 deadline_ticks,
++                call_size,
+             )
+         }))
+     } else {
+@@ -345,7 +347,7 @@ pub fn run_pipeline(
+         // 開一個自己的記數thread
+         spawn_epoch_ticker(&shared);
+         Some(thread::spawn(move || {
+-            filter_loop(rx_parsed, tx_filtered, shared, mem_limit_bytes, stage_timeout)
++            filter_loop(rx_parsed, tx_filtered, shared, mem_limit_bytes, stage_timeout, call_size)
+         }))
+     } else {
+         // filter 停用：把 rx_parsed 直接橋接到 tx_filtered
+@@ -364,7 +366,7 @@ pub fn run_pipeline(
+         // 開一個自己的記數thread
+         spawn_epoch_ticker(&shared);
+         Some(thread::spawn(move || {
+-            format_loop(rx_filtered, tx_formatted, shared, mem_limit_bytes, max_format_chunk, stage_timeout, instance_reuse)
++            format_loop(rx_filtered, tx_formatted, shared, mem_limit_bytes, max_format_chunk, stage_timeout, instance_reuse, call_size)
+         }))
+     } else {
+         drop(tx_formatted);
+@@ -482,6 +484,7 @@ fn parse_loop(
+     cfg: Arc<RwLock<AppConfig>>,
+     mem_limit_bytes: usize,
+     deadline_ticks: u64,
++    call_size: usize,
+ ) -> wasmtime::Result<ParseStats> {
+     // [latency-bench] wall-clock 時間擷取已註解，避免干擾延遲量測。
+     // let wall_start = Instant::now();
+@@ -531,7 +534,7 @@ fn parse_loop(
+         let noop = parse_noop.as_ref().map(Arc::clone);
+         let counter = Arc::clone(&total_parsed_lines);
+         worker_handles.push(thread::spawn(move || {
+-            parse_worker(worker_id, rx_w, tx_p, sh, noop, mem_limit_bytes, deadline_ticks, counter)
++            parse_worker(worker_id, rx_w, tx_p, sh, noop, mem_limit_bytes, deadline_ticks, counter, call_size)
+         }));
+     }
+ 
+@@ -711,6 +714,7 @@ fn parse_worker(
+     mem_limit_bytes: usize,
+     deadline_ticks: u64,
+     total_lines: Arc<AtomicU64>,
++    call_size: usize,
+ ) -> wasmtime::Result<(ParseStats, u32)> {
+     let mut pool = ParsePool::new(shared, mem_limit_bytes, POOL_TARGET_SIZE)?;
+     let mut noop_pool = parse_noop
+@@ -749,6 +753,7 @@ fn parse_worker(
+             &mut error_count,
+             1,
+             deadline_ticks,
++            call_size,
+         ) {
+             total_lines.fetch_add(stats.total_input_lines - lines_before, Ordering::Relaxed);
+             break;
+@@ -777,7 +782,15 @@ fn worker_flush_batch(
+     error_count: &mut u32,
+     max_retries: u32,
+     deadline_ticks: u64,
++    call_size: usize,
+ ) -> bool {
++    // plugin_call_size>0 且 batch 大於 k：切成子呼叫（同一 instance 連續呼叫，逐子呼叫錯誤隔離）。
++    // 其餘情況（0 或 batch ≤ k）走原本整批一次呼叫的路徑，行為與原版完全相同。
++    if needs_split(batch.len(), call_size) {
++        return worker_flush_batch_subcalls(
++            worker_id, pool, batch, seq, stats, tx, error_count, max_retries, deadline_ticks, call_size,
++        );
++    }
+     for attempt in 0..=max_retries {
+         let mut inst = match pool.acquire() {
+             Ok(i) => i,
+@@ -988,6 +1001,255 @@ fn do_parse_batch(
+     Ok(result)
+ }
+ 
++// ── plugin_call_size：把一個 batch 切成多次 plugin 子呼叫 ─────────────────────
++//
++// host 照常累積、flush batch（batching 與延遲語意不變），只是在呼叫 plugin 時
++// 把 batch 切成最多 k 筆的子呼叫，並在「同一個」instance 上連續呼叫。
++// 子呼叫之間錯誤彼此隔離：某個子呼叫回傳 Err 或 trap，只丟棄該子呼叫的記錄。
++// k=1 即逐筆呼叫（per-record invocation with instance reuse）。
++
++/// 是否需要切成子呼叫：k>0 且 batch 筆數大於 k。
++/// k=0（預設）或 batch ≤ k 時維持原本整批一次呼叫的路徑。
++fn needs_split(len: usize, call_size: usize) -> bool {
++    call_size > 0 && len > call_size
++}
++
++/// 把 len 筆記錄切成每段最多 call_size 筆的連續區間（call_size=0 ＝整批一段）。
++fn subcall_ranges(len: usize, call_size: usize) -> impl Iterator<Item = std::ops::Range<usize>> {
++    let step = if call_size == 0 { len.max(1) } else { call_size };
++    (0..len).step_by(step).map(move |start| start..(start + step).min(len))
++}
++
++/// 子呼叫的 plugin 端抽象：正式環境為 WASM instance，單元測試以 mock 取代。
++trait SubcallBackend<In> {
++    type Out;
++    type Err: std::fmt::Debug;
++    /// 以目前的 instance 呼叫一次 plugin。外層 Err ＝ trap／timeout，內層 Err ＝ plugin 回報的錯誤。
++    fn call(&mut self, chunk: &[In]) -> wasmtime::Result<Result<Self::Out, Self::Err>>;
++    /// 丟棄目前（可能已污染的）instance，換上一個新的。
++    fn reset(&mut self) -> wasmtime::Result<()>;
++}
++
++#[derive(Debug)]
++enum SubcallFailure {
++    /// plugin 回傳 Err（例如 malformed JSON）。
++    Plugin(String),
++    /// trap／epoch timeout，或換 instance 失敗。
++    Trap(String),
++}
++
++struct SubcallReport<Out> {
++    /// 成功的子呼叫（依輸入順序）。
++    ok: Vec<(std::ops::Range<usize>, Out)>,
++    /// 失敗的子呼叫（依輸入順序），其記錄被丟棄。
++    failed: Vec<(std::ops::Range<usize>, SubcallFailure)>,
++}
++
++impl<Out> SubcallReport<Out> {
++    fn failed_records(&self) -> usize {
++        self.failed.iter().map(|(r, _)| r.len()).sum()
++    }
++}
++
++/// 依 call_size 逐段呼叫 backend。
++/// - trap：換新 instance 後重試同一段，最多 max_retries 次；仍失敗則只丟棄該段。
++/// - plugin Err：retry_plugin_error=true 時換新 instance 後重試（filter 的原行為是重建後重試），
++///   否則（parse：錯誤由資料決定，重試無意義）直接丟棄該段、instance 繼續使用。
++fn run_subcalls<In, B: SubcallBackend<In>>(
++    items: &[In],
++    call_size: usize,
++    retry_plugin_error: bool,
++    max_retries: u32,
++    backend: &mut B,
++) -> SubcallReport<B::Out> {
++    let mut report = SubcallReport { ok: Vec::new(), failed: Vec::new() };
++    for range in subcall_ranges(items.len(), call_size) {
++        let chunk = &items[range.clone()];
++        let mut attempt = 0;
++        loop {
++            match backend.call(chunk) {
++                Ok(Ok(out)) => {
++                    report.ok.push((range.clone(), out));
++                    break;
++                }
++                Ok(Err(e)) => {
++                    if retry_plugin_error && attempt < max_retries {
++                        attempt += 1;
++                        if let Err(re) = backend.reset() {
++                            report.failed.push((
++                                range.clone(),
++                                SubcallFailure::Trap(format!("reset failed: {re}")),
++                            ));
++                            break;
++                        }
++                        continue;
++                    }
++                    report.failed.push((range.clone(), SubcallFailure::Plugin(format!("{e:?}"))));
++                    break;
++                }
++                Err(trap) => {
++                    // trap 後 instance 狀態不可信：一律換新，後續子呼叫才能繼續。
++                    let reset = backend.reset();
++                    if attempt < max_retries && reset.is_ok() {
++                        attempt += 1;
++                        continue;
++                    }
++                    let msg = match reset {
++                        Ok(()) => format!("{trap}"),
++                        Err(re) => format!("{trap}; reset failed: {re}"),
++                    };
++                    report.failed.push((range.clone(), SubcallFailure::Trap(msg)));
++                    break;
++                }
++            }
++        }
++    }
++    report
++}
++
++/// 把 parse 輸出依序轉成 LogEntry；host 依「batch 內輸出順序」分配 id（與整批路徑同規則）。
++fn assemble_parsed_batch(seq: u64, parsed: impl IntoIterator<Item = ParsedEntry>) -> ParsedBatch {
++    let (entries, targettags): (Vec<LogEntry>, Vec<String>) = parsed
++        .into_iter()
++        .enumerate()
++        .map(|(i, p)| {
++            let e = LogEntry {
++                id: seq * 100_000 + i as u64,
++                timestamp: p.timestamp,
++                level: p.level,
++                message: p.message,
++                tags: p.tags,
++            };
++            (e, p.targettag)
++        })
++        .unzip();
++    ParsedBatch { entries, targettags, seq }
++}
++
++/// parse 子呼叫 backend：持有從 pool 取出的 instance，trap 時丟棄並向 pool 取新的。
++struct ParseSubcallBackend<'a> {
++    pool: &'a mut ParsePool,
++    inst: Option<ParseInstance>,
++    deadline_ticks: u64,
++}
++
++impl SubcallBackend<String> for ParseSubcallBackend<'_> {
++    type Out = Vec<ParsedEntry>;
++    type Err = crate::app::local::log_process::pipeline_process::ParseError;
++
++    fn call(&mut self, chunk: &[String]) -> wasmtime::Result<Result<Self::Out, Self::Err>> {
++        let inst = self
++            .inst
++            .as_mut()
++            .ok_or_else(|| wasmtime::Error::msg("no parse instance available"))?;
++        inst.store.set_epoch_deadline(self.deadline_ticks);
++        inst.plugin.call_parse(&mut inst.store, chunk)
++    }
++
++    fn reset(&mut self) -> wasmtime::Result<()> {
++        if let Some(old) = self.inst.take() {
++            self.pool.discard_and_replenish(old);
++        }
++        let mut fresh = self.pool.acquire()?;
++        fresh.store.data_mut().limiter.reset_batch_stats();
++        self.inst = Some(fresh);
++        Ok(())
++    }
++}
++
++/// plugin_call_size 生效時的 parse 路徑：同一個 instance 依序處理所有子呼叫，
++/// 失敗的子呼叫只丟棄自己的記錄；batch 結束後與原路徑一樣丟棄 instance 並補充 pool。
++fn worker_flush_batch_subcalls(
++    worker_id: usize,
++    pool: &mut ParsePool,
++    batch: &mut Batch,
++    seq: u64,
++    stats: &mut ParseStats,
++    tx: &SyncSender<ParsedBatch>,
++    error_count: &mut u32,
++    max_retries: u32,
++    deadline_ticks: u64,
++    call_size: usize,
++) -> bool {
++    let mut first = match pool.acquire() {
++        Ok(i) => i,
++        Err(e) => {
++            eprintln!("[worker{}][pool] cannot acquire (batch={}): {}", worker_id, seq, e);
++            batch.clear();
++            return true;
++        }
++    };
++    first.store.data_mut().limiter.reset_batch_stats();
++
++    let input_lines = batch.len();
++    let input_bytes = batch.bytes;
++    let mut backend = ParseSubcallBackend { pool, inst: Some(first), deadline_ticks };
++    let report = run_subcalls(&batch.lines, call_size, false, max_retries, &mut backend);
++
++    let (wasm_mem_peak, grow_count, grow_delta_bytes) = backend
++        .inst
++        .as_ref()
++        .map(|i| {
++            let l = &i.store.data().limiter;
++            (l.wasm_mem_peak, l.grow_count, l.grow_total_delta_bytes)
++        })
++        .unwrap_or((0, 0, 0));
++    if let Some(inst) = backend.inst.take() {
++        backend.pool.discard_and_replenish(inst);
++    }
++
++    if !report.failed.is_empty() {
++        let traps: Vec<std::ops::Range<usize>> = report
++            .failed
++            .iter()
++            .filter(|(_, f)| matches!(f, SubcallFailure::Trap(_)))
++            .map(|(r, _)| r.clone())
++            .collect();
++        let first_msg = match &report.failed[0].1 {
++            SubcallFailure::Plugin(m) => format!("plugin-error {m}"),
++            SubcallFailure::Trap(m) => format!("trap {m}"),
++        };
++        // 每個 batch 只輸出一行彙總，避免逐筆 stderr 影響延遲。
++        eprintln!(
++            "[worker{}][parse-subcall] batch={} rejected {}/{} records in {} sub-calls (k={}, traps={}) first: {}",
++            worker_id,
++            seq,
++            report.failed_records(),
++            input_lines,
++            report.failed.len(),
++            call_size,
++            traps.len(),
++            first_msg,
++        );
++        if !traps.is_empty() {
++            *error_count += traps.len() as u32;
++            let trapped: Vec<String> = traps
++                .iter()
++                .flat_map(|r| batch.lines[r.clone()].iter().cloned())
++                .collect();
++            write_error_file("以下這些子呼叫發生trap/timeout", &trapped);
++        }
++    }
++
++    let pb = assemble_parsed_batch(seq, report.ok.into_iter().flat_map(|(_, v)| v));
++
++    stats.total_batches += 1;
++    stats.total_input_lines += input_lines as u64;
++    stats.total_input_bytes += input_bytes as u64;
++    stats.total_output_entries += pb.entries.len() as u64;
++    stats.total_grow_count += grow_count;
++    stats.total_grow_delta_bytes += grow_delta_bytes;
++    if wasm_mem_peak > stats.wasm_mem_peak_max {
++        stats.wasm_mem_peak_max = wasm_mem_peak;
++    }
++
++    batch.clear();
++    if pb.entries.is_empty() {
++        return true;
++    }
++    tx.send(pb).is_ok()
++}
++
+ // [latency-bench] measure_noop_parse / duration_ns 整段為時間擷取（noop 差分量測），
+ //                 回傳 ParseDiffTiming 的路徑已全部註解，避免干擾延遲量測。
+ // fn measure_noop_parse(
+@@ -1093,6 +1355,34 @@ fn write_bytes_error_file(header: &str, lines: &[Vec<u8>]) {
+     }
+ }
+ 
++/// filter 子呼叫 backend：沿用 filter_loop 的長壽 store/plugin，trap 或錯誤時以 make 重建。
++struct FilterSubcallBackend<'a> {
++    store: &'a mut Store<MyState>,
++    plugin: &'a mut ReductionPlugin,
++    version: &'a mut u64,
++    shared: &'a SharedPlugin,
++    make: &'a dyn Fn(&SharedPlugin) -> wasmtime::Result<(Store<MyState>, ReductionPlugin, u64)>,
++    deadline_ticks: u64,
++}
++
++impl SubcallBackend<LogEntry> for FilterSubcallBackend<'_> {
++    type Out = Vec<crate::app::local::log_process::pipeline_process::FilterResult>;
++    type Err = crate::app::local::log_process::pipeline_process::PluginError;
++
++    fn call(&mut self, chunk: &[LogEntry]) -> wasmtime::Result<Result<Self::Out, Self::Err>> {
++        self.store.set_epoch_deadline(self.deadline_ticks);
++        self.plugin.call_filter(&mut *self.store, chunk)
++    }
++
++    fn reset(&mut self) -> wasmtime::Result<()> {
++        let (s, p, v) = (self.make)(self.shared)?;
++        *self.store = s;
++        *self.plugin = p;
++        *self.version = v;
++        Ok(())
++    }
++}
++
+ // ── Filter Loop (sync) ───────────────────────────────────────────────────────
+ //
+ // 一個長壽 store，迴圈接收 ParsedBatch，呼叫 filter()，
+@@ -1107,6 +1397,7 @@ fn filter_loop(
+     shared: SharedPlugin,
+     mem_limit_bytes: usize,
+     stage_timeout: Duration,
++    call_size: usize,
+ ) -> wasmtime::Result<FilterStats> {
+     // 建立 filter 用的 store 與 plugin 實例，並回傳建立當下的插件版本。
+     let make_filter = |shared: &SharedPlugin| -> wasmtime::Result<(Store<MyState>, ReductionPlugin, u64)> {
+@@ -1147,6 +1438,61 @@ fn filter_loop(
+                 let input_count = pb.entries.len();
+                 let mut entries = pb.entries;
+                 let mut targettags = pb.targettags;
++                // plugin_call_size 生效：同一個 instance 依序處理最多 k 筆的子呼叫，
++                // 失敗（重試後仍失敗）的子呼叫只丟棄自己的記錄，其餘照常保留。
++                if needs_split(entries.len(), call_size) {
++                    let report = {
++                        let mut backend = FilterSubcallBackend {
++                            store: &mut store,
++                            plugin: &mut plugin,
++                            version: &mut current_version,
++                            shared: &shared,
++                            make: &make_filter,
++                            deadline_ticks,
++                        };
++                        run_subcalls(&entries, call_size, true, 2, &mut backend)
++                    };
++                    if !report.failed.is_empty() {
++                        eprintln!(
++                            "[filter-subcall] batch={} dropped {}/{} entries in {} failed sub-calls (k={}) first: {:?}",
++                            seq,
++                            report.failed_records(),
++                            input_count,
++                            report.failed.len(),
++                            call_size,
++                            report.failed[0].1,
++                        );
++                    }
++                    let wasm_mem_peak = store.data().limiter.wasm_mem_peak;
++                    let keep_ids: std::collections::HashSet<u64> = report
++                        .ok
++                        .iter()
++                        .flat_map(|(_, rs)| rs.iter())
++                        .filter(|r| r.keep)
++                        .map(|r| r.id)
++                        .collect();
++                    let (filtered, kept_tags): (Vec<LogEntry>, Vec<String>) = entries
++                        .into_iter()
++                        .zip(targettags.into_iter())
++                        .filter(|(e, _)| keep_ids.contains(&e.id))
++                        .unzip();
++                    let kept = filtered.len();
++                    stats.total_batches += 1;
++                    stats.total_input_entries += input_count as u64;
++                    stats.total_kept_entries += kept as u64;
++                    stats.total_dropped_entries += (input_count - kept) as u64;
++                    if wasm_mem_peak > stats.wasm_mem_peak_max {
++                        stats.wasm_mem_peak_max = wasm_mem_peak;
++                    }
++                    if !filtered.is_empty() {
++                        let out = ParsedBatch { entries: filtered, targettags: kept_tags, seq };
++                        if tx.send(out).is_err() {
++                            break;
++                        }
++                    }
++                    continue;
++                }
++
+                 const MAX_RETRIES: u32 = 2;
+                 let mut channel_closed = false;
+ 
+@@ -1297,8 +1643,12 @@ fn format_loop(
+     max_chunk: usize,
+     stage_timeout: Duration,
+     instance_reuse: bool,
++    call_size: usize,
+ ) -> wasmtime::Result<FormatStats> {
+     let mut current_version = shared.read().unwrap().version;
++    // plugin_call_size>0 時，每次 format 呼叫最多 min(max_chunk, k) 筆；
++    // instance_reuse=true 時同一個快取 instance 連續處理這些子呼叫。0 ＝原行為（max_chunk）。
++    let format_chunk = if call_size > 0 { max_chunk.min(call_size) } else { max_chunk };
+     let deadline_ticks = stage_timeout.as_millis() as u64 / 10;
+     let mut stats = FormatStats::default();
+ 
+@@ -1334,7 +1684,7 @@ fn format_loop(
+                     // let mut batch_logic_ns: u64 = 0;
+                     let mut batch_ok = true;
+ 
+-                    for (chunk_idx, chunk) in pb.entries.chunks(max_chunk).enumerate() {
++                    for (chunk_idx, chunk) in pb.entries.chunks(format_chunk).enumerate() {
+                         // 取得實例：快取為空就新建（instance_reuse=false 時每 chunk 都會是空）
+                         if cached.is_none() {
+                             let state = MyState {
+@@ -1929,3 +2279,246 @@ async fn transport_worker(
+ 
+     Ok(stats)
+ }
++
++// ── 單元測試：plugin_call_size 子呼叫 ─────────────────────────────────────────
++
++#[cfg(test)]
++mod subcall_tests {
++    use super::*;
++    use crate::app::local::log_process::pipeline_process::LogLevel;
++
++    fn ranges(len: usize, k: usize) -> Vec<std::ops::Range<usize>> {
++        subcall_ranges(len, k).collect()
++    }
++
++    #[test]
++    fn ranges_cover_input_in_order() {
++        assert_eq!(ranges(10, 3), vec![0..3, 3..6, 6..9, 9..10]);
++        assert_eq!(ranges(10, 1).len(), 10);
++        assert_eq!(ranges(10, 0), vec![0..10]);
++        assert_eq!(ranges(10, 10), vec![0..10]);
++        assert_eq!(ranges(10, 64), vec![0..10]);
++        assert!(ranges(0, 0).is_empty());
++        assert!(ranges(0, 4).is_empty());
++        // 任意 k：區間連續、不重疊、總和等於 len
++        for len in 0..40 {
++            for k in 0..12 {
++                let rs = ranges(len, k);
++                let mut next = 0;
++                for r in &rs {
++                    assert_eq!(r.start, next);
++                    assert!(r.end > r.start);
++                    if k > 0 {
++                        assert!(r.len() <= k);
++                    }
++                    next = r.end;
++                }
++                assert_eq!(next, len);
++            }
++        }
++    }
++
++    #[test]
++    fn split_only_when_batch_exceeds_k() {
++        assert!(!needs_split(1000, 0)); // 0 = 原行為
++        assert!(!needs_split(16, 16));
++        assert!(!needs_split(3, 16));
++        assert!(needs_split(17, 16));
++        assert!(needs_split(2, 1));
++        assert!(!needs_split(1, 1));
++    }
++
++    /// 模擬 parser：整批中任一行是 "bad" 就回傳 Err（與正式 Rust/C parser 相同語意）；
++    /// "trap" 行在前 `traps_left` 次呼叫時 trap。
++    struct MockParser {
++        calls: usize,
++        resets: usize,
++        traps_left: usize,
++        call_sizes: Vec<usize>,
++    }
++
++    impl MockParser {
++        fn new(traps_left: usize) -> Self {
++            Self { calls: 0, resets: 0, traps_left, call_sizes: Vec::new() }
++        }
++    }
++
++    fn entry(msg: &str) -> ParsedEntry {
++        ParsedEntry {
++            timestamp: "t".to_string(),
++            level: LogLevel::Warn,
++            message: msg.to_string(),
++            tags: vec![("k".to_string(), msg.to_string())],
++            targettag: format!("T-{msg}"),
++        }
++    }
++
++    impl SubcallBackend<String> for MockParser {
++        type Out = Vec<ParsedEntry>;
++        type Err = String;
++        fn call(&mut self, chunk: &[String]) -> wasmtime::Result<Result<Self::Out, Self::Err>> {
++            self.calls += 1;
++            self.call_sizes.push(chunk.len());
++            if chunk.iter().any(|l| l == "trap") && self.traps_left > 0 {
++                self.traps_left -= 1;
++                return Err(wasmtime::Error::msg("wasm trap: unreachable"));
++            }
++            if chunk.iter().any(|l| l == "bad") {
++                return Ok(Err("JSON Parse Error".to_string()));
++            }
++            Ok(Ok(chunk.iter().map(|l| entry(l)).collect()))
++        }
++        fn reset(&mut self) -> wasmtime::Result<()> {
++            self.resets += 1;
++            Ok(())
++        }
++    }
++
++    fn lines(v: &[&str]) -> Vec<String> {
++        v.iter().map(|s| s.to_string()).collect()
++    }
++
++    fn messages(report: SubcallReport<Vec<ParsedEntry>>) -> Vec<String> {
++        report.ok.into_iter().flat_map(|(_, v)| v).map(|e| e.message).collect()
++    }
++
++    #[test]
++    fn per_record_calls_isolate_malformed_lines() {
++        let input = lines(&["a", "bad", "b", "c", "bad", "d"]);
++        let mut p = MockParser::new(0);
++        let report = run_subcalls(&input, 1, false, 1, &mut p);
++        assert_eq!(p.calls, 6, "k=1 → 每筆一次呼叫");
++        assert_eq!(p.resets, 0, "plugin Err 不換 instance（同一 instance 持續使用）");
++        assert_eq!(report.failed_records(), 2);
++        assert!(matches!(report.failed[0].1, SubcallFailure::Plugin(_)));
++        assert_eq!(report.failed[0].0, 1..2);
++        assert_eq!(report.failed[1].0, 4..5);
++        assert_eq!(messages(report), vec!["a", "b", "c", "d"]);
++    }
++
++    #[test]
++    fn whole_batch_call_loses_everything_on_one_bad_line() {
++        // k=0 走同一個 helper 時的語意（正式程式 k=0 不經過此 helper，此處僅示範差異）
++        let input = lines(&["a", "bad", "b", "c"]);
++        let mut p = MockParser::new(0);
++        let report = run_subcalls(&input, 0, false, 1, &mut p);
++        assert_eq!(p.calls, 1);
++        assert_eq!(report.failed_records(), 4);
++        assert!(report.ok.is_empty());
++    }
++
++    #[test]
++    fn small_k_only_drops_the_contaminated_subcall() {
++        let input = lines(&["a", "b", "c", "bad", "d", "e", "f", "g", "h"]);
++        let mut p = MockParser::new(0);
++        let report = run_subcalls(&input, 4, false, 1, &mut p);
++        assert_eq!(p.call_sizes, vec![4, 4, 1]);
++        assert_eq!(report.failed.len(), 1);
++        assert_eq!(report.failed[0].0, 0..4);
++        assert_eq!(messages(report), vec!["d", "e", "f", "g", "h"]);
++    }
++
++    #[test]
++    fn transient_trap_is_retried_on_a_fresh_instance() {
++        let input = lines(&["a", "trap", "b"]);
++        let mut p = MockParser::new(1); // 只 trap 一次
++        let report = run_subcalls(&input, 1, false, 1, &mut p);
++        assert_eq!(p.resets, 1);
++        assert!(report.failed.is_empty());
++        assert_eq!(messages(report), vec!["a", "trap", "b"]);
++    }
++
++    #[test]
++    fn persistent_trap_drops_only_that_subcall_and_continues() {
++        let input = lines(&["a", "trap", "b", "c"]);
++        let mut p = MockParser::new(usize::MAX); // 永遠 trap
++        let report = run_subcalls(&input, 1, false, 1, &mut p);
++        // 第一次 trap → reset + 重試；第二次 trap → reset（讓後續子呼叫用乾淨 instance）後放棄
++        assert_eq!(p.resets, 2);
++        assert_eq!(report.failed.len(), 1);
++        assert!(matches!(report.failed[0].1, SubcallFailure::Trap(_)));
++        assert_eq!(messages(report), vec!["a", "b", "c"]);
++    }
++
++    /// 模擬 filter：前 `errors_left` 次呼叫回傳 Err，之後正常（保留 warn 以上）。
++    struct MockFilter {
++        errors_left: usize,
++        resets: usize,
++    }
++
++    impl SubcallBackend<u64> for MockFilter {
++        type Out = Vec<(u64, bool)>;
++        type Err = String;
++        fn call(&mut self, chunk: &[u64]) -> wasmtime::Result<Result<Self::Out, Self::Err>> {
++            if self.errors_left > 0 {
++                self.errors_left -= 1;
++                return Ok(Err("processing-failed".to_string()));
++            }
++            Ok(Ok(chunk.iter().map(|id| (*id, id % 2 == 0)).collect()))
++        }
++        fn reset(&mut self) -> wasmtime::Result<()> {
++            self.resets += 1;
++            Ok(())
++        }
++    }
++
++    #[test]
++    fn filter_plugin_error_is_retried_like_the_batch_path() {
++        let ids: Vec<u64> = (0..6).collect();
++        let mut f = MockFilter { errors_left: 2, resets: 0 };
++        let report = run_subcalls(&ids, 2, true, 2, &mut f);
++        assert_eq!(f.resets, 2);
++        assert!(report.failed.is_empty());
++        let kept: Vec<u64> = report
++            .ok
++            .iter()
++            .flat_map(|(_, v)| v.iter())
++            .filter(|(_, keep)| *keep)
++            .map(|(id, _)| *id)
++            .collect();
++        assert_eq!(kept, vec![0, 2, 4]);
++
++        // 重試次數用盡：只丟棄該子呼叫
++        let mut f = MockFilter { errors_left: 3, resets: 0 };
++        let report = run_subcalls(&ids, 2, true, 2, &mut f);
++        assert_eq!(report.failed.len(), 1);
++        assert_eq!(report.failed[0].0, 0..2);
++        assert_eq!(report.ok.len(), 2);
++    }
++
++    #[test]
++    fn host_ids_are_contiguous_and_order_is_kept_across_subcalls() {
++        let input = lines(&["a", "b", "bad", "c", "d", "e", "bad", "f"]);
++        let mut p = MockParser::new(0);
++        let report = run_subcalls(&input, 1, false, 1, &mut p);
++        let pb = assemble_parsed_batch(7, report.ok.into_iter().flat_map(|(_, v)| v));
++        let ids: Vec<u64> = pb.entries.iter().map(|e| e.id).collect();
++        assert_eq!(ids, (0..6).map(|i| 7 * 100_000 + i).collect::<Vec<_>>());
++        let msgs: Vec<&str> = pb.entries.iter().map(|e| e.message.as_str()).collect();
++        assert_eq!(msgs, vec!["a", "b", "c", "d", "e", "f"]);
++        // targettag 與 entry 一一對應
++        for (e, t) in pb.entries.iter().zip(pb.targettags.iter()) {
++            assert_eq!(t, &format!("T-{}", e.message));
++        }
++        assert_eq!(pb.seq, 7);
++    }
++
++    #[test]
++    fn subcall_ids_match_whole_batch_ids_when_no_errors() {
++        let input = lines(&["a", "b", "c", "d", "e"]);
++        let whole = {
++            let mut p = MockParser::new(0);
++            let r = run_subcalls(&input, 0, false, 1, &mut p);
++            assemble_parsed_batch(3, r.ok.into_iter().flat_map(|(_, v)| v))
++        };
++        for k in [1, 2, 3, 16] {
++            let mut p = MockParser::new(0);
++            let r = run_subcalls(&input, k, false, 1, &mut p);
++            let split = assemble_parsed_batch(3, r.ok.into_iter().flat_map(|(_, v)| v));
++            let a: Vec<(u64, &str)> = whole.entries.iter().map(|e| (e.id, e.message.as_str())).collect();
++            let b: Vec<(u64, &str)> = split.entries.iter().map(|e| (e.id, e.message.as_str())).collect();
++            assert_eq!(a, b, "k={k}");
++            assert_eq!(whole.targettags, split.targettags);
++        }
++    }
++}

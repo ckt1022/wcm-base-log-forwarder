@@ -199,13 +199,13 @@ world transport-plugin {
     // import wasi:http/outgoing-handler@0.2.0;
     // import wasi:http/types@0.2.0;
 
-    /// 插件初始化，必須在 send 之前呼叫一次
+    /// 插件初始化，必須在 transport 之前呼叫一次
     /// 重複呼叫視為重新設定（不累加舊設定）
     export init: func(config: transport-config) -> result<_, plugin-error>;
 
     /// 批次傳送已格式化的 bytes
     /// 若設定了 max-batch-bytes，插件需自行分批處理
-    export send: func(output-data: list<list<u8>>) -> result<_, plugin-error>;
+    export transport: func(output-data: list<list<u8>>) -> result<_, plugin-error>;
 
     export report-usage: func() -> u64;
 }

@@ -1,0 +1,41 @@
+# WCM capacity benchmark profile
+#
+# Final profile selected by the 1/2/4/8/16/32/64 MiB batch-size sweep:
+# 1 CPU, 512 MB container, no swap, one transport worker, retry behavior
+# unchanged, and a one-second maximum batching window.
+
+plugins:
+  parse: "latency_rust_parse.wasm"
+  parse_noop: ~
+  filter: "latency_rust_filter.wasm"
+  format: "latency_rust_format.wasm"
+  transport: "transport.wasm"
+
+stages:
+  filter: true
+  format: true
+  transport: true
+
+input:
+  mode: tcp
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+
+batch:
+  processing_mode: batch   # 明確指定整批模式（2026-10-15 程式預設將改為 streaming）
+  mem_limit_mb: 128
+  buffer_size_mb: 1
+  max_wait_ms: 1000
+  channel_capacity: 50000
+  max_format_chunk: 10000
+  max_transport_bytes: 1048576
+  transport_workers: 1
+  pipeline_channel_capacity: 2
+  stage_timeout_ms: 30000
+  plugin_instance_reuse: true
+
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+
+config_reload_secs: 3600

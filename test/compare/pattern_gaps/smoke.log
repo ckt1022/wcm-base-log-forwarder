@@ -1,0 +1,28 @@
+[2026-10-15T15:54:48+08:00] run_gaps.sh start pid=821273 image=wcm-base-log-forwarder:suite runs=/home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_gaps/runs_smoke smoke=1
+[2026-10-15T15:54:52+08:00] ===== SMOKE (runs_smoke/) =====
+[2026-10-15T15:54:52+08:00] smoke cap trial (g1-type) wcm smoke_stream_k1024 @15000
+[2026-10-15T15:54:52+08:00]   -> 
+[2026-10-15T15:54:52+08:00] smoke cap trial (g5-type) wcm smoke_batch_mr5 @10000
+[2026-10-15T15:55:45+08:00]   -> PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=5.9ms sink_total=113841 expected=113840 backlog=680 win_out_eps=3792 win_out_mb_s=4.005 oom=false malformed=15365 malformed_keep_slot=6157
+[2026-10-15T15:55:45+08:00] lat wcm 5000 smoke_stream_k256_wait20 conf=wcm_stream_k256_W0.1_wait20.yaml 
+[2026-10-15T15:57:16+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99(fix)=143.996 steps=3  ms | cpu_mean=19.443%
+[2026-10-15T15:57:16+08:00] lat wcm 5000 smoke_stream_mr1 conf=wcm_stream_k256_W0.1.yaml GEN_BIN=/home/ckt1022/wcm-base-log-forwarder/test/compare/pattern_gaps/bin/gen_malformed_bin GEN_EXTRA_ARGS=-malformed-rate 0.01
+[2026-10-15T15:58:46+08:00]   -> PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag | p99(fix)=133.652 steps=3  ms | cpu_mean=24.989%
+[2026-10-15T15:58:46+08:00] fault smoke/loop_noepoch marker=FAULT_LOOP conf=fault_stream_k256_noepoch.yaml SECS=40 FAULT_AT=8 GEN_TIMEOUT=30
+[2026-10-15T15:59:34+08:00]   -> host=alive  isolate= probes=[] security=0
+[2026-10-15T15:59:34+08:00] fault smoke/transport_deny marker=FAULT_NET conf=cap_transport_deny.yaml MODE=refusal
+[2026-10-15T16:00:51+08:00]   -> host= exit_code=1 elapsed_s=0.521 outcome=REFUSED_AT_LOAD  isolate= probes=[] security=0
+[2026-10-15T16:00:51+08:00] fault smoke/filter_net_inert marker=FAULT_NET conf=cap_filter_inert.yaml SECS=20 FAULT_AT=8
+[2026-10-15T16:01:21+08:00]   -> host=alive  isolate= probes=[ 1 PROBE net_tcp target=127.0.0.1:8080 (listed-endpoint) outcome=DENIED; 1 PROBE net_tcp target=127.0.0.1:8081 (not-listed) outcome=DENIED;] security=0
+[2026-10-15T16:01:21+08:00] fault smoke/format_file_inert marker=FAULT_FILE conf=cap_format_inert.yaml SECS=20 FAULT_AT=8
+[2026-10-15T16:01:55+08:00]   -> host=alive  isolate= probes=[ 1 PROBE file path=/etc/passwd outcome=DENIED;] security=0
+[2026-10-15T16:01:55+08:00] fault smoke/transport_net_inert marker=FAULT_NET conf=cap_transport_inert.yaml SECS=20 FAULT_AT=8
+[2026-10-15T16:03:19+08:00]   -> host=alive  isolate= probes=[ 1 PROBE http_listed target=127.0.0.1:8080/ingest outcome=ACCEPTED; 1 PROBE net_http target=http://127.0.0.1:8081/ingest (not-listed-port) outcome=DENIED; 1 PROBE net_http target=http://localhost:8080/ingest (not-listed-name-same-socket) outcome=DENIED; 1 PROBE net_tcp target=127.0.0.1:8080 (listed-endpoint) outcome=DENIED; 1 PROBE net_tcp target=127.0.0.1:8081 (not-listed) outcome=DENIED;] security=2
+[2026-10-15T16:03:19+08:00] fault smoke/transport_env_inert marker=FAULT_ENV conf=cap_transport_inert.yaml SECS=20 FAULT_AT=8
+[2026-10-15T16:04:57+08:00]   -> host=alive  isolate= probes=[ 1 PROBE env vars=0 bytes=0 outcome=DENIED(empty);] security=0
+[2026-10-15T16:04:57+08:00] fault smoke/transport_net_endpoint marker=FAULT_NET conf=cap_transport_endpoint.yaml SECS=20 FAULT_AT=8
+[2026-10-15T16:06:03+08:00]   -> host=alive  isolate= probes=[ 1 PROBE http_listed target=127.0.0.1:8080/ingest outcome=ACCEPTED; 1 PROBE net_http target=http://127.0.0.1:8081/ingest (not-listed-port) outcome=DENIED; 1 PROBE net_http target=http://localhost:8080/ingest (not-listed-name-same-socket) outcome=DENIED; 1 PROBE net_tcp target=127.0.0.1:8080 (listed-endpoint) outcome=CONNECTED; 1 PROBE net_tcp target=127.0.0.1:8081 (not-listed) outcome=DENIED;] security=3
+[2026-10-15T16:06:04+08:00] checkplugin rep1
+[2026-10-15T16:06:10+08:00]   -> 14 OK / 4 REFUSED
+[2026-10-15T16:06:10+08:00] SMOKE: noepoch zero_tail=29 of 41 s; recv_total=20000
+[2026-10-15T16:06:10+08:00] SMOKE DONE units_run=12

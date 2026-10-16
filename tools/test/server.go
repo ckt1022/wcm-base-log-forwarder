@@ -44,9 +44,9 @@ var (
 
 type latRecord struct {
 	tsStr     string
-	receiveNs int64   // time.Now().UnixNano() — 用 int64 避免 float64 精度損失
+	receiveNs int64 // time.Now().UnixNano() — 用 int64 避免 float64 精度損失
 	latencyMs float64
-	slot      string  // _slot 欄位（json-fixed5 模式下為 "1"~"5"，其他模式為 ""）
+	slot      string // _slot 欄位（json-fixed5 模式下為 "1"~"5"，其他模式為 ""）
 }
 
 // ── 百分位（線性插值） ────────────────────────────────────────────────────────
@@ -387,16 +387,21 @@ func shutdown() {
 	}
 	mu.Unlock()
 
-	// 寫 CSV
-	outDir := "server_log"
+	// 寫 CSV（SERVER_OUT_DIR 可覆寫輸出目錄；緩衝寫入避免百萬行時被 cleanup 的 SIGKILL 截斷）
+	outDir := os.Getenv("SERVER_OUT_DIR")
+	if outDir == "" {
+		outDir = "server_log"
+	}
 	_ = os.MkdirAll(outDir, 0755)
 	csvPath := outDir + "/latency_worker_1.csv"
 	f, err := os.Create(csvPath)
 	if err == nil {
-		_, _ = fmt.Fprintln(f, "ts,receive_unix,latency_ms")
+		w := bufio.NewWriterSize(f, 1<<20)
+		_, _ = fmt.Fprintln(w, "ts,receive_unix,latency_ms")
 		for _, r := range buf {
-			_, _ = fmt.Fprintf(f, "%s,%.6f,%.3f\n", r.tsStr, float64(r.receiveNs)/1e9, r.latencyMs)
+			_, _ = fmt.Fprintf(w, "%s,%.6f,%.3f\n", r.tsStr, float64(r.receiveNs)/1e9, r.latencyMs)
 		}
+		_ = w.Flush()
 		f.Close()
 		fmt.Printf("\n[server] latency.csv 寫出：%s  (%d 筆)\n", csvPath, len(buf))
 	} else {

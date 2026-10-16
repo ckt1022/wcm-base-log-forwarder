@@ -1,0 +1,13 @@
+[package]
+name = "filter-copy-benchmark-host"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+wasmtime = "=42.0.1"
+wasmtime-wasi = "=42.0.1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

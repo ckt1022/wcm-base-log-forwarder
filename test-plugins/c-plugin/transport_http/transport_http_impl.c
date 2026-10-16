@@ -631,7 +631,7 @@ bool exports_transport_plugin_init(transport_plugin_transport_config_t *config,
     return true;
 }
 
-bool exports_transport_plugin_send(transport_plugin_list_list_u8_t *output_data,
+bool exports_transport_plugin_transport(transport_plugin_list_list_u8_t *output_data,
                                     transport_plugin_plugin_error_t *err) {
     if (!g_state.initialized) {
         set_err_config(err, "init() not called before send()");

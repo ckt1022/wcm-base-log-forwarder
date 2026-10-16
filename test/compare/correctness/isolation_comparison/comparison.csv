@@ -1,0 +1,37 @@
+group,run_dir,environment,code,scenario,repeat,status,expected_output,received,missing,duplicate,corrupt,reorder,parse_error_batches,isolated_batches,salvaged_lines,rejected_lines,isolation_calls,cpu_mean_pct,cpu_max_pct,mem_mean_mib,mem_max_mib,oom
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C1,1,PASS,40000,40000,0,0,0,0,0,,,,,14.449,17.7,21.316,28.25,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C1,2,PASS,40000,40000,0,0,0,0,0,,,,,13.446,16.2,25.971,29.94,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C1,3,PASS,40000,40000,0,0,0,0,0,,,,,14.928,23.3,25.341,29.22,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C2,1,PASS,400000,400000,0,0,0,0,0,,,,,76.413,83.8,27.984,30.86,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C2,2,PASS,400000,400000,0,0,0,0,0,,,,,81.861,88.0,26.192,29.96,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C2,3,PASS,400000,400000,0,0,0,0,0,,,,,77.311,82.9,27.626,30.5,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C3,1,FAIL,38000,0,38000,0,0,0,99,,,,,2.538,3.0,12.355,12.83,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C3,2,FAIL,38000,0,38000,0,0,0,99,,,,,2.538,3.0,12.433,12.98,false
+container_before,wcm_correctness_formal_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C3,3,FAIL,38000,0,38000,0,0,0,99,,,,,2.515,2.9,12.661,12.95,false
+container_before,wcm_correctness_edge_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C4,1,PASS,40000,40000,0,0,0,0,0,,,,,13.785,16.9,25.213,29.19,false
+container_before,wcm_correctness_edge_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C4,2,PASS,40000,40000,0,0,0,0,0,,,,,13.587,17.0,25.534,28.77,false
+container_before,wcm_correctness_edge_20260804,container 1 CPU/512 MiB,pre-change (memguard image),C4,3,PASS,40000,40000,0,0,0,0,0,,,,,13.762,18.4,25.251,28.26,false
+native_legacy,native_legacy_c3,"native, taskset dut=4","new binary, parse_isolation=false",C3,1,FAIL,38000,0,38000,0,0,0,99,0,0,0,0,2.357,3.9,26.455,26.48,false
+native_legacy,native_legacy_c3,"native, taskset dut=4","new binary, parse_isolation=false",C3,2,FAIL,38000,0,38000,0,0,0,99,0,0,0,0,2.332,3.9,26.63,26.65,false
+native_legacy,native_legacy_c3,"native, taskset dut=4","new binary, parse_isolation=false",C3,3,FAIL,38000,0,38000,0,0,0,99,0,0,0,0,2.392,3.9,26.798,26.83,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C1,1,PASS,40000,40000,0,0,0,0,0,0,0,0,0,20.081,28.3,40.267,40.27,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C1,2,PASS,40000,40000,0,0,0,0,0,0,0,0,0,20.343,29.4,41.547,41.58,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C1,3,PASS,40000,40000,0,0,0,0,0,0,0,0,0,19.392,30.4,41.914,41.93,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C3,1,PASS,38000,38000,0,0,0,0,99,99,95000,5000,52308,29.446,40.1,40.948,41.0,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C3,2,PASS,38000,38000,0,0,0,0,99,99,95000,5000,52308,30.046,42.0,41.114,42.07,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C3,3,PASS,38000,38000,0,0,0,0,99,99,95000,5000,52308,30.2,45.0,40.931,41.0,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C4,1,PASS,40000,40000,0,0,0,0,0,0,0,0,0,21.259,31.2,39.293,41.48,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C4,2,PASS,40000,40000,0,0,0,0,0,0,0,0,0,22.038,31.3,38.911,41.47,false
+native_isolation,native_isolation_c1c3c4,"native, taskset dut=4","new binary, parse_isolation=true",C4,3,PASS,40000,40000,0,0,0,0,0,0,0,0,0,21.897,32.3,41.241,41.27,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C1,1,PASS,40000,40000,0,0,0,0,0,0,0,0,0,13.085,15.8,25.881,29.65,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C1,2,PASS,40000,40000,0,0,0,0,0,0,0,0,0,12.885,17.7,25.756,30.19,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C1,3,PASS,40000,40000,0,0,0,0,0,0,0,0,0,12.954,15.9,26.001,29.7,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C2,1,PASS,400000,400000,0,0,0,0,0,0,0,0,0,78.9,84.5,25.376,31.01,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C2,2,PASS,400000,400000,0,0,0,0,0,0,0,0,0,79.021,84.5,25.589,30.88,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C2,3,PASS,400000,400000,0,0,0,0,0,0,0,0,0,73.577,78.7,27.713,30.9,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C3,1,PASS,38000,38000,0,0,0,0,99,99,95000,5000,52308,18.436,22.7,30.546,33.17,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C3,2,PASS,38000,38000,0,0,0,0,99,99,95000,5000,52308,18.249,22.3,28.041,30.82,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C3,3,PASS,38000,38000,0,0,0,0,99,99,95000,5000,52312,19.264,24.0,28.191,30.67,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C4,1,PASS,40000,40000,0,0,0,0,0,0,0,0,0,14.733,26.8,22.618,28.46,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C4,2,PASS,40000,40000,0,0,0,0,0,0,0,0,0,16.592,28.0,25.993,30.11,false
+container_isolation,isolation_docker_20261014_002704,container 1 CPU/512 MiB,isolation image (new code),C4,3,PASS,40000,40000,0,0,0,0,0,0,0,0,0,16.51,22.8,25.769,28.12,false

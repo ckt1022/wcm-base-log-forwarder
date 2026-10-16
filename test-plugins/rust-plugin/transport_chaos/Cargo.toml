@@ -1,0 +1,16 @@
+[package]
+name = "transport_chaos"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]          # component 必須編成動態庫（reactor 模式，無 main）
+
+[dependencies]
+wit-bindgen = { version = "0.59", default-features = false, features = ["macros", "realloc"] }
+
+[profile.release]
+opt-level = "s"                  # 以體積優先
+strip = true
+
+[workspace]

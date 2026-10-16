@@ -1,0 +1,6 @@
+trial rate=22000 PASS :: PASS rate=22000 gen_avg=21999/s gen_mb_s=22.549 lag_p99=5ms lag_max=7.2ms sink_total=527993 expected=527992 backlog=-1 win_out_eps=8807 win_out_mb_s=9.300 oom=false
+trial rate=24250 PASS :: PASS rate=24250 gen_avg=24249/s gen_mb_s=24.856 lag_p99=5ms lag_max=5.0ms sink_total=581997 expected=581996 backlog=20826 win_out_eps=9315 win_out_mb_s=9.836 oom=false
+trial rate=26750 FAIL :: FAIL rate=26750 gen_avg=26749/s gen_mb_s=27.418 lag_p99=5ms lag_max=7.6ms sink_total=641995 expected=641993 backlog=93298 win_out_eps=9114 win_out_mb_s=9.624 oom=false reasons=backlog=93298>32100
+trial rate=25500 FAIL :: FAIL reason=gen_no_done_line
+trial rate=25000 FAIL :: FAIL rate=25000 gen_avg=19181/s gen_mb_s=19.660 lag_p99=11418ms lag_max=11417.9ms sink_total=469155 expected=469153 backlog=36450 win_out_eps=7068 win_out_mb_s=7.463 oom=false reasons=gen_blocked(avg=19181/25000,lag_p99=11418.0ms);backlog=36450>30000
+CAPACITY dut=wcm tag=g1_batch_W0.1_r1 eps=24250 first_fail=25000

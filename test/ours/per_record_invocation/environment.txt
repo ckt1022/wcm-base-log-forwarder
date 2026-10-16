@@ -1,0 +1,49 @@
+# collected 2026-10-13T18:53:05+08:00
+## OS / kernel
+Linux asus 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+VERSION_ID="24.04"
+nproc=12
+               total        used        free      shared  buff/cache   available
+Mem:            7559        5530         133          28        2118        2028
+clocksource=tsc
+## Docker
+client=29.8.0 server=29.8.0
+image wcm-base-log-forwarder:percall id=sha256:6d353b60740d4033891be1c029302a9a3f3b6614cd7ee55163bb795d4f02db04 repodigests=[]
+image wcm-base-log-forwarder:memguard id=sha256:6365acbf5f7f95c2a1ace3ce8e3600e45babe9f3d859a560e85b93f0c8086fba repodigests=[]
+image rust:1.93-slim-bookworm id=sha256:ca24ddd4508c1d5a0101533b558d8b5e1911b64ae356187b4bebf763c18967c1 repodigests=["rust@sha256:5b9332190bb3b9ece73b810cd1f1e9f06343b294ce184bcb067f0747d7d333ea"]
+image debian:bookworm-slim id= repodigests=
+## Toolchain
+rustc 1.93.1 (01f6ddf75 2026-02-11)
+cargo 1.93.1 (083ac5135 2025-12-15)
+wasm32-unknown-unknown wasm32-wasip1 wasm32-wasip2 x86_64-unknown-linux-gnu 
+wasm-tools 1.253.0
+Python 3.12.3
+numpy 2.4.4
+node v24.14.0
+go version go1.27.1 linux/amd64
+## Git
+worktree HEAD 1c4b9d4dc5c4c01d62868defd95a657a8a6fbc29 experiment
+worktree-agent-a5fbec9d83acd8f7d
+## Plugin / harness binaries (sha256)
+28c8086345847e73a0465a479a42f0befdd36eddbcf7af301771012c6caeb3f9  /home/ckt1022/wcm-base-log-forwarder/test/ours/latency-benchmark-Rust/plugin/latency_rust_filter.wasm
+096462091f2cd9b0d2775172e85b4e5d05fb047243c6d6bbb92c88c5f6235421  /home/ckt1022/wcm-base-log-forwarder/test/ours/latency-benchmark-Rust/plugin/latency_rust_format.wasm
+94bbf1ad1803298c4ee3b6b126f0d238901714aa477bbd98ba9ed3c171f95cd2  /home/ckt1022/wcm-base-log-forwarder/test/ours/latency-benchmark-Rust/plugin/latency_rust_parse.wasm
+51529f848173cf696ab01aee376009ae58288a3b4e82362412071885baca51a4  /home/ckt1022/wcm-base-log-forwarder/test/ours/latency-benchmark-Rust/plugin/transport.wasm
+94bbf1ad1803298c4ee3b6b126f0d238901714aa477bbd98ba9ed3c171f95cd2  /home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/parse/target/wasm32-wasip2/release/parse.wasm
+28c8086345847e73a0465a479a42f0befdd36eddbcf7af301771012c6caeb3f9  /home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/filter/target/wasm32-wasip2/release/filter.wasm
+096462091f2cd9b0d2775172e85b4e5d05fb047243c6d6bbb92c88c5f6235421  /home/ckt1022/wcm-base-log-forwarder/test-plugins/rust-plugin/format/target/wasm32-wasip2/release/format.wasm
+5944ec4f16ec9610a60b1072fa690c7c97cba90482857d7264bcc296fb032781  /home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/parse/parser_c_json.wasm
+20debc2f28f4939d03328fe5609282fa17b3d1d1c289ea98f35709b5afcd09ab  /home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/filter/latency_c_filter.wasm
+19cd7ecf66200f6d8b9bd735bf69a2b9983fba1299c5cceae16cb07af1e48d4f  /home/ckt1022/wcm-base-log-forwarder/test-plugins/c-plugin/format/format_json-flat.wasm
+674713f1c7f1b9484f3970c113f70b13dc6c89c9e7d1f08c1f6e192b1ce7e62e  /home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/parse/parser_csharp.wasm
+cc9ae1d98ec3c8dcdf1e19555bd2a694a7c4d04311c283132f3781c89d088ac3  /home/ckt1022/wcm-base-log-forwarder/test-plugins/csharp-plugin/filter/filter_csharp.wasm
+a1944390696e0361782de2a2d4e071b1ab10de57aeb6323e6df32105ceb9b59d  /home/ckt1022/wcm-base-log-forwarder/test-plugins/go-plugin/parse/parser_json.wasm
+3ecf556fc9378c72f7c5a1236d8e0783595ad65185e1bb7f0b9d29ebafb17aea  /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/gen_bin
+8314e0a92c2ce9fc9713c5f5898cc015b6f6226bd44dd0582712f9c5d6f1bc0e  /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/httpsink_bin
+2b2b1f864d82c2a00930522b19413cd906b3efcd3455e73deb04b0fddf3fd396  /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/eval_trial.py
+869c5aa2a99d23925dd2f7bda45bd0f09e37a240cfa35dc9b6e8a385b9106882  /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/calc_latency_stream.py
+6c502038214f31ca5410068b3453b9e827ce435517a60b1570ce2a891451b388  /home/ckt1022/wcm-base-log-forwarder/test/compare/correctness/correctgen_bin
+7b4038e14c2e8d2b7390c2a9c01f6278da13822246492c7dfa95cf3664b17c99  /home/ckt1022/wcm-base-log-forwarder/test/compare/correctness/validationsink_bin
+92d7ed19f3bec6f648a69b06e036318c026165c496adec226163a8f4e254d0af  /home/ckt1022/wcm-base-log-forwarder/test/compare/correctness/evaluate.py
+459e256d08b426b08131d606d2f6841d22b87faa2aec1f27f105a7347bb51813  /home/ckt1022/wcm-base-log-forwarder/test/ours/latency-benchmark-Rust/forwarder_membound_b1.yaml

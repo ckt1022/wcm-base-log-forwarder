@@ -1,0 +1,135 @@
+warning: unused variable: `ratio`
+  --> src/app.rs:86:13
+   |
+86 |         let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
+   |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_ratio`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `print_max` is never used
+  --> src/app.rs:85:12
+   |
+75 | impl MyLimiter {
+   | -------------- method in this implementation
+...
+85 |     pub fn print_max(&self, type_of_max: &str) {
+   |            ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `spawn_stdin_reader` is never used
+   --> src/app.rs:453:8
+    |
+453 | pub fn spawn_stdin_reader(tx: SyncSender<String>) {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: method `print_config_table` is never used
+   --> src/config.rs:492:12
+    |
+380 | impl BatchConfig {
+    | ---------------- method in this implementation
+...
+492 |     pub fn print_config_table(&self) {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `ChannelStats` is never constructed
+   --> src/config.rs:581:12
+    |
+581 | pub struct ChannelStats {
+    |            ^^^^^^^^^^^^
+
+warning: associated items `new`, `on_send`, `on_recv`, and `snapshot` are never used
+   --> src/config.rs:587:12
+    |
+586 | impl ChannelStats {
+    | ----------------- associated items in this implementation
+587 |     pub fn new() -> Self {
+    |            ^^^
+...
+595 |     pub fn on_send(&self, byte_len: usize) {
+    |            ^^^^^^^
+...
+601 |     pub fn on_recv(&self, byte_len: usize) {
+    |            ^^^^^^^
+...
+607 |     pub fn snapshot(&self) -> (usize, usize) {
+    |            ^^^^^^^^
+
+warning: fields `size`, `time`, and `eof` are never read
+   --> src/config.rs:650:9
+    |
+649 | pub struct FlushReason {
+    |            ----------- fields in this struct
+650 |     pub size: bool,
+    |         ^^^^
+651 |     pub time: bool,
+    |         ^^^^
+652 |     pub eof: bool,
+    |         ^^^
+
+warning: struct `ParseDiffTiming` is never constructed
+   --> src/config.rs:658:12
+    |
+658 | pub struct ParseDiffTiming {
+    |            ^^^^^^^^^^^^^^^
+
+warning: fields `total_elapsed` and `total_component_ns` are never read
+   --> src/config.rs:710:9
+    |
+706 | pub struct FormatStats {
+    |            ----------- fields in this struct
+...
+710 |     pub total_elapsed: Duration,
+    |         ^^^^^^^^^^^^^
+...
+714 |     pub total_component_ns: u64,
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: fields `total_elapsed` and `total_component_ns` are never read
+   --> src/config.rs:737:9
+    |
+732 | pub struct FilterStats {
+    |            ----------- fields in this struct
+...
+737 |     pub total_elapsed: Duration,
+    |         ^^^^^^^^^^^^^
+738 |     pub wasm_mem_peak_max: usize,
+739 |     pub total_component_ns: u64,
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: method `salvaged` is never used
+   --> src/isolation.rs:104:12
+    |
+102 | impl<T> IsolationReport<T> {
+    | -------------------------- method in this implementation
+103 |     /// 被保留下來（salvaged）的輸出筆數
+104 |     pub fn salvaged(&self) -> usize {
+    |            ^^^^^^^^
+
+warning: function `parse_batch_strict` is never used
+   --> src/native.rs:112:8
+    |
+112 | pub fn parse_batch_strict(lines: &[String]) -> Result<Vec<ParsedEntry>, String> {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: fields `seq` and `total_bytes` are never read
+  --> src/runtime.rs:59:5
+   |
+56 | struct FormattedBatch {
+   |        -------------- fields in this struct
+...
+59 |     seq: u64,
+   |     ^^^
+60 |     total_bytes: usize,
+   |     ^^^^^^^^^^^
+
+warning: field `id` is never read
+   --> src/runtime.rs:118:5
+    |
+117 | struct ParseInstance {
+    |        ------------- field in this struct
+118 |     id: u8,
+    |     ^^
+
+warning: `wcm-base-log-forwarder` (bin "wcm-base-log-forwarder") generated 14 warnings (run `cargo fix --bin "wcm-base-log-forwarder" -p wcm-base-log-forwarder` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 1.74s

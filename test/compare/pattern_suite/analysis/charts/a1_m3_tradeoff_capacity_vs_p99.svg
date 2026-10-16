@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800">
+<title>Method 3 trade-off: capacity vs p99 @ 5,000 EPS (median of reps)</title>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<style>text{font-family:"Noto Sans CJK TC","Noto Sans",sans-serif;fill:#172033}.tick{font-size:16px}.axis{font-size:18px}.note{font-size:14px;fill:#475569}.legend{font-size:16px}.title{font-size:27px;font-weight:700}.pt{font-size:13px;fill:#334155}.fail{font-size:13px;fill:#b91c1c;font-weight:700}.cell{font-size:15px}.hdr{font-size:15px;font-weight:700}</style>
+<text x="700.0" y="42" text-anchor="middle" class="title">Method 3 trade-off: capacity vs p99 @ 5,000 EPS (median of reps)</text>
+<text x="700.0" y="69" text-anchor="middle" class="note">1024 B / 36 fields · 1 CPU · 512 MiB · single TCP conn · 30–150 s window · pattern_suite 2026-10-14/15</text>
+<line x1="110.0" y1="88" x2="110.0" y2="705" stroke="#e2e8f0"/>
+<text x="110.0" y="735" text-anchor="middle" class="tick">0K</text>
+<line x1="287.9" y1="88" x2="287.9" y2="705" stroke="#e2e8f0"/>
+<text x="287.9" y="735" text-anchor="middle" class="tick">10K</text>
+<line x1="465.7" y1="88" x2="465.7" y2="705" stroke="#e2e8f0"/>
+<text x="465.7" y="735" text-anchor="middle" class="tick">20K</text>
+<line x1="643.6" y1="88" x2="643.6" y2="705" stroke="#e2e8f0"/>
+<text x="643.6" y="735" text-anchor="middle" class="tick">30K</text>
+<line x1="821.4" y1="88" x2="821.4" y2="705" stroke="#e2e8f0"/>
+<text x="821.4" y="735" text-anchor="middle" class="tick">40K</text>
+<line x1="999.3" y1="88" x2="999.3" y2="705" stroke="#e2e8f0"/>
+<text x="999.3" y="735" text-anchor="middle" class="tick">50K</text>
+<line x1="1177.1" y1="88" x2="1177.1" y2="705" stroke="#e2e8f0"/>
+<text x="1177.1" y="735" text-anchor="middle" class="tick">60K</text>
+<line x1="1355.0" y1="88" x2="1355.0" y2="705" stroke="#e2e8f0"/>
+<text x="1355.0" y="735" text-anchor="middle" class="tick">70K</text>
+<line x1="110" y1="705.0" x2="1355" y2="705.0" stroke="#e2e8f0"/>
+<text x="96" y="711.0" text-anchor="end" class="tick">10</text>
+<line x1="110" y1="636.2" x2="1355" y2="636.2" stroke="#e2e8f0"/>
+<text x="96" y="642.2" text-anchor="end" class="tick">20</text>
+<line x1="110" y1="545.2" x2="1355" y2="545.2" stroke="#e2e8f0"/>
+<text x="96" y="551.2" text-anchor="end" class="tick">50</text>
+<line x1="110" y1="476.4" x2="1355" y2="476.4" stroke="#e2e8f0"/>
+<text x="96" y="482.4" text-anchor="end" class="tick">100</text>
+<line x1="110" y1="407.6" x2="1355" y2="407.6" stroke="#e2e8f0"/>
+<text x="96" y="413.6" text-anchor="end" class="tick">200</text>
+<line x1="110" y1="316.6" x2="1355" y2="316.6" stroke="#e2e8f0"/>
+<text x="96" y="322.6" text-anchor="end" class="tick">500</text>
+<line x1="110" y1="247.8" x2="1355" y2="247.8" stroke="#e2e8f0"/>
+<text x="96" y="253.8" text-anchor="end" class="tick">1000</text>
+<line x1="110" y1="179.0" x2="1355" y2="179.0" stroke="#e2e8f0"/>
+<text x="96" y="185.0" text-anchor="end" class="tick">2000</text>
+<line x1="110" y1="88.0" x2="1355" y2="88.0" stroke="#e2e8f0"/>
+<text x="96" y="94.0" text-anchor="end" class="tick">5000</text>
+<line x1="110" y1="705" x2="1355" y2="705" stroke="#334155" stroke-width="2"/>
+<line x1="110" y1="88" x2="110" y2="705" stroke="#334155" stroke-width="2"/>
+<text x="732.5" y="772" text-anchor="middle" class="axis">Max sustainable EPS at window W</text>
+<text x="28" y="396.5" text-anchor="middle" transform="rotate(-90 28 396.5)" class="axis">p99 latency @ 5,000 EPS (ms, log)</text>
+<line x1="803.6" y1="591.8" x2="803.6" y2="591.2" stroke="#0891b2" stroke-width="2"/>
+<line x1="797.6" y1="591.8" x2="809.6" y2="591.8" stroke="#0891b2" stroke-width="2"/>
+<line x1="797.6" y1="591.2" x2="809.6" y2="591.2" stroke="#0891b2" stroke-width="2"/>
+<line x1="1097.1" y1="460.5" x2="1150.5" y2="460.5" stroke="#0891b2" stroke-width="2"/>
+<line x1="1097.1" y1="454.5" x2="1097.1" y2="466.5" stroke="#0891b2" stroke-width="2"/>
+<line x1="1150.5" y1="454.5" x2="1150.5" y2="466.5" stroke="#0891b2" stroke-width="2"/>
+<line x1="1150.5" y1="460.8" x2="1150.5" y2="460.4" stroke="#0891b2" stroke-width="2"/>
+<line x1="1144.5" y1="460.8" x2="1156.5" y2="460.8" stroke="#0891b2" stroke-width="2"/>
+<line x1="1144.5" y1="460.4" x2="1156.5" y2="460.4" stroke="#0891b2" stroke-width="2"/>
+<line x1="1310.5" y1="313.5" x2="1310.5" y2="313.1" stroke="#0891b2" stroke-width="2"/>
+<line x1="1304.5" y1="313.5" x2="1316.5" y2="313.5" stroke="#0891b2" stroke-width="2"/>
+<line x1="1304.5" y1="313.1" x2="1316.5" y2="313.1" stroke="#0891b2" stroke-width="2"/>
+<line x1="1257.2" y1="246.2" x2="1257.2" y2="245.4" stroke="#0891b2" stroke-width="2"/>
+<line x1="1251.2" y1="246.2" x2="1263.2" y2="246.2" stroke="#0891b2" stroke-width="2"/>
+<line x1="1251.2" y1="245.4" x2="1263.2" y2="245.4" stroke="#0891b2" stroke-width="2"/>
+<polyline points="803.6,591.2 1150.5,460.5 1310.5,313.3 1257.2,246.2" fill="none" stroke="#0891b2" stroke-width="2.5" stroke-dasharray="2 5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="803.6" cy="591.2" r="5" fill="#fff" stroke="#0891b2" stroke-width="2.4"><title>Fluent Bit Lua W=0.01: cap 39000(10-15 11:12) · p99 r1:31[clea] r2:31[back] r3:31[back]</title></circle>
+<text x="811.6" y="582.2" class="pt">W=0.01</text>
+<circle cx="1150.5" cy="460.5" r="5" fill="#fff" stroke="#0891b2" stroke-width="2.4"><title>Fluent Bit Lua W=0.1: cap 55500(10-15 12:05) 58500(10-15 13:49) 58500(10-15 14:19) · p99 r1:117[clea] r2:117[back] r3:117[post]</title></circle>
+<text x="1158.5" y="451.5" class="pt">W=0.1</text>
+<circle cx="1310.5" cy="313.3" r="5" fill="#fff" stroke="#0891b2" stroke-width="2.4"><title>Fluent Bit Lua W=0.5: cap 67500(10-15 12:33) · p99 r1:517[back] r2:516[back] r3:518[post]</title></circle>
+<text x="1318.5" y="304.3" class="pt">W=0.5</text>
+<circle cx="1257.2" cy="246.2" r="5" fill="#fff" stroke="#0891b2" stroke-width="2.4"><title>Fluent Bit Lua W=1: cap 64500(10-15 13:10) · p99 r1:1017[back] r2:1016[back] r3:1024[post]</title></circle>
+<text x="1265.2" y="237.2" class="pt">W=1</text>
+<line x1="474.6" y1="531.1" x2="474.6" y2="517.0" stroke="#ea580c" stroke-width="2"/>
+<line x1="468.6" y1="531.1" x2="480.6" y2="531.1" stroke="#ea580c" stroke-width="2"/>
+<line x1="468.6" y1="517.0" x2="480.6" y2="517.0" stroke="#ea580c" stroke-width="2"/>
+<line x1="759.2" y1="451.8" x2="848.1" y2="451.8" stroke="#ea580c" stroke-width="2"/>
+<line x1="759.2" y1="445.8" x2="759.2" y2="457.8" stroke="#ea580c" stroke-width="2"/>
+<line x1="848.1" y1="445.8" x2="848.1" y2="457.8" stroke="#ea580c" stroke-width="2"/>
+<line x1="759.2" y1="452.0" x2="759.2" y2="450.5" stroke="#ea580c" stroke-width="2"/>
+<line x1="753.2" y1="452.0" x2="765.2" y2="452.0" stroke="#ea580c" stroke-width="2"/>
+<line x1="753.2" y1="450.5" x2="765.2" y2="450.5" stroke="#ea580c" stroke-width="2"/>
+<line x1="785.9" y1="312.5" x2="785.9" y2="312.2" stroke="#ea580c" stroke-width="2"/>
+<line x1="779.9" y1="312.5" x2="791.9" y2="312.5" stroke="#ea580c" stroke-width="2"/>
+<line x1="779.9" y1="312.2" x2="791.9" y2="312.2" stroke="#ea580c" stroke-width="2"/>
+<line x1="910.4" y1="245.4" x2="910.4" y2="244.6" stroke="#ea580c" stroke-width="2"/>
+<line x1="904.4" y1="245.4" x2="916.4" y2="245.4" stroke="#ea580c" stroke-width="2"/>
+<line x1="904.4" y1="244.6" x2="916.4" y2="244.6" stroke="#ea580c" stroke-width="2"/>
+<polyline points="474.6,530.8 759.2,451.8 785.9,312.5 910.4,245.3" fill="none" stroke="#ea580c" stroke-width="2.5" stroke-dasharray="10 5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="474.6" cy="530.8" r="5" fill="#fff" stroke="#ea580c" stroke-width="2.4"><title>Fluentd W=0.01: cap 20500(10-15 11:21) · p99 r1:58[clea] r2:58[back] r3:735[post]</title></circle>
+<text x="482.6" y="521.8" class="pt">W=0.01</text>
+<circle cx="759.2" cy="451.8" r="5" fill="#fff" stroke="#ea580c" stroke-width="2.4"><title>Fluentd W=0.1: cap 41500(10-15 12:13) 36500(10-15 13:54) 36500(10-15 14:23) · p99 r1:128[clea] r2:131[back] r3:661[post]</title></circle>
+<text x="767.2" y="442.8" class="pt">W=0.1</text>
+<circle cx="785.9" cy="312.5" r="5" fill="#fff" stroke="#ea580c" stroke-width="2.4"><title>Fluentd W=0.5: cap 38000(10-15 12:40) · p99 r1:521[back] r2:521[back] r3:1134[post]</title></circle>
+<text x="793.9" y="303.5" class="pt">W=0.5</text>
+<circle cx="910.4" cy="245.3" r="5" fill="#fff" stroke="#ea580c" stroke-width="2.4"><title>Fluentd W=1: cap 45000(10-15 13:17) · p99 r1:1212[back] r2:1515[back] r3:2470[post]</title></circle>
+<text x="918.4" y="236.3" class="pt">W=1</text>
+<line x1="319.0" y1="532.7" x2="319.0" y2="489.5" stroke="#16a34a" stroke-width="2"/>
+<line x1="313.0" y1="532.7" x2="325.0" y2="532.7" stroke="#16a34a" stroke-width="2"/>
+<line x1="313.0" y1="489.5" x2="325.0" y2="489.5" stroke="#16a34a" stroke-width="2"/>
+<line x1="319.0" y1="427.7" x2="363.4" y2="427.7" stroke="#16a34a" stroke-width="2"/>
+<line x1="319.0" y1="421.7" x2="319.0" y2="433.7" stroke="#16a34a" stroke-width="2"/>
+<line x1="363.4" y1="421.7" x2="363.4" y2="433.7" stroke="#16a34a" stroke-width="2"/>
+<line x1="319.0" y1="442.9" x2="319.0" y2="427.6" stroke="#16a34a" stroke-width="2"/>
+<line x1="313.0" y1="442.9" x2="325.0" y2="442.9" stroke="#16a34a" stroke-width="2"/>
+<line x1="313.0" y1="427.6" x2="325.0" y2="427.6" stroke="#16a34a" stroke-width="2"/>
+<line x1="363.4" y1="305.8" x2="363.4" y2="304.0" stroke="#16a34a" stroke-width="2"/>
+<line x1="357.4" y1="305.8" x2="369.4" y2="305.8" stroke="#16a34a" stroke-width="2"/>
+<line x1="357.4" y1="304.0" x2="369.4" y2="304.0" stroke="#16a34a" stroke-width="2"/>
+<line x1="354.6" y1="241.0" x2="354.6" y2="238.2" stroke="#16a34a" stroke-width="2"/>
+<line x1="348.6" y1="241.0" x2="360.6" y2="241.0" stroke="#16a34a" stroke-width="2"/>
+<line x1="348.6" y1="238.2" x2="360.6" y2="238.2" stroke="#16a34a" stroke-width="2"/>
+<polyline points="319.0,491.7 319.0,427.7 363.4,305.5 354.6,239.7" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="319.0" cy="491.7" r="5" fill="#fff" stroke="#16a34a" stroke-width="2.4"><title>Vector W=0.01: cap 11750(10-15 11:30) · p99 r1:86[clea] r2:86[back] r3:57[post]</title></circle>
+<text x="327.0" y="482.7" class="pt">W=0.01</text>
+<circle cx="319.0" cy="427.7" r="5" fill="#fff" stroke="#16a34a" stroke-width="2.4"><title>Vector W=0.1: cap 14250(10-15 12:21) 11750(10-15 14:00) 11750(10-15 14:29) · p99 r1:163[clea] r2:163[back] r3:140[post]</title></circle>
+<text x="327.0" y="418.7" class="pt">W=0.1</text>
+<circle cx="363.4" cy="305.5" r="5" fill="#fff" stroke="#16a34a" stroke-width="2.4"><title>Vector W=0.5: cap 14250(10-15 12:47) · p99 r1:557[back] r2:568[back] r3:559[post]</title></circle>
+<text x="371.4" y="296.5" class="pt">W=0.5</text>
+<circle cx="354.6" cy="239.7" r="5" fill="#fff" stroke="#16a34a" stroke-width="2.4"><title>Vector W=1: cap 13750(10-15 13:24) · p99 r1:1084[back] r2:1071[back] r3:1101[post]</title></circle>
+<text x="362.6" y="230.7" class="pt">W=1</text>
+<line x1="184.7" y1="440.7" x2="198.9" y2="440.7" stroke="#7c3aed" stroke-width="2"/>
+<line x1="184.7" y1="434.7" x2="184.7" y2="446.7" stroke="#7c3aed" stroke-width="2"/>
+<line x1="198.9" y1="434.7" x2="198.9" y2="446.7" stroke="#7c3aed" stroke-width="2"/>
+<line x1="188.3" y1="441.3" x2="188.3" y2="439.2" stroke="#7c3aed" stroke-width="2"/>
+<line x1="182.3" y1="441.3" x2="194.3" y2="441.3" stroke="#7c3aed" stroke-width="2"/>
+<line x1="182.3" y1="439.2" x2="194.3" y2="439.2" stroke="#7c3aed" stroke-width="2"/>
+<line x1="202.5" y1="311.7" x2="202.5" y2="310.5" stroke="#7c3aed" stroke-width="2"/>
+<line x1="196.5" y1="311.7" x2="208.5" y2="311.7" stroke="#7c3aed" stroke-width="2"/>
+<line x1="196.5" y1="310.5" x2="208.5" y2="310.5" stroke="#7c3aed" stroke-width="2"/>
+<line x1="202.5" y1="245.1" x2="202.5" y2="208.0" stroke="#7c3aed" stroke-width="2"/>
+<line x1="196.5" y1="245.1" x2="208.5" y2="245.1" stroke="#7c3aed" stroke-width="2"/>
+<line x1="196.5" y1="208.0" x2="208.5" y2="208.0" stroke="#7c3aed" stroke-width="2"/>
+<polyline points="188.3,440.7 202.5,311.3 202.5,244.7" fill="none" stroke="#7c3aed" stroke-width="2.5" stroke-dasharray="12 4 2 4" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="188.3" cy="440.7" r="5" fill="#fff" stroke="#7c3aed" stroke-width="2.4"><title>Fluent Bit WASM W=0.1: cap 5000(10-15 12:27) 4200(10-15 14:07) 4400(10-15 14:37) · p99 r1:145[post] r2:144[post] r3:142[post]</title></circle>
+<text x="196.3" y="431.7" class="pt">W=0.1 @4k</text>
+<circle cx="202.5" cy="311.3" r="5" fill="#fff" stroke="#7c3aed" stroke-width="2.4"><title>Fluent Bit WASM W=0.5: cap 5200(10-15 12:53) · p99 r1:527[post] r2:527[post] r3:530[post]</title></circle>
+<text x="210.5" y="302.3" class="pt">W=0.5 @4k</text>
+<circle cx="202.5" cy="244.7" r="5" fill="#fff" stroke="#7c3aed" stroke-width="2.4"><title>Fluent Bit WASM W=1: cap 5200(10-15 13:30) · p99 r1:1031[post] r2:1027[post] r3:1453[post]</title></circle>
+<text x="210.5" y="235.7" class="pt">W=1 @4k</text>
+<line x1="350.1" y1="578.6" x2="350.1" y2="548.4" stroke="#db2777" stroke-width="2"/>
+<line x1="344.1" y1="578.6" x2="356.1" y2="578.6" stroke="#db2777" stroke-width="2"/>
+<line x1="344.1" y1="548.4" x2="356.1" y2="548.4" stroke="#db2777" stroke-width="2"/>
+<line x1="465.7" y1="424.6" x2="496.8" y2="424.6" stroke="#db2777" stroke-width="2"/>
+<line x1="465.7" y1="418.6" x2="465.7" y2="430.6" stroke="#db2777" stroke-width="2"/>
+<line x1="496.8" y1="418.6" x2="496.8" y2="430.6" stroke="#db2777" stroke-width="2"/>
+<line x1="474.6" y1="424.9" x2="474.6" y2="423.8" stroke="#db2777" stroke-width="2"/>
+<line x1="468.6" y1="424.9" x2="480.6" y2="424.9" stroke="#db2777" stroke-width="2"/>
+<line x1="468.6" y1="423.8" x2="480.6" y2="423.8" stroke="#db2777" stroke-width="2"/>
+<line x1="514.6" y1="290.0" x2="514.6" y2="281.5" stroke="#db2777" stroke-width="2"/>
+<line x1="508.6" y1="290.0" x2="520.6" y2="290.0" stroke="#db2777" stroke-width="2"/>
+<line x1="508.6" y1="281.5" x2="520.6" y2="281.5" stroke="#db2777" stroke-width="2"/>
+<line x1="443.5" y1="223.7" x2="443.5" y2="213.6" stroke="#db2777" stroke-width="2"/>
+<line x1="437.5" y1="223.7" x2="449.5" y2="223.7" stroke="#db2777" stroke-width="2"/>
+<line x1="437.5" y1="213.6" x2="449.5" y2="213.6" stroke="#db2777" stroke-width="2"/>
+<polyline points="350.1,548.5 474.6,424.6 514.6,288.9 443.5,223.1" fill="none" stroke="#db2777" stroke-width="2.5" stroke-dasharray="8 5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="350.1" cy="548.5" r="5" fill="#fff" stroke="#db2777" stroke-width="2.4"><title>WCM-batch W=0.01: cap 13500(10-15 11:42) · p99 r1:48[clea] r2:49[back] r3:36[post]</title></circle>
+<text x="358.1" y="539.5" class="pt">W=0.01</text>
+<circle cx="474.6" cy="424.6" r="5" fill="#fff" stroke="#db2777" stroke-width="2.4"><title>WCM-batch W=0.1: cap 21750(10-14 23:03) 20500(10-15 14:13) 20000(10-15 14:43) · p99 r1:168[back] r2:167[back] r3:169[post]</title></circle>
+<text x="482.6" y="415.6" class="pt">W=0.1</text>
+<circle cx="514.6" cy="288.9" r="5" fill="#fff" stroke="#db2777" stroke-width="2.4"><title>WCM-batch W=0.5: cap 22750(10-15 12:59) · p99 r1:654[back] r2:662[back] r3:712[post]</title></circle>
+<text x="522.6" y="279.9" class="pt">W=0.5</text>
+<circle cx="443.5" cy="223.1" r="5" fill="#fff" stroke="#db2777" stroke-width="2.4"><title>WCM-batch W=1: cap 18750(10-15 13:36) · p99 r1:1276[back] r2:1281[back] r3:1410[post]</title></circle>
+<text x="451.5" y="214.1" class="pt">W=1</text>
+<line x1="345.7" y1="558.4" x2="345.7" y2="530.9" stroke="#2563eb" stroke-width="2"/>
+<line x1="339.7" y1="558.4" x2="351.7" y2="558.4" stroke="#2563eb" stroke-width="2"/>
+<line x1="339.7" y1="530.9" x2="351.7" y2="530.9" stroke="#2563eb" stroke-width="2"/>
+<line x1="465.7" y1="442.8" x2="554.6" y2="442.8" stroke="#2563eb" stroke-width="2"/>
+<line x1="465.7" y1="436.8" x2="465.7" y2="448.8" stroke="#2563eb" stroke-width="2"/>
+<line x1="554.6" y1="436.8" x2="554.6" y2="448.8" stroke="#2563eb" stroke-width="2"/>
+<line x1="554.6" y1="446.4" x2="554.6" y2="442.3" stroke="#2563eb" stroke-width="2"/>
+<line x1="548.6" y1="446.4" x2="560.6" y2="446.4" stroke="#2563eb" stroke-width="2"/>
+<line x1="548.6" y1="442.3" x2="560.6" y2="442.3" stroke="#2563eb" stroke-width="2"/>
+<line x1="554.6" y1="312.5" x2="554.6" y2="311.3" stroke="#2563eb" stroke-width="2"/>
+<line x1="548.6" y1="312.5" x2="560.6" y2="312.5" stroke="#2563eb" stroke-width="2"/>
+<line x1="548.6" y1="311.3" x2="560.6" y2="311.3" stroke="#2563eb" stroke-width="2"/>
+<line x1="465.7" y1="246.3" x2="465.7" y2="245.3" stroke="#2563eb" stroke-width="2"/>
+<line x1="459.7" y1="246.3" x2="471.7" y2="246.3" stroke="#2563eb" stroke-width="2"/>
+<line x1="459.7" y1="245.3" x2="471.7" y2="245.3" stroke="#2563eb" stroke-width="2"/>
+<polyline points="345.7,533.3 554.6,442.8 554.6,311.7 465.7,245.9" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="345.7" cy="533.3" r="5" fill="#fff" stroke="#2563eb" stroke-width="2.4"><title>WCM-stream (k=256) W=0.01: cap 13250(10-15 11:53) · p99 r1:56[clea] r2:58[back] r3:44[post]</title></circle>
+<text x="353.7" y="524.3" class="pt">W=0.01</text>
+<circle cx="554.6" cy="442.8" r="5" fill="#fff" stroke="#2563eb" stroke-width="2.4"><title>WCM-stream (k=256) W=0.1: cap 25000(10-14 23:16) 25000(10-15 01:37) 20000(10-15 02:18) · p99 r1:141[clea] r2:140[back] r3:135[post]</title></circle>
+<text x="562.6" y="433.8" class="pt">W=0.1</text>
+<circle cx="554.6" cy="311.7" r="5" fill="#fff" stroke="#2563eb" stroke-width="2.4"><title>WCM-stream (k=256) W=0.5: cap 25000(10-15 13:05) · p99 r1:521[clea] r2:525[back] r3:527[post]</title></circle>
+<text x="562.6" y="302.7" class="pt">W=0.5</text>
+<circle cx="465.7" cy="245.9" r="5" fill="#fff" stroke="#2563eb" stroke-width="2.4"><title>WCM-stream (k=256) W=1: cap 20000(10-15 13:42) · p99 r1:1015[clea] r2:1021[back] r3:1025[post]</title></circle>
+<text x="473.7" y="236.9" class="pt">W=1</text>
+<line x1="132" y1="112" x2="163" y2="112" stroke="#0891b2" stroke-width="4" stroke-dasharray="2 5"/>
+<text x="172" y="118" class="legend">Fluent Bit Lua</text>
+<line x1="432" y1="112" x2="463" y2="112" stroke="#ea580c" stroke-width="4" stroke-dasharray="10 5"/>
+<text x="472" y="118" class="legend">Fluentd</text>
+<line x1="732" y1="112" x2="763" y2="112" stroke="#16a34a" stroke-width="4" stroke-dasharray="4 4"/>
+<text x="772" y="118" class="legend">Vector</text>
+<line x1="132" y1="141" x2="163" y2="141" stroke="#7c3aed" stroke-width="4" stroke-dasharray="12 4 2 4"/>
+<text x="172" y="147" class="legend">Fluent Bit WASM</text>
+<line x1="432" y1="141" x2="463" y2="141" stroke="#db2777" stroke-width="4" stroke-dasharray="8 5"/>
+<text x="472" y="147" class="legend">WCM-batch</text>
+<line x1="732" y1="141" x2="763" y2="141" stroke="#2563eb" stroke-width="4"/>
+<text x="772" y="147" class="legend">WCM-stream (k=256)</text>
+<text x="1347" y="649" text-anchor="end" class="note">lower-right is better · bars = range over reps (p99: 3 reps; capacity: 3 reps at W=0.1 only, 1 rep otherwise)</text>
+<text x="1347" y="671" text-anchor="end" class="note">FB WASM fails at 5,000 EPS for every W → its p99 is the 4,000 EPS fallback (W ≥ 0.1); W=0.01 has no valid latency</text>
+<text x="1347" y="693" text-anchor="end" class="note">p99 = clock-corrected (fix_latency.py), excluding 3 s after each backward wall-clock step (Fluentd timer stalls; others unchanged ±10 ms)</text>
+</svg>

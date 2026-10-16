@@ -2,13 +2,35 @@
 //                 隨時間輸出一併註解後不再需要。
 // use std::time::Duration;
 
+use crate::runtime::StageImpl;
 use crate::config::{
     PipelineStages,
     BatchConfig, FilterStats, FormatStats, ParseStats,
     TransportStats,
 };
 
-pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &PipelineStages) {
+/// 印出每個啟用 stage 的實作（WCM plugin 或 host 內建原生），方便從 dut.log 確認實驗變體。
+pub fn print_stage_impls(
+    parse: &StageImpl,
+    filter: Option<&StageImpl>,
+    format: Option<&StageImpl>,
+    transport: Option<&StageImpl>,
+) {
+    let name = |s: Option<&StageImpl>| match s {
+        Some(StageImpl::Wasm(_)) => "wcm",
+        Some(StageImpl::Native) => "native",
+        None => "-",
+    };
+    eprintln!(
+        "Stage impl   : parse={} filter={} format={} transport={}",
+        name(Some(parse)),
+        name(filter),
+        name(format),
+        name(transport),
+    );
+}
+
+pub fn print_startup(cfg: &BatchConfig, stages: &PipelineStages) {
     let stage_str = format!(
         "parse{}{}{}",
         if stages.filter { " → filter" } else { "" },
@@ -16,13 +38,8 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
         if stages.transport { " → transport" } else { "" },
     );
     eprintln!("=== WCM Log Forwarder ===");
-    eprintln!("Parse Batch Max Size {}", cfg.max_batch_lines);
     eprintln!("Memory Limit : {} MB", cfg.mem_limit_mb);
-    eprintln!(
-        "Safe Budget  : {} KB ({:.0}% of limit)",
-        safe_data_budget / 1024,
-        cfg.safe_data_ratio * 100.0
-    );
+    eprintln!("Buffer Size  : {} MB", cfg.buffer_size_mb);
     eprintln!("Stages       : {}", stage_str);
     /*
     if stages.transport {
@@ -57,7 +74,6 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
 // pub fn print_flush_header(seq: u64, batch: &Batch, reason: &FlushReason) {
 //     let why = if reason.eof             { "eof  " }
 //               else if reason.size       { "size " }
-//               else if reason.line_count { "lines" }
 //               else                      { "time " };
 //     eprintln!(
 //         "\n--- Flush #{:>4} [{}] | {:>6} lines / {:>7.0}KB / age={:>5}ms ---",
@@ -70,16 +86,18 @@ pub fn print_startup(cfg: &BatchConfig, safe_data_budget: usize, stages: &Pipeli
 
 // [latency-bench] 時間相關參數（component_ns/elapsed/diff）與資源參數
 //                 （wasm_mem_peak/mem_limit_bytes/grow_*）已自簽名移除，僅保留批次數量資訊。
-pub fn print_parse_batch(
-    worker_id: usize,
-    seq: u64,
-    input_lines: usize,
-    input_bytes: usize,
-    output_entries: usize,
-) {
-    // [latency-bench] Mem%・comp/abi 分解・Grow 統計は延遲測試に不要。
-    //                 毎バッチの format! + eprintln は stderr syscall コストにより p99 に影響する。
-    //                 原始詳細版を以下に保留（除錯時はコメントを外して使用）：
+// [perf] 每批次的 stderr 輸出（format! 配置 + 同步 write syscall）影響 p99，
+//        呼叫端已註解，整個函數一併註解；除錯時再打開。
+// pub fn print_parse_batch(
+//     worker_id: usize,
+//     seq: u64,
+//     input_lines: usize,
+//     input_bytes: usize,
+//     output_entries: usize,
+// ) {
+    // [latency-bench] Mem%、comp/abi 分解與 Grow 統計對延遲測試不必要。
+    //                 每批次的 format! + eprintln 因 stderr syscall 成本影響 p99。
+    //                 原始詳細版保留如下（除錯時取消註解使用）：
     // let ratio      = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
     // let tput       = output_entries as f64 / elapsed.as_secs_f64().max(1e-9);
     // let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
@@ -109,23 +127,24 @@ pub fn print_parse_batch(
     // [latency-bench] Time / tput 為時間相關輸出，已註解：
     // let tput       = output_entries as f64 / elapsed.as_secs_f64().max(1e-9);
     // let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
-    eprintln!(
-        "[parse-w{} #{:>4}]  In={:>6}/{:>7.0}KB  Out={:>6}",
-        worker_id, seq,
-        input_lines, input_bytes as f64 / 1024.0,
-        output_entries,
-    );
-}
+    // eprintln!(
+    //     "[parse-w{} #{:>4}]  In={:>6}/{:>7.0}KB  Out={:>6}",
+    //     worker_id, seq,
+    //     input_lines, input_bytes as f64 / 1024.0,
+    //     output_entries,
+    // );
+// }
 
 // [latency-bench] 時間相關參數（elapsed/logic_ns）與資源參數已自簽名移除。
-pub fn print_filter_batch(
-    seq: u64,
-    input_entries: usize,
-    kept: usize,
-    dropped: usize,
-) {
-    // [latency-bench] Mem%・logic_ms は延遲測試に不要。毎バッチの eprintln は p99 に影響する。
-    //                 原始詳細版を保留：
+// [perf] 每批次的 stderr 輸出影響 p99，呼叫端已註解，整個函數一併註解；除錯時再打開。
+// pub fn print_filter_batch(
+//     seq: u64,
+//     input_entries: usize,
+//     kept: usize,
+//     dropped: usize,
+// ) {
+    // [latency-bench] Mem% 與 logic_ms 對延遲測試不必要。每批次的 eprintln 影響 p99。
+    //                 原始詳細版保留：
     // let ratio      = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
     // let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
     // let logic_ms   = logic_ns as f64 / 1_000_000.0;
@@ -144,21 +163,22 @@ pub fn print_filter_batch(
     // 延遲測試簡化版：僅輸出 keep/drop 資訊。
     // [latency-bench] Time / tput 為時間相關輸出，已註解：
     // let tput     = input_entries as f64 / elapsed.as_secs_f64().max(1e-9);
-    let drop_pct = dropped as f64 / input_entries.max(1) as f64 * 100.0;
-    eprintln!(
-        "[filter  #{:>4}]  In={:>6}  kept={:>6}  drop={:>5.1}%",
-        seq, input_entries, kept, drop_pct,
-    );
-}
+    // let drop_pct = dropped as f64 / input_entries.max(1) as f64 * 100.0;
+    // eprintln!(
+    //     "[filter  #{:>4}]  In={:>6}  kept={:>6}  drop={:>5.1}%",
+    //     seq, input_entries, kept, drop_pct,
+    // );
+// }
 
 // [latency-bench] 時間相關參數（elapsed/logic_ns）與資源參數已自簽名移除。
-pub fn print_format_batch(
-    seq: u64,
-    input_entries: usize,
-    output_lines: usize,
-) {
-    // [latency-bench] Mem%・logic/copyin 分解は延遲測試に不要。毎バッチの eprintln は p99 に影響する。
-    //                 原始詳細版を保留：
+// [perf] 每批次的 stderr 輸出影響 p99，呼叫端已註解，整個函數一併註解；除錯時再打開。
+// pub fn print_format_batch(
+//     seq: u64,
+//     input_entries: usize,
+//     output_lines: usize,
+// ) {
+    // [latency-bench] Mem% 與 logic/copyin 分解對延遲測試不必要。每批次的 eprintln 影響 p99。
+    //                 原始詳細版保留：
     // let ratio      = wasm_mem_peak as f64 / mem_limit_bytes as f64 * 100.0;
     // let tput       = output_lines as f64 / elapsed.as_secs_f64().max(1e-9);
     // let elapsed_ms = elapsed.as_secs_f64() * 1000.0;
@@ -176,11 +196,11 @@ pub fn print_format_batch(
     // 延遲測試簡化版：僅輸出批次數量資訊。
     // [latency-bench] Time / tput 為時間相關輸出，已註解：
     // let tput = output_lines as f64 / elapsed.as_secs_f64().max(1e-9);
-    eprintln!(
-        "[format  #{:>4}]  In={:>6}  Out={:>6}",
-        seq, input_entries, output_lines,
-    );
-}
+    // eprintln!(
+    //     "[format  #{:>4}]  In={:>6}  Out={:>6}",
+    //     seq, input_entries, output_lines,
+    // );
+// }
 
 // [latency-bench] print_transport_batch 含時間相關輸出（Time/tput）且目前無呼叫端，整個函數註解。
 // pub fn print_transport_batch(
@@ -208,12 +228,21 @@ pub fn print_format_batch(
 // [latency-bench] wall 參數（時間相關）已自簽名移除，wall/throughput 輸出一併註解。
 pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, errors: u32) {
     // let wall_tput = stats.total_output_entries as f64 / wall.as_secs_f64().max(1e-9);
-    // [latency-bench] sum_worker_tput は延遲測試に不要、原始計算を保留：
+    // [latency-bench] sum_worker_tput 對延遲測試不必要，原始計算保留：
     // let sum_worker_tput =
     //     stats.total_output_entries as f64 / stats.total_elapsed.as_secs_f64().max(1e-9);
     eprintln!(
         "\n[parse-aggregate] workers={workers}  batches={}  entries={}  errors={errors}",
         stats.total_batches, stats.total_output_entries,
+    );
+    // 逐筆隔離統計：只有發生過 parse-error／trap 的批次才會累加，正常流量下全為 0。
+    eprintln!(
+        "                  isolated_batches={}  salvaged={}  rejected={}  isolation_calls={}  budget_exhausted={}",
+        stats.total_isolated_batches,
+        stats.total_salvaged_lines,
+        stats.total_rejected_lines,
+        stats.total_isolation_calls,
+        stats.total_isolation_budget_exhausted,
     );
     // [latency-bench] wall/throughput 為時間相關輸出，已註解：
     // eprintln!(
@@ -221,7 +250,7 @@ pub fn print_parse_aggregate(stats: &ParseStats, workers: usize, errors: u32) {
     //     wall.as_secs_f64(),
     //     wall_tput,
     // );
-    // [latency-bench] sum-worker 詳細時間と diff copy-in/out 分解は延遲測試に不要。原始版を保留：
+    // [latency-bench] sum-worker 詳細時間與 diff copy-in/out 分解對延遲測試不必要。原始版保留：
     // eprintln!(
     //     "                  sum-worker-elapsed={:.0}ms  avg-worker-throughput={:.0} entries/s",
     //     stats.total_elapsed.as_secs_f64() * 1000.0,
@@ -244,10 +273,10 @@ pub fn print_pipeline_summary(
     f: Option<&FormatStats>,
     t: Option<&TransportStats>,
     // [latency-bench] wall 參數（時間相關）已自簽名移除。
-    // [latency-bench] mem_limit_bytes は WasmMem% 計算でのみ使用、コメントアウト後は不要。
+    // [latency-bench] mem_limit_bytes 僅供 WasmMem% 計算使用，該輸出註解後已不需要。
     _mem_limit_bytes: usize,
 ) {
-    // [latency-bench] p_tput は sum-worker 出力にのみ使用され、延遲測試では不要。原始版を保留：
+    // [latency-bench] p_tput 僅供 sum-worker 輸出使用，延遲測試不需要。原始版保留：
     // let p_tput = if p.total_elapsed.as_secs_f64() > 0.0 {
     //     p.total_input_lines as f64 / p.total_elapsed.as_secs_f64()
     // } else {
@@ -270,8 +299,13 @@ pub fn print_pipeline_summary(
         "║ Parse  │ batches={:<6} input={:<10} entries={:<10}",
         p.total_batches, p.total_input_lines, p.total_output_entries
     );
-    // [latency-bench] Parse の詳細タイミング（sum-worker・component/abi・diff・grows/WasmMem）は
-    //                 資源使用量の記録で延遲測試に不要。原始版を保留：
+    eprintln!(
+        "║        │ isolated={:<5} salvaged={:<9} rejected={:<8} calls={}",
+        p.total_isolated_batches, p.total_salvaged_lines, p.total_rejected_lines,
+        p.total_isolation_calls,
+    );
+    // [latency-bench] Parse 的詳細計時（sum-worker、component/abi、diff、grows/WasmMem）
+    //                 屬於資源使用量記錄，延遲測試不需要。原始版保留：
     // eprintln!(
     //     "║        │ sum-worker-elapsed={:.2}ms  avg-worker-throughput={:.0} lines/s",
     //     p.total_elapsed.as_secs_f64() * 1000.0,
@@ -333,7 +367,7 @@ pub fn print_pipeline_summary(
             //     fs.total_elapsed.as_secs_f64() * 1000.0,
             //     fi_tput,
             // );
-            // [latency-bench] WasmMem% は資源使用量で延遲測試に不要。原始版を保留：
+            // [latency-bench] WasmMem% 屬於資源使用量記錄，延遲測試不需要。原始版保留：
             // eprintln!(
             //     "║        │ WasmMem(peak)={:.0}KB ({:.1}%)",
             //     fs.wasm_mem_peak_max as f64 / 1024.0,
@@ -353,7 +387,7 @@ pub fn print_pipeline_summary(
             // } else {
             //     0.0
             // };
-            // [latency-bench] total_logic_ms・total_copy_in_ms は logic/copyin 分解出力でのみ使用、延遲測試に不要。
+            // [latency-bench] total_logic_ms、total_copy_in_ms 僅供 logic/copyin 分解輸出使用，延遲測試不需要。
             // let total_logic_ms = fs.total_component_ns as f64 / 1_000_000.0;
             // let total_copy_in_ms =
             //     (fs.total_elapsed.as_secs_f64() * 1000.0 - total_logic_ms).max(0.0);
@@ -366,7 +400,7 @@ pub fn print_pipeline_summary(
             //     fs.total_elapsed.as_secs_f64() * 1000.0,
             //     f_tput
             // );
-            // [latency-bench] logic/copyin 分解と WasmMem% は資源使用量で延遲測試に不要。原始版を保留：
+            // [latency-bench] logic/copyin 分解與 WasmMem% 屬於資源使用量記錄，延遲測試不需要。原始版保留：
             // eprintln!(
             //     "║        │ logic={:.0}ms  copy-in={:.0}ms",
             //     total_logic_ms, total_copy_in_ms,
@@ -399,7 +433,7 @@ pub fn print_pipeline_summary(
             //     ts.total_elapsed.as_secs_f64() * 1000.0,
             //     t_tput
             // );
-            // [latency-bench] plugin-reported と WasmMem% は資源使用量で延遲測試に不要。原始版を保留：
+            // [latency-bench] plugin-reported 與 WasmMem% 屬於資源使用量記錄，延遲測試不需要。原始版保留：
             // eprintln!(
             //     "║        │ plugin-reported={} B  WasmMem(peak)={:.0}KB ({:.1}%)",
             //     ts.total_bytes_reported,

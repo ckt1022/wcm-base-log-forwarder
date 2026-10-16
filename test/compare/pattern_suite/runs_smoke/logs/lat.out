@@ -1,0 +1,10 @@
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=5000 mode=lat tag=smoke_stream_k64_W0.5 load=60s conf=wcm_stream_k64_W0.5.yaml
+[align] 進度 [httpsink] t=34s lines/s=1995 MB/s=2.11 total=58254
+[align] 進度 [httpsink] t=64s lines/s=2019 MB/s=2.13 total=118255
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=4.4ms sink_total=120000 expected=119999 backlog=-1 win_out_eps=2000 win_out_mb_s=2.114 oom=false
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=15000 mode=lat tag=smoke_stream_k64_W0.1_noepoch load=60s conf=wcm_stream_k64_W0.1_noepoch.yaml
+[align] 進度 [httpsink] t=34s lines/s=5969 MB/s=6.31 total=174986
+[align] 進度 [httpsink] t=64s lines/s=5982 MB/s=6.33 total=355019
+PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=7.3ms sink_total=359997 expected=359996 backlog=-1 win_out_eps=6001 win_out_mb_s=6.345 oom=false

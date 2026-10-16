@@ -1,0 +1,25 @@
+[package]
+name = "parse-copy-benchmark-component"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = []
+experiment-empty-list = []
+experiment-compact-record = []
+experiment-message-only = []
+experiment-message-256 = []
+experiment-one-message = []
+
+[dependencies]
+serde_json = "1"
+wit-bindgen = { version = "0.59", default-features = false, features = ["macros", "realloc"] }
+
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+strip = true

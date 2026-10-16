@@ -1,0 +1,217 @@
+[queue] 2026-10-13T21:25:06+08:00 start fbit-lua 5000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-lua rate=5000 mode=lat tag=m2_vol1MiB load=180s conf=fbit_lua_flush_0.2048.conf
+[align] 進度 [httpsink] t=33s lines/s=2064 MB/s=2.17 total=58410
+[align] 進度 [httpsink] t=63s lines/s=2050 MB/s=2.16 total=118213
+[align] 進度 [httpsink] t=93s lines/s=2024 MB/s=2.13 total=178392
+[align] 進度 [httpsink] t=123s lines/s=2053 MB/s=2.16 total=238212
+[align] 進度 [httpsink] t=153s lines/s=2051 MB/s=2.16 total=298436
+[align] 進度 [httpsink] t=183s lines/s=2070 MB/s=2.18 total=358237
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=32.1ms sink_total=359999 expected=359998 backlog=-1 win_out_eps=2000 win_out_mb_s=2.105 oom=false
+[queue] 2026-10-13T21:30:00+08:00 end rc=0 :: PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=32.1ms sink_total=359999 expected=359998 backlog=-1 win_out_eps=2000 win_out_mb_s=2.105 oom=false
+[queue] 2026-10-13T21:30:00+08:00 start fluentd 5000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=5000 mode=lat tag=m2_vol1MiB load=180s conf=fluentd_m2_rec410.conf
+[align] 進度 [httpsink] t=35s lines/s=2072 MB/s=2.18 total=58375
+[align] 進度 [httpsink] t=65s lines/s=2069 MB/s=2.18 total=118347
+[align] 進度 [httpsink] t=95s lines/s=2071 MB/s=2.18 total=178350
+[align] 進度 [httpsink] t=125s lines/s=2068 MB/s=2.18 total=238335
+[align] 進度 [httpsink] t=155s lines/s=2066 MB/s=2.18 total=298329
+[align] 進度 [httpsink] t=185s lines/s=2064 MB/s=2.18 total=358339
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=17.1ms sink_total=360001 expected=360000 backlog=6 win_out_eps=2001 win_out_mb_s=2.108 oom=false
+[queue] 2026-10-13T21:35:25+08:00 end rc=0 :: PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=17.1ms sink_total=360001 expected=360000 backlog=6 win_out_eps=2001 win_out_mb_s=2.108 oom=false
+[queue] 2026-10-13T21:35:25+08:00 start vector 5000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=vector rate=5000 mode=lat tag=m2_vol1MiB load=180s conf=vector_align.yaml
+[align] 進度 [httpsink] t=34s lines/s=2050 MB/s=2.15 total=58220
+[align] 進度 [httpsink] t=64s lines/s=2050 MB/s=2.15 total=118080
+[align] 進度 [httpsink] t=94s lines/s=2050 MB/s=2.15 total=178350
+[align] 進度 [httpsink] t=124s lines/s=2050 MB/s=2.15 total=238210
+[align] 進度 [httpsink] t=154s lines/s=2050 MB/s=2.15 total=298070
+[align] 進度 [httpsink] t=184s lines/s=2050 MB/s=2.15 total=358340
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=15.4ms sink_total=360000 expected=359999 backlog=19 win_out_eps=2002 win_out_mb_s=2.098 oom=false
+[queue] 2026-10-13T21:40:47+08:00 end rc=0 :: PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=15.4ms sink_total=360000 expected=359999 backlog=19 win_out_eps=2002 win_out_mb_s=2.098 oom=false
+[queue] 2026-10-13T21:40:47+08:00 start fbit-wasm 5000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-wasm rate=5000 mode=lat tag=m2_vol1MiB load=180s conf=fbit_wasm_flush_0.2048.conf
+[align] 進度 [httpsink] t=34s lines/s=2054 MB/s=2.16 total=58343
+[align] 進度 [httpsink] t=64s lines/s=2043 MB/s=2.15 total=118140
+[align] 進度 [httpsink] t=94s lines/s=2048 MB/s=2.16 total=178357
+[align] 進度 [httpsink] t=124s lines/s=2058 MB/s=2.17 total=238161
+[align] 進度 [httpsink] t=154s lines/s=1646 MB/s=1.73 total=297963
+[align] 進度 [httpsink] t=184s lines/s=2045 MB/s=2.16 total=358169
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=2.9ms sink_total=359999 expected=359998 backlog=-1 win_out_eps=2000 win_out_mb_s=2.107 oom=false
+[queue] 2026-10-13T21:46:11+08:00 end rc=0 :: PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=2.9ms sink_total=359999 expected=359998 backlog=-1 win_out_eps=2000 win_out_mb_s=2.107 oom=false
+[queue] 2026-10-13T21:46:11+08:00 start wcm 10000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=10000 mode=lat tag=m2_vol1MiB load=180s conf=wcm_b1.yaml
+[align] 進度 [httpsink] t=34s lines/s=4096 MB/s=4.33 total=116739
+[align] 進度 [httpsink] t=64s lines/s=4096 MB/s=4.33 total=236753
+[align] 進度 [httpsink] t=94s lines/s=4096 MB/s=4.33 total=356765
+[align] 進度 [httpsink] t=124s lines/s=4096 MB/s=4.33 total=476778
+[align] 進度 [httpsink] t=154s lines/s=4096 MB/s=4.33 total=596791
+[align] 進度 [httpsink] t=184s lines/s=4096 MB/s=4.33 total=716803
+PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=4.5ms sink_total=719999 expected=719998 backlog=327 win_out_eps=4002 win_out_mb_s=4.228 oom=false
+[queue] 2026-10-13T21:51:43+08:00 end rc=0 :: PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=4.5ms sink_total=719999 expected=719998 backlog=327 win_out_eps=4002 win_out_mb_s=4.228 oom=false
+[queue] 2026-10-13T21:51:43+08:00 start fbit-lua 10000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-lua rate=10000 mode=lat tag=m2_vol1MiB load=180s conf=fbit_lua_flush_0.1024.conf
+[align] 進度 [httpsink] t=33s lines/s=4148 MB/s=4.37 total=117053
+[align] 進度 [httpsink] t=63s lines/s=4159 MB/s=4.38 total=237064
+[align] 進度 [httpsink] t=93s lines/s=3690 MB/s=3.89 total=356643
+[align] 進度 [httpsink] t=123s lines/s=3688 MB/s=3.88 total=476633
+[align] 進度 [httpsink] t=153s lines/s=3668 MB/s=3.86 total=596659
+[align] 進度 [httpsink] t=183s lines/s=3726 MB/s=3.92 total=716679
+PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=3.4ms sink_total=719997 expected=719996 backlog=-1 win_out_eps=4000 win_out_mb_s=4.211 oom=false
+[queue] 2026-10-13T21:56:57+08:00 end rc=0 :: PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=3.4ms sink_total=719997 expected=719996 backlog=-1 win_out_eps=4000 win_out_mb_s=4.211 oom=false
+[queue] 2026-10-13T21:56:57+08:00 start fluentd 10000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=10000 mode=lat tag=m2_vol1MiB load=180s conf=fluentd_m2_rec410.conf
+[align] 進度 [httpsink] t=35s lines/s=4148 MB/s=4.37 total=116751
+[align] 進度 [httpsink] t=65s lines/s=4132 MB/s=4.36 total=236789
+[align] 進度 [httpsink] t=95s lines/s=4134 MB/s=4.36 total=356797
+[align] 進度 [httpsink] t=125s lines/s=4136 MB/s=4.36 total=476791
+[align] 進度 [httpsink] t=155s lines/s=4134 MB/s=4.36 total=596817
+[align] 進度 [httpsink] t=185s lines/s=4134 MB/s=4.36 total=716809
+PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=3.8ms sink_total=719999 expected=719998 backlog=290 win_out_eps=4000 win_out_mb_s=4.215 oom=false
+[queue] 2026-10-13T22:02:22+08:00 end rc=0 :: PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=3.8ms sink_total=719999 expected=719998 backlog=290 win_out_eps=4000 win_out_mb_s=4.215 oom=false
+[queue] 2026-10-13T22:02:22+08:00 start vector 10000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=vector rate=10000 mode=lat tag=m2_vol1MiB load=180s conf=vector_align.yaml
+[align] 進度 [httpsink] t=34s lines/s=3690 MB/s=3.87 total=116850
+[align] 進度 [httpsink] t=64s lines/s=4100 MB/s=4.30 total=236980
+[align] 進度 [httpsink] t=94s lines/s=3690 MB/s=3.87 total=356700
+[align] 進度 [httpsink] t=124s lines/s=4100 MB/s=4.30 total=476830
+[align] 進度 [httpsink] t=154s lines/s=4100 MB/s=4.30 total=596960
+[align] 進度 [httpsink] t=184s lines/s=4100 MB/s=4.30 total=717090
+PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=4.0ms sink_total=719997 expected=719996 backlog=36 win_out_eps=4001 win_out_mb_s=4.193 oom=false
+[queue] 2026-10-13T22:07:45+08:00 end rc=0 :: PASS rate=10000 gen_avg=10000/s gen_mb_s=10.250 lag_p99=5ms lag_max=4.0ms sink_total=719997 expected=719996 backlog=36 win_out_eps=4001 win_out_mb_s=4.193 oom=false
+[queue] 2026-10-13T22:07:45+08:00 start wcm 15000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=15000 mode=lat tag=m2_vol1MiB load=180s conf=wcm_b1.yaml
+[align] 進度 [httpsink] t=34s lines/s=6144 MB/s=6.49 total=175722
+[align] 進度 [httpsink] t=64s lines/s=6144 MB/s=6.49 total=355537
+[align] 進度 [httpsink] t=94s lines/s=5734 MB/s=6.06 total=535351
+[align] 進度 [httpsink] t=124s lines/s=6144 MB/s=6.49 total=715575
+[align] 進度 [httpsink] t=154s lines/s=5734 MB/s=6.06 total=895389
+[align] 進度 [httpsink] t=184s lines/s=6144 MB/s=6.49 total=1075613
+PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=3.3ms sink_total=1079995 expected=1079994 backlog=285 win_out_eps=5999 win_out_mb_s=6.339 oom=false
+[queue] 2026-10-13T22:13:17+08:00 end rc=0 :: PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=3.3ms sink_total=1079995 expected=1079994 backlog=285 win_out_eps=5999 win_out_mb_s=6.339 oom=false
+[queue] 2026-10-13T22:13:17+08:00 start fbit-lua 15000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-lua rate=15000 mode=lat tag=m2_vol1MiB load=180s conf=fbit_lua_flush_0.0683.conf
+[align] 進度 [httpsink] t=33s lines/s=6168 MB/s=6.49 total=175429
+[align] 進度 [httpsink] t=63s lines/s=5726 MB/s=6.03 total=355333
+[align] 進度 [httpsink] t=93s lines/s=6141 MB/s=6.47 total=535570
+[align] 進度 [httpsink] t=123s lines/s=6081 MB/s=6.40 total=715474
+[align] 進度 [httpsink] t=153s lines/s=6228 MB/s=6.56 total=895461
+[align] 進度 [httpsink] t=183s lines/s=5731 MB/s=6.04 total=1075279
+PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=3.2ms sink_total=1079995 expected=1079994 backlog=-1 win_out_eps=6000 win_out_mb_s=6.318 oom=false
+[queue] 2026-10-13T22:18:27+08:00 end rc=0 :: PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=3.2ms sink_total=1079995 expected=1079994 backlog=-1 win_out_eps=6000 win_out_mb_s=6.318 oom=false
+[queue] 2026-10-13T22:18:27+08:00 start fluentd 15000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=15000 mode=lat tag=m2_vol1MiB load=180s conf=fluentd_m2_rec410.conf
+[align] 進度 [httpsink] t=35s lines/s=6206 MB/s=6.54 total=175443
+[align] 進度 [httpsink] t=65s lines/s=6199 MB/s=6.53 total=355374
+[align] 進度 [httpsink] t=95s lines/s=6207 MB/s=6.54 total=535395
+[align] 進度 [httpsink] t=125s lines/s=5801 MB/s=6.11 total=715087
+[align] 進度 [httpsink] t=155s lines/s=5787 MB/s=6.10 total=895134
+[align] 進度 [httpsink] t=185s lines/s=5792 MB/s=6.11 total=1075159
+PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=3.0ms sink_total=1079996 expected=1079995 backlog=282 win_out_eps=5998 win_out_mb_s=6.322 oom=false
+[queue] 2026-10-13T22:23:51+08:00 end rc=0 :: PASS rate=15000 gen_avg=15000/s gen_mb_s=15.375 lag_p99=5ms lag_max=3.0ms sink_total=1079996 expected=1079995 backlog=282 win_out_eps=5998 win_out_mb_s=6.322 oom=false
+[queue] 2026-10-13T22:23:51+08:00 start vector 15000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=vector rate=15000 mode=lat tag=m2_vol1MiB load=180s conf=vector_align.yaml
+[align] 進度 [httpsink] t=34s lines/s=5740 MB/s=6.02 total=175070
+[align] 進度 [httpsink] t=64s lines/s=5740 MB/s=6.02 total=355060
+[align] 進度 [httpsink] t=94s lines/s=4920 MB/s=5.16 total=527670
+[align] 進度 [httpsink] t=124s lines/s=4920 MB/s=5.16 total=671990
+[align] 進度 [httpsink] t=154s lines/s=4920 MB/s=5.16 total=826150
+[align] 進度 [httpsink] t=184s lines/s=5740 MB/s=6.02 total=972520
+FAIL rate=15000 gen_avg=13936/s gen_mb_s=14.284 lag_p99=12528ms lag_max=12527.7ms sink_total=1019257 expected=1019255 backlog=27465 win_out_eps=5387 win_out_mb_s=5.645 oom=false reasons=gen_blocked(avg=13936/15000,lag_p99=12528.0ms);backlog=27465>18000
+[queue] 2026-10-13T22:29:15+08:00 end rc=0 :: FAIL rate=15000 gen_avg=13936/s gen_mb_s=14.284 lag_p99=12528ms lag_max=12527.7ms sink_total=1019257 expected=1019255 backlog=27465 win_out_eps=5387 win_out_mb_s=5.645 oom=false reasons=gen_blocked(avg=13936/15000,lag_p99=12528.0ms);backlog=27465>18000
+[queue] 2026-10-13T22:29:15+08:00 start wcm 20000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=20000 mode=lat tag=m2_vol1MiB load=180s conf=wcm_b1.yaml
+[align] 進度 [httpsink] t=34s lines/s=8192 MB/s=8.65 total=233891
+[align] 進度 [httpsink] t=64s lines/s=7782 MB/s=8.23 total=473507
+[align] 進度 [httpsink] t=94s lines/s=8192 MB/s=8.66 total=713943
+[align] 進度 [httpsink] t=124s lines/s=7782 MB/s=8.23 total=953559
+[align] 進度 [httpsink] t=154s lines/s=7783 MB/s=8.23 total=1193585
+[align] 進度 [httpsink] t=184s lines/s=8192 MB/s=8.66 total=1434019
+PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=4.6ms sink_total=1440000 expected=1439999 backlog=245 win_out_eps=8002 win_out_mb_s=8.456 oom=false
+[queue] 2026-10-13T22:34:46+08:00 end rc=0 :: PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=4.6ms sink_total=1440000 expected=1439999 backlog=245 win_out_eps=8002 win_out_mb_s=8.456 oom=false
+[queue] 2026-10-13T22:34:46+08:00 start fbit-lua 20000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fbit-lua rate=20000 mode=lat tag=m2_vol1MiB load=180s conf=fbit_lua_flush_0.0512.conf
+[align] 進度 [httpsink] t=33s lines/s=8189 MB/s=8.62 total=233811
+[align] 進度 [httpsink] t=63s lines/s=8206 MB/s=8.64 total=473893
+[align] 進度 [httpsink] t=93s lines/s=8210 MB/s=8.65 total=713863
+[align] 進度 [httpsink] t=123s lines/s=8206 MB/s=8.64 total=953861
+[align] 進度 [httpsink] t=153s lines/s=8215 MB/s=8.66 total=1193972
+[align] 進度 [httpsink] t=183s lines/s=8224 MB/s=8.67 total=1433965
+PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=6.7ms sink_total=1439997 expected=1439996 backlog=-1 win_out_eps=8001 win_out_mb_s=8.428 oom=false
+[queue] 2026-10-13T22:39:59+08:00 end rc=0 :: PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=6.7ms sink_total=1439997 expected=1439996 backlog=-1 win_out_eps=8001 win_out_mb_s=8.428 oom=false
+[queue] 2026-10-13T22:39:59+08:00 start fluentd 20000 lat m2_vol1MiB
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=fluentd rate=20000 mode=lat tag=m2_vol1MiB load=180s conf=fluentd_m2_rec410.conf
+[align] 進度 [httpsink] t=35s lines/s=7868 MB/s=8.29 total=233853
+[align] 進度 [httpsink] t=65s lines/s=7864 MB/s=8.29 total=473839
+[align] 進度 [httpsink] t=95s lines/s=7856 MB/s=8.28 total=713811
+[align] 進度 [httpsink] t=125s lines/s=7865 MB/s=8.29 total=953816
+[align] 進度 [httpsink] t=155s lines/s=7854 MB/s=8.29 total=1193885
+[align] 進度 [httpsink] t=185s lines/s=7842 MB/s=8.27 total=1433899
+PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=4.2ms sink_total=1439997 expected=1439996 backlog=312 win_out_eps=7999 win_out_mb_s=8.433 oom=false
+[queue] 2026-10-13T22:45:25+08:00 end rc=0 :: PASS rate=20000 gen_avg=20000/s gen_mb_s=20.500 lag_p99=5ms lag_max=4.2ms sink_total=1439997 expected=1439996 backlog=312 win_out_eps=7999 win_out_mb_s=8.433 oom=false
+[rest] 2026-10-13T22:45:25+08:00 search fbit-lua m3_W1 start=67500
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fluentd m3_W1 start=52000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search vector m3_W1 start=15000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fbit-wasm m3_W1 start=5400
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fbit-lua m3_W0.5 start=67500
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fluentd m3_W0.5 start=52000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search vector m3_W0.5 start=15000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search wcm m3_W0.5 start=25000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fbit-wasm m3_W0.5 start=5400
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fbit-lua m3_W0.1 start=62000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fluentd m3_W0.1 start=50000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search vector m3_W0.1 start=14000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search wcm m3_W0.1 start=24000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fbit-wasm m3_W0.1 start=5200
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fbit-lua m3_W0.01 start=45000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fluentd m3_W0.01 start=40000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search vector m3_W0.01 start=10000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search wcm m3_W0.01 start=18000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search fbit-wasm m3_W0.01 start=4500
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 search wcm m3_W1 start=25000
+/home/ckt1022/wcm-base-log-forwarder/test/compare/batch_alignment/search_align.sh: line 26: rate: unbound variable
+[rest] 2026-10-13T22:45:25+08:00 all searches done
+[queue] 2026-10-13T22:45:25+08:00 start wcm 5000 lat m3_W1
+[align] WARNING: 時鐘狀態異常 clocksource=tsc timesyncd=inactive
+[align] dut=wcm rate=5000 mode=lat tag=m3_W1 load=180s conf=wcm_tw128_wait1000.yaml
+[align] 進度 [httpsink] t=34s lines/s=2024 MB/s=2.14 total=58031
+[align] 進度 [httpsink] t=64s lines/s=2022 MB/s=2.13 total=118033
+[align] 進度 [httpsink] t=94s lines/s=2004 MB/s=2.11 total=178055
+[align] 進度 [httpsink] t=124s lines/s=1984 MB/s=2.10 total=238025
+[align] 進度 [httpsink] t=154s lines/s=1990 MB/s=2.10 total=298045
+[align] 進度 [httpsink] t=184s lines/s=1979 MB/s=2.09 total=358050
+PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=2.8ms sink_total=360000 expected=359999 backlog=-1 win_out_eps=2000 win_out_mb_s=2.111 oom=false
+[queue] 2026-10-13T22:50:54+08:00 end rc=0 :: PASS rate=5000 gen_avg=5000/s gen_mb_s=5.125 lag_p99=5ms lag_max=2.8ms sink_total=360000 expected=359999 backlog=-1 win_out_eps=2000 win_out_mb_s=2.111 oom=false

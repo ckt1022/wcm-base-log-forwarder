@@ -1,0 +1,159 @@
+   Compiling wcm-base-log-forwarder v0.1.0 (/home/ckt1022/wcm-base-log-forwarder)
+warning: unused variable: `ratio`
+  --> src/app.rs:86:13
+   |
+86 |         let ratio = self.max_allocation as f64 / self.mem_limit_bytes as f64;
+   |             ^^^^^ help: if this is intentional, prefix it with an underscore: `_ratio`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `print_max` is never used
+  --> src/app.rs:85:12
+   |
+75 | impl MyLimiter {
+   | -------------- method in this implementation
+...
+85 |     pub fn print_max(&self, type_of_max: &str) {
+   |            ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `spawn_stdin_reader` is never used
+   --> src/app.rs:453:8
+    |
+453 | pub fn spawn_stdin_reader(tx: SyncSender<String>) {
+    |        ^^^^^^^^^^^^^^^^^^
+
+warning: method `print_config_table` is never used
+   --> src/config.rs:492:12
+    |
+380 | impl BatchConfig {
+    | ---------------- method in this implementation
+...
+492 |     pub fn print_config_table(&self) {
+    |            ^^^^^^^^^^^^^^^^^^
+
+warning: struct `ChannelStats` is never constructed
+   --> src/config.rs:581:12
+    |
+581 | pub struct ChannelStats {
+    |            ^^^^^^^^^^^^
+
+warning: associated items `new`, `on_send`, `on_recv`, and `snapshot` are never used
+   --> src/config.rs:587:12
+    |
+586 | impl ChannelStats {
+    | ----------------- associated items in this implementation
+587 |     pub fn new() -> Self {
+    |            ^^^
+...
+595 |     pub fn on_send(&self, byte_len: usize) {
+    |            ^^^^^^^
+...
+601 |     pub fn on_recv(&self, byte_len: usize) {
+    |            ^^^^^^^
+...
+607 |     pub fn snapshot(&self) -> (usize, usize) {
+    |            ^^^^^^^^
+
+warning: fields `size`, `time`, and `eof` are never read
+   --> src/config.rs:650:9
+    |
+649 | pub struct FlushReason {
+    |            ----------- fields in this struct
+650 |     pub size: bool,
+    |         ^^^^
+651 |     pub time: bool,
+    |         ^^^^
+652 |     pub eof: bool,
+    |         ^^^
+
+warning: struct `ParseDiffTiming` is never constructed
+   --> src/config.rs:658:12
+    |
+658 | pub struct ParseDiffTiming {
+    |            ^^^^^^^^^^^^^^^
+
+warning: fields `total_elapsed` and `total_component_ns` are never read
+   --> src/config.rs:710:9
+    |
+706 | pub struct FormatStats {
+    |            ----------- fields in this struct
+...
+710 |     pub total_elapsed: Duration,
+    |         ^^^^^^^^^^^^^
+...
+714 |     pub total_component_ns: u64,
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: fields `total_elapsed` and `total_component_ns` are never read
+   --> src/config.rs:737:9
+    |
+732 | pub struct FilterStats {
+    |            ----------- fields in this struct
+...
+737 |     pub total_elapsed: Duration,
+    |         ^^^^^^^^^^^^^
+738 |     pub wasm_mem_peak_max: usize,
+739 |     pub total_component_ns: u64,
+    |         ^^^^^^^^^^^^^^^^^^
+
+warning: fields `seq` and `total_bytes` are never read
+  --> src/runtime.rs:59:5
+   |
+56 | struct FormattedBatch {
+   |        -------------- fields in this struct
+...
+59 |     seq: u64,
+   |     ^^^
+60 |     total_bytes: usize,
+   |     ^^^^^^^^^^^
+
+warning: field `id` is never read
+   --> src/runtime.rs:118:5
+    |
+117 | struct ParseInstance {
+    |        ------------- field in this struct
+118 |     id: u8,
+    |     ^^
+
+warning: `wcm-base-log-forwarder` (bin "wcm-base-log-forwarder" test) generated 12 warnings (run `cargo fix --bin "wcm-base-log-forwarder" -p wcm-base-log-forwarder --tests` to apply 1 suggestion)
+    Finished `release` profile [optimized] target(s) in 27.49s
+     Running unittests src/main.rs (target/release/deps/wcm_base_log_forwarder-a9d0afa79ad91da1)
+
+running 32 tests
+test capability::tests::classify_strips_versions ... ok
+test capability::tests::default_policy_rejects_filesystem_and_names_every_import ... ok
+test capability::tests::default_policy_rust_parser_imports_pass ... ok
+test capability::tests::endpoint_socket_grant_only_valid_for_transport ... ok
+test capability::tests::http_only_for_transport ... ok
+test capability::tests::inert_filesystem_grant_allows_adapter_imports ... ok
+test capability::tests::own_package_with_functions_is_rejected ... ok
+test capability::tests::sockets_denied_everywhere_by_default_including_transport ... ok
+test isolation::tests::all_lines_bad_rejects_everything ... ok
+test capability::tests::yaml_defaults_to_deny ... ok
+test isolation::tests::assign_ids_handles_non_one_to_one_parser ... ok
+test capability::tests::restricted_linker_builds_for_every_grant ... ok
+test isolation::tests::mixed_malformed_inside_trap_range_switches_to_rejected_mode ... ok
+test isolation::tests::poison_record_isolated_with_trap_mode_flag ... ok
+test isolation::tests::probe_deadline_scales_and_clamps ... ok
+test isolation::tests::rejected_single_bad_line_is_isolated_and_order_kept ... ok
+test native::tests::filter_keeps_warn_and_above ... ok
+test isolation::tests::trap_depth_limit_respected ... ok
+test native::tests::format_roundtrips_frames_and_escapes ... ok
+test native::tests::parse_batch_is_per_record_but_strict_is_all_or_nothing ... ok
+test native::tests::parse_matches_rust_plugin_semantics ... ok
+test native::tests::endpoint_and_batches ... ok
+test isolation::tests::single_line_batch_is_rejected_without_probe ... ok
+test runtime::tests::http_guard_only_allows_endpoint_map ... ok
+test isolation::tests::rejected_many_bad_lines_all_found ... ok
+test native::tests::http_post_against_local_server ... ok
+test isolation::tests::trap_budget_limits_calls_and_rejects_remaining_range ... ok
+test capability::tests::component_type_imports_are_checked ... ok
+test runtime::tests::real_rust_parser_legacy_mode_drops_whole_batch ... ok
+test runtime::tests::real_rust_parser_clean_batch_unchanged ... ok
+test runtime::tests::real_rust_parser_bisection_salvages_valid_records_in_order ... ok
+test runtime::tests::restricted_linker_cannot_satisfy_filesystem_import ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="720" viewBox="0 0 1400 720">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<style>text{font-family:Arial,"Helvetica Neue",sans-serif;fill:#172033}.title{font-size:28px;font-weight:700}.axis{font-size:15px}.label{font-size:16px;font-weight:600}.value{font-size:15px;font-weight:700}.grid{stroke:#e2e8f0;stroke-width:1}.axisline{stroke:#64748b;stroke-width:1.5}</style>
+<text x="70" y="46" class="title">p99 Latency at 5,000 EPS</text>
+<line x1="270.0" y1="95" x2="270.0" y2="535" class="grid"/>
+<text x="270.0" y="562" text-anchor="middle" class="axis">0</text>
+<line x1="457.3" y1="95" x2="457.3" y2="535" class="grid"/>
+<text x="457.3" y="562" text-anchor="middle" class="axis">200</text>
+<line x1="644.5" y1="95" x2="644.5" y2="535" class="grid"/>
+<text x="644.5" y="562" text-anchor="middle" class="axis">400</text>
+<line x1="831.8" y1="95" x2="831.8" y2="535" class="grid"/>
+<text x="831.8" y="562" text-anchor="middle" class="axis">600</text>
+<line x1="1019.1" y1="95" x2="1019.1" y2="535" class="grid"/>
+<text x="1019.1" y="562" text-anchor="middle" class="axis">800</text>
+<line x1="1206.4" y1="95" x2="1206.4" y2="535" class="grid"/>
+<text x="1206.4" y="562" text-anchor="middle" class="axis">1000</text>
+<line x1="270" y1="535" x2="1300" y2="535" class="axisline"/>
+<text x="252" y="146.0" text-anchor="end" class="label">WCM</text>
+<rect x="270" y="115.0" width="247.2" height="48" rx="5" fill="#2563eb"/>
+<text x="529.2" y="145.0" class="value">263.959 ms</text>
+<text x="252" y="234.0" text-anchor="end" class="label">Fluentd</text>
+<rect x="270" y="203.0" width="449.7" height="48" rx="5" fill="#94a3b8"/>
+<text x="731.7" y="233.0" class="value">480.294 ms</text>
+<text x="252" y="322.0" text-anchor="end" class="label">Vector</text>
+<rect x="270" y="291.0" width="489.8" height="48" rx="5" fill="#94a3b8"/>
+<text x="771.8" y="321.0" class="value">523.123 ms</text>
+<text x="252" y="410.0" text-anchor="end" class="label">Fluent Bit Lua</text>
+<rect x="270" y="379.0" width="948.3" height="48" rx="5" fill="#94a3b8"/>
+<text x="1230.3" y="409.0" class="value">1,012.782 ms</text>
+<text x="252" y="498.0" text-anchor="end" class="label">Fluent Bit WASM</text>
+<rect x="270" y="467.0" width="954.9" height="48" rx="5" fill="#94a3b8"/>
+<text x="1236.9" y="497.0" class="value">1,019.813 ms</text>
+<text x="785.0" y="600" text-anchor="middle" class="axis">End-to-End p99 Latency (ms)</text>
+</svg>

@@ -1,0 +1,8 @@
+variant,k,run,status,expected,received,missing,duplicate,corrupt,order_inversions,whole_batch_parse_errors,rejected_records,parse_plugin_calls_total,parse_calls_spent_on_isolation,cpu_seconds_during_run,rss_max_mib
+per-record (k=1),1,test/ours/per_record_invocation/system/correctness/c3_k1/C3_rep1,PASS,38000,38000,0,0,0,0,0,5000,100000,0,8.090,40.010
+per-record (k=1),1,test/ours/per_record_invocation/system/correctness/c3_k1/C3_rep2,PASS,38000,38000,0,0,0,0,0,5000,100000,0,4.690,39.020
+per-record (k=1),1,test/ours/per_record_invocation/system/correctness/c3_k1/C3_rep3,PASS,38000,38000,0,0,0,0,0,5000,100000,0,4.760,19.820
+"whole batch, no isolation",unlimited,test/ours/per_record_invocation/system/correctness/c3_kinf/C3_rep1,FAIL,38000,0,38000,0,0,0,99,0,99,0,1.060,13.140
+"whole batch + host bisection on error (src/isolation.rs, docker)",unlimited,test/compare/correctness/runs/isolation_docker_20261014_002704/C3_rep1,PASS,38000,38000,0,0,0,0,99,5000,52407,52308,7.510,33.200
+"whole batch + host bisection on error (src/isolation.rs, docker)",unlimited,test/compare/correctness/runs/isolation_docker_20261014_002704/C3_rep2,PASS,38000,38000,0,0,0,0,99,5000,52407,52308,7.400,30.820
+"whole batch + host bisection on error (src/isolation.rs, docker)",unlimited,test/compare/correctness/runs/isolation_docker_20261014_002704/C3_rep3,PASS,38000,38000,0,0,0,0,99,5000,52411,52312,7.800,30.670

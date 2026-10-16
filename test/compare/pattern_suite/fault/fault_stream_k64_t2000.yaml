@@ -1,0 +1,52 @@
+# pattern_suite: fault_isolation/forwarder_fault.yaml + streaming (k=64, W=0.1 s, max_transport_bytes=134217728), stage_timeout_ms=2000
+# Fault isolation 實驗用設定：parse 使用 chaos plugin（可由 marker 觸發故障），
+# filter／format／transport 使用正式 Rust WCM plugin，transport 以 wasi:http 送到 httpsink。
+#
+# 能力授權：chaos plugin 因 Rust std(wasip2) 連帶 import filesystem 與 sockets，
+# 需明確授權為 inert（連結介面但零 preopen／位址全拒），用來示範
+# 「即使授權連結，plugin 仍打不開檔案、連不出網路」。
+plugins:
+  parse: "parse_chaos.wasm"
+  parse_noop: ~
+  filter: "latency_rust_filter.wasm"
+  format: "latency_rust_format.wasm"
+  transport: "transport.wasm"
+
+stages:
+  filter: true
+  format: true
+  transport: true
+
+input:
+  mode: tcp
+  tcp:
+    host: "0.0.0.0"
+    port: 5140
+
+batch:
+  mem_limit_mb: 128
+  buffer_size_mb: 1
+  max_wait_ms: 100
+  channel_capacity: 50000
+  max_format_chunk: 10000
+  max_transport_bytes: 134217728
+  transport_workers: 1
+  pipeline_channel_capacity: 2
+  # 把 stage timeout 縮短成 2s，讓無窮迴圈故障的 trap 偵測在實驗時間尺度內可觀察
+  stage_timeout_ms: 2000
+  plugin_instance_reuse: true
+  parse_isolation: true
+  processing_mode: streaming
+  micro_batch_records: 64
+  micro_batch_max_wait_ms: 5
+
+# chaos plugin 的能力授權（只有這個 stage；filter/format/transport 維持預設 deny）
+capabilities:
+  parse:
+    filesystem: inert
+    sockets: inert
+
+endpoint:
+  A: "http://127.0.0.1:8080/ingest"
+
+config_reload_secs: 3600

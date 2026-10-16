@@ -1,0 +1,20 @@
+stage,plugin,grant,result,n_violations,wall_ms,compile_ms,check_ms,link_ms,instantiate_pre_ms,plugin_sha256
+parse,latency_rust_parse,default,LOAD_OK,0,260.103,122.089,0.006,0.069,0.012,94bbf1ad1803298c4ee3b6b126f0d238901714aa477bbd98ba9ed3c171f95cd2
+parse,latency_rust_parse,inert-fs inert-sockets,LOAD_OK,0,259.521,119.898,0.007,0.136,0.013,94bbf1ad1803298c4ee3b6b126f0d238901714aa477bbd98ba9ed3c171f95cd2
+parse,parse_chaos,default,LOAD_REFUSED,9,465.971,224.236,0.017,,,fefc19aaff9535d560e48a4178d693abf09c66681ff6d9555ba9c06f9f899875
+parse,parse_chaos,inert-fs inert-sockets,LOAD_OK,0,463.390,223.081,0.011,0.096,0.039,fefc19aaff9535d560e48a4178d693abf09c66681ff6d9555ba9c06f9f899875
+filter,latency_rust_filter,default,LOAD_OK,0,162.280,73.231,0.007,0.071,0.013,28c8086345847e73a0465a479a42f0befdd36eddbcf7af301771012c6caeb3f9
+filter,latency_rust_filter,inert-fs inert-sockets,LOAD_OK,0,161.787,72.643,0.007,0.111,0.012,28c8086345847e73a0465a479a42f0befdd36eddbcf7af301771012c6caeb3f9
+filter,filter_chaos,default,LOAD_REFUSED,9,366.241,174.566,0.014,,,87e981bced7cd05168697a5f1672eedb211e1f1a69be410eafe3a1846c3e4aed
+filter,filter_chaos,inert-fs inert-sockets,LOAD_OK,0,373.772,174.255,0.011,0.105,0.042,87e981bced7cd05168697a5f1672eedb211e1f1a69be410eafe3a1846c3e4aed
+format,latency_rust_format,default,LOAD_OK,0,171.204,77.558,0.007,0.075,0.012,096462091f2cd9b0d2775172e85b4e5d05fb047243c6d6bbb92c88c5f6235421
+format,latency_rust_format,inert-fs inert-sockets,LOAD_OK,0,169.930,77.617,0.007,0.109,0.012,096462091f2cd9b0d2775172e85b4e5d05fb047243c6d6bbb92c88c5f6235421
+format,format_chaos,default,LOAD_REFUSED,9,367.373,174.814,0.015,,,61c7b0b47e91c464ecfe39a15bea78d5b41e9ea6ca36de52e98225aedcdfdc0a
+format,format_chaos,inert-fs inert-sockets,LOAD_OK,0,364.850,173.054,0.011,0.111,0.043,61c7b0b47e91c464ecfe39a15bea78d5b41e9ea6ca36de52e98225aedcdfdc0a
+transport,transport,default,LOAD_OK,0,243.865,113.439,0.008,0.113,0.031,51529f848173cf696ab01aee376009ae58288a3b4e82362412071885baca51a4
+transport,transport,inert-fs inert-sockets,LOAD_OK,0,244.024,112.455,0.008,0.141,0.030,51529f848173cf696ab01aee376009ae58288a3b4e82362412071885baca51a4
+transport,transport,inert-fs endpoint-sockets,LOAD_OK,0,256.762,127.965,0.007,0.143,0.030,51529f848173cf696ab01aee376009ae58288a3b4e82362412071885baca51a4
+transport,transport_chaos,default,LOAD_REFUSED,9,432.504,201.248,0.038,,,334144714b9619f5e560d1e597bee0291cc8ee07375d651aa5bee5776639fa22
+transport,transport_chaos,inert-fs inert-sockets,LOAD_OK,0,422.776,199.335,0.012,0.135,0.055,334144714b9619f5e560d1e597bee0291cc8ee07375d651aa5bee5776639fa22
+transport,transport_chaos,inert-fs endpoint-sockets,LOAD_OK,0,435.593,200.194,0.012,0.150,0.056,334144714b9619f5e560d1e597bee0291cc8ee07375d651aa5bee5776639fa22
+#DONE 2026-10-15T16:06:10+08:00 binary_sha256=b5ab86755805f9716b85d84b7573ad76b3c69c5651e851f68af248783279c5fd

@@ -1,0 +1,105 @@
+═══ SWEEP b1 @ 105600 (90s) ═══
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b1/lat_rate_105600/sink.log)
+[cap] dut=wcm-b1 rate=105600 mode=lat load=90s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:105600 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b1/lat_rate_105600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b1/lat_rate_105600/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42297 MB/s=8.58 total=1237228
+[cap] 進度 [httpsink] t=64s lines/s=42298 MB/s=8.58 total=2503513
+[cap] 進度 [httpsink] t=94s lines/s=39654 MB/s=8.08 total=3769797
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=105600 gen_avg=105599/s gen_mb_s=16.859 lag_p99=5ms lag_max=7.1ms sink_total=3801561 expected=3801560 backlog=40 win_out_eps=42232 win_out_mb_s=8.581 oom=false
+[calc] ── 穩態延遲統計(第 20~80 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/wcm-b1/lat_rate_105600/latency_worker_1.csv
+[calc] 窗口內 2532570 筆 / 全部 3801561 筆
+[calc]   mean   =     80.237 ms
+[calc]   min    =     41.566 ms
+[calc]   p50    =     79.645 ms
+[calc]   p90    =    105.278 ms
+[calc]   p95    =    109.624 ms
+[calc]   p99    =    141.727 ms
+[calc]   p99.9  =    151.531 ms
+[calc]   max    =    158.047 ms
+═══ SWEEP b2 @ 105600 (90s) ═══
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b2/lat_rate_105600/sink.log)
+[cap] dut=wcm-b2 rate=105600 mode=lat load=90s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:105600 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b2/lat_rate_105600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b2/lat_rate_105600/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42281 MB/s=8.58 total=1226188
+[cap] 進度 [httpsink] t=64s lines/s=42281 MB/s=8.58 total=2494636
+[cap] 進度 [httpsink] t=94s lines/s=42281 MB/s=8.58 total=3763084
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=105600 gen_avg=105598/s gen_mb_s=16.865 lag_p99=5ms lag_max=7.1ms sink_total=3801591 expected=3801590 backlog=1509 win_out_eps=42216 win_out_mb_s=8.564 oom=false
+[calc] ── 穩態延遲統計(第 20~80 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/wcm-b2/lat_rate_105600/latency_worker_1.csv
+[calc] 窗口內 2531610 筆 / 全部 3801591 筆
+[calc]   mean   =    155.650 ms
+[calc]   min    =     84.284 ms
+[calc]   p50    =    155.649 ms
+[calc]   p90    =    205.699 ms
+[calc]   p95    =    212.025 ms
+[calc]   p99    =    238.006 ms
+[calc]   p99.9  =    256.550 ms
+[calc]   max    =    265.952 ms
+═══ SWEEP b6 @ 105600 (90s) ═══
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b6/lat_rate_105600/sink.log)
+[cap] dut=wcm-b6 rate=105600 mode=lat load=90s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:105600 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b6/lat_rate_105600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b6/lat_rate_105600/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=47569 MB/s=9.60 total=1221046
+[cap] 進度 [httpsink] t=64s lines/s=47569 MB/s=9.65 total=2489558
+[cap] 進度 [httpsink] t=94s lines/s=31712 MB/s=6.43 total=3742213
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=105600 gen_avg=105598/s gen_mb_s=16.865 lag_p99=5ms lag_max=6.2ms sink_total=3801574 expected=3801573 backlog=11790 win_out_eps=42218 win_out_mb_s=8.551 oom=false
+[calc] ── 穩態延遲統計(第 20~80 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/wcm-b6/lat_rate_105600/latency_worker_1.csv
+[calc] 窗口內 2537024 筆 / 全部 3801574 筆
+[calc]   mean   =    467.560 ms
+[calc]   min    =    261.149 ms
+[calc]   p50    =    467.560 ms
+[calc]   p90    =    617.716 ms
+[calc]   p95    =    636.485 ms
+[calc]   p99    =    656.927 ms
+[calc]   p99.9  =    688.759 ms
+[calc]   max    =    706.321 ms
+═══ SWEEP b12 @ 105600 (90s) ═══
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b12/lat_rate_105600/sink.log)
+[cap] dut=wcm-b12 rate=105600 mode=lat load=90s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:105600 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b12/lat_rate_105600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b12/lat_rate_105600/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=63426 MB/s=12.81 total=1205115
+[cap] 進度 [httpsink] t=64s lines/s=63426 MB/s=12.81 total=2473635
+[cap] 進度 [httpsink] t=94s lines/s=63426 MB/s=12.87 total=3742155
+[cap] gen 完成,drain 20s 後關閉並判定
+PASS rate=105600 gen_avg=105599/s gen_mb_s=16.865 lag_p99=5ms lag_max=3.5ms sink_total=3801562 expected=3801561 backlog=27694 win_out_eps=42416 win_out_mb_s=8.572 oom=false
+[calc] ── 穩態延遲統計(第 20~80 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/wcm-b12/lat_rate_105600/latency_worker_1.csv
+[calc] 窗口內 2537040 筆 / 全部 3801562 筆
+[calc]   mean   =    942.789 ms
+[calc]   min    =    546.436 ms
+[calc]   p50    =    942.789 ms
+[calc]   p90    =   1243.100 ms
+[calc]   p95    =   1280.640 ms
+[calc]   p99    =   1314.147 ms
+[calc]   p99.9  =   1348.813 ms
+[calc]   max    =   1372.320 ms
+═══ SWEEP b16 @ 105600 (90s) ═══
+[cap] sink 已啟動(:8080,log=/home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b16/lat_rate_105600/sink.log)
+[cap] dut=wcm-b16 rate=105600 mode=lat load=90s flush=1s cpus=1 mem=512m
+[cap] DUT 就緒(TCP :5140 可連),3 秒後開始打流量
+[cap] gen 開始:105600 eps × 90s(詳細進度:tail -f /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b16/lat_rate_105600/gen.log / /home/ckt1022/wcm-base-log-forwarder/test/compare/capacity/runs/wcm-b16/lat_rate_105600/sink.log)
+[cap] 進度 [httpsink] t=34s lines/s=42292 MB/s=8.54 total=1182487
+[cap] 進度 [httpsink] t=64s lines/s=42278 MB/s=8.54 total=2449510
+[cap] gen 完成,drain 20s 後關閉並判定
+[cap] 進度 [httpsink] t=94s lines/s=42292 MB/s=8.54 total=3716250
+PASS rate=105600 gen_avg=105598/s gen_mb_s=16.862 lag_p99=5ms lag_max=2.3ms sink_total=3801565 expected=3801564 backlog=43022 win_out_eps=42230 win_out_mb_s=8.525 oom=false
+[calc] ── 穩態延遲統計(第 20~80 秒,0 點 = 第一筆 receive)──
+[calc] 來源:runs/wcm-b16/lat_rate_105600/latency_worker_1.csv
+[calc] 窗口內 2533746 筆 / 全部 3801565 筆
+[calc]   mean   =   1267.185 ms
+[calc]   min    =    743.142 ms
+[calc]   p50    =   1267.183 ms
+[calc]   p90    =   1667.077 ms
+[calc]   p95    =   1717.067 ms
+[calc]   p99    =   1761.225 ms
+[calc]   p99.9  =   1810.061 ms
+[calc]   max    =   1844.772 ms

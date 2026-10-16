@@ -1,0 +1,12 @@
+[package]
+name = "percall_micro"
+version = "0.1.0"
+edition = "2024"
+
+# 獨立 workspace：不併入 repo 根目錄的 forwarder crate。
+[workspace]
+
+[dependencies]
+# 與 forwarder host 相同版本（Cargo.lock 由 host 複製而來）
+wasmtime = "42.0.1"
+wasmtime-wasi = "42.0.1"

@@ -1,0 +1,227 @@
+Output directory: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536
+Experiments: 9; interval: 20s; CPU: 2; mode: isolated fresh-pool
+[1/9] stage=parse run=1/3
+    Finished `release` profile [optimized] target(s) in 0.22s
+    Finished `release` profile [optimized] target(s) in 0.64s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/host/target/release/parse-copy-benchmark-host 64 32768 100 10 '' fresh full`
+Rust parse copy benchmark
+JSON size : 1024 bytes
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 pre-warmed, discard and replenish after every call)
+marker p95 reference: 47.575 ns/call
+experiment mode: full
+component language: rust
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/host/../component/target/wasm32-wasip2/release/parse_copy_benchmark_component.wasm
+batch=    0 in(mean/med/p95)=20555/18900/38800 ns  guest=167/200/300 ns  out=2062/1800/2700 ns  marker/in=0.252% marker/out=2.643%  grow(warmup/measured)=0/0 delta=0/0B peak=1114112B
+batch=   64 in(mean/med/p95)=91335/74100/109000 ns  guest=140457/132200/192700 ns  out=37855/33900/53100 ns  marker/in=0.064% marker/out=0.140%  grow(warmup/measured)=20/200 delta=1310720/13107200B peak=1245184B
+batch=  128 in(mean/med/p95)=130272/121900/165100 ns  guest=297800/267300/402100 ns  out=71153/64100/102800 ns  marker/in=0.039% marker/out=0.074%  grow(warmup/measured)=40/400 delta=2621440/26214400B peak=1376256B
+batch=  256 in(mean/med/p95)=240125/226600/356500 ns  guest=562367/530000/760300 ns  out=140349/125000/207800 ns  marker/in=0.021% marker/out=0.038%  grow(warmup/measured)=90/900 delta=5898240/58982400B peak=1703936B
+batch=  512 in(mean/med/p95)=454541/428600/618400 ns  guest=1129194/1061700/1630700 ns  out=355175/261100/740200 ns  marker/in=0.011% marker/out=0.018%  grow(warmup/measured)=180/1800 delta=11796480/117964800B peak=2293760B
+batch= 1024 in(mean/med/p95)=897651/883500/1178700 ns  guest=2197314/2125400/2607800 ns  out=1425682/1370100/1944400 ns  marker/in=0.005% marker/out=0.003%  grow(warmup/measured)=360/3600 delta=23592960/235929600B peak=3473408B
+batch= 2048 in(mean/med/p95)=1870502/1838700/2236300 ns  guest=4434928/4306400/5040600 ns  out=3022782/2946900/3673100 ns  marker/in=0.003% marker/out=0.002%  grow(warmup/measured)=720/7200 delta=47185920/471859200B peak=5832704B
+batch= 4096 in(mean/med/p95)=3747653/3704200/4181200 ns  guest=8847987/8645600/10163400 ns  out=6447301/6332400/7144701 ns  marker/in=0.001% marker/out=0.001%  grow(warmup/measured)=1420/14200 delta=94371840/943718400B peak=10551296B
+batch= 8192 in(mean/med/p95)=7797288/7637200/8507100 ns  guest=17776725/17457601/19611801 ns  out=13758115/13635701/15619500 ns  marker/in=0.001% marker/out=0.000%  grow(warmup/measured)=2820/28200 delta=188743680/1887436800B peak=19988480B
+batch=16384 in(mean/med/p95)=15471566/15286801/17042102 ns  guest=35850604/35355302/41083002 ns  out=28335074/27559803/34833802 ns  marker/in=0.000% marker/out=0.000%  grow(warmup/measured)=5610/56100 delta=377487360/3774873600B peak=38862848B
+batch=32768 in(mean/med/p95)=31640817/31465604/33457816 ns  guest=73369699/72360302/81155810 ns  out=58628599/56709801/69966001 ns  marker/in=0.000% marker/out=0.000%  grow(warmup/measured)=11190/111900 delta=754974720/7549747200B peak=76611584B
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/parse_rust_isolated_run1.csv
+  cooling down for 20s...
+[2/9] stage=parse run=2/3
+    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.15s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/host/target/release/parse-copy-benchmark-host 64 32768 100 10 '' fresh full`
+Rust parse copy benchmark
+JSON size : 1024 bytes
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 pre-warmed, discard and replenish after every call)
+marker p95 reference: 47.575 ns/call
+experiment mode: full
+component language: rust
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/host/../component/target/wasm32-wasip2/release/parse_copy_benchmark_component.wasm
+batch=    0 in(mean/med/p95)=18347/17300/26600 ns  guest=154/200/200 ns  out=1606/1600/2200 ns  marker/in=0.275% marker/out=2.973%  grow(warmup/measured)=0/0 delta=0/0B peak=1114112B
+batch=   64 in(mean/med/p95)=78830/72800/103700 ns  guest=146817/127200/202000 ns  out=35968/32400/48300 ns  marker/in=0.065% marker/out=0.147%  grow(warmup/measured)=20/200 delta=1310720/13107200B peak=1245184B
+batch=  128 in(mean/med/p95)=123844/116300/147300 ns  guest=278534/264800/353200 ns  out=66535/62700/82800 ns  marker/in=0.041% marker/out=0.076%  grow(warmup/measured)=40/400 delta=2621440/26214400B peak=1376256B
+batch=  256 in(mean/med/p95)=219763/208500/283000 ns  guest=522576/495900/636200 ns  out=129508/120800/195700 ns  marker/in=0.023% marker/out=0.039%  grow(warmup/measured)=90/900 delta=5898240/58982400B peak=1703936B
+batch=  512 in(mean/med/p95)=424632/400299/514000 ns  guest=1056465/1018299/1302400 ns  out=634812/611900/765800 ns  marker/in=0.012% marker/out=0.008%  grow(warmup/measured)=180/1800 delta=11796480/117964800B peak=2293760B
+batch= 1024 in(mean/med/p95)=889724/867600/1177900 ns  guest=2122971/2091300/2388000 ns  out=1398255/1351600/1621600 ns  marker/in=0.005% marker/out=0.004%  grow(warmup/measured)=360/3600 delta=23592960/235929600B peak=3473408B
+batch= 2048 in(mean/med/p95)=1926075/1863000/2472499 ns  guest=4361132/4307999/4660698 ns  out=3048917/2957599/3770699 ns  marker/in=0.003% marker/out=0.002%  grow(warmup/measured)=720/7200 delta=47185920/471859200B peak=5832704B
+batch= 4096 in(mean/med/p95)=3861132/3691099/4704199 ns  guest=8915079/8863698/9660097 ns  out=6535009/6323098/7723901 ns  marker/in=0.001% marker/out=0.001%  grow(warmup/measured)=1420/14200 delta=94371840/943718400B peak=10551296B
+batch= 8192 in(mean/med/p95)=7753394/7673301/8620601 ns  guest=17852547/17588302/18903402 ns  out=13754663/13636101/14896102 ns  marker/in=0.001% marker/out=0.000%  grow(warmup/measured)=2820/28200 delta=188743680/1887436800B peak=19988480B
+batch=16384 in(mean/med/p95)=15432633/15371500/16011300 ns  guest=35808674/35480501/37691002 ns  out=28130089/27767301/32408101 ns  marker/in=0.000% marker/out=0.000%  grow(warmup/measured)=5610/56100 delta=377487360/3774873600B peak=38862848B
+batch=32768 in(mean/med/p95)=30877294/30787801/31958702 ns  guest=71002095/70381604/75992804 ns  out=57162714/55565500/72540001 ns  marker/in=0.000% marker/out=0.000%  grow(warmup/measured)=11190/111900 delta=754974720/7549747200B peak=76611584B
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/parse_rust_isolated_run2.csv
+  cooling down for 20s...
+[3/9] stage=parse run=3/3
+    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.16s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/host/target/release/parse-copy-benchmark-host 64 32768 100 10 '' fresh full`
+Rust parse copy benchmark
+JSON size : 1024 bytes
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 pre-warmed, discard and replenish after every call)
+marker p95 reference: 47.575 ns/call
+experiment mode: full
+component language: rust
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/parse_benchmark/host/../component/target/wasm32-wasip2/release/parse_copy_benchmark_component.wasm
+batch=    0 in(mean/med/p95)=18350/17800/26300 ns  guest=168/200/200 ns  out=1557/1700/1900 ns  marker/in=0.267% marker/out=2.799%  grow(warmup/measured)=0/0 delta=0/0B peak=1114112B
+batch=   64 in(mean/med/p95)=77057/70500/97100 ns  guest=142691/127700/203900 ns  out=34833/32600/52300 ns  marker/in=0.067% marker/out=0.146%  grow(warmup/measured)=20/200 delta=1310720/13107200B peak=1245184B
+batch=  128 in(mean/med/p95)=123200/113800/165500 ns  guest=269549/256600/334500 ns  out=66297/63500/84500 ns  marker/in=0.042% marker/out=0.075%  grow(warmup/measured)=40/400 delta=2621440/26214400B peak=1376256B
+batch=  256 in(mean/med/p95)=219274/208900/259200 ns  guest=532668/514000/694500 ns  out=129637/123400/185100 ns  marker/in=0.023% marker/out=0.039%  grow(warmup/measured)=90/900 delta=5898240/58982400B peak=1703936B
+batch=  512 in(mean/med/p95)=442212/426800/504800 ns  guest=1062770/1045000/1173500 ns  out=262492/250200/326700 ns  marker/in=0.011% marker/out=0.019%  grow(warmup/measured)=180/1800 delta=11796480/117964800B peak=2293760B
+batch= 1024 in(mean/med/p95)=877142/873700/979600 ns  guest=2153196/2102400/2496700 ns  out=1431300/1370600/1784500 ns  marker/in=0.005% marker/out=0.003%  grow(warmup/measured)=360/3600 delta=23592960/235929600B peak=3473408B
+batch= 2048 in(mean/med/p95)=1939450/1862700/2481400 ns  guest=4448192/4372100/4894400 ns  out=3062857/2989900/3717300 ns  marker/in=0.003% marker/out=0.002%  grow(warmup/measured)=720/7200 delta=47185920/471859200B peak=5832704B
+batch= 4096 in(mean/med/p95)=3936297/3809600/4651800 ns  guest=8849281/8714600/9397800 ns  out=6612120/6487200/7702800 ns  marker/in=0.001% marker/out=0.001%  grow(warmup/measured)=1420/14200 delta=94371840/943718400B peak=10551296B
+batch= 8192 in(mean/med/p95)=7788101/7710600/8561700 ns  guest=17719385/17612600/18610700 ns  out=14093758/14003300/15323900 ns  marker/in=0.001% marker/out=0.000%  grow(warmup/measured)=2820/28200 delta=188743680/1887436800B peak=19988480B
+batch=16384 in(mean/med/p95)=15437964/15326700/16578700 ns  guest=35746842/35308700/38091000 ns  out=28796259/28174000/34668000 ns  marker/in=0.000% marker/out=0.000%  grow(warmup/measured)=5610/56100 delta=377487360/3774873600B peak=38862848B
+batch=32768 in(mean/med/p95)=30777334/30686500/31958800 ns  guest=71204123/70354800/82062800 ns  out=58922706/56523400/79802000 ns  marker/in=0.000% marker/out=0.000%  grow(warmup/measured)=11190/111900 delta=754974720/7549747200B peak=76611584B
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/parse_rust_isolated_run3.csv
+  cooling down for 20s...
+[4/9] stage=filter run=1/3
+    Finished `release` profile [optimized] target(s) in 0.07s
+    Finished `release` profile [optimized] target(s) in 0.54s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/host/target/release/filter-copy-benchmark-host 64 32768 100 10 '' /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm rust`
+Filter copy benchmark
+input: production LogEntry shape; 979 dynamic string bytes/entry
+levels: alternating info/warn (50% keep)
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 ready instances; discard after every call)
+marker p95 reference: 47.575 ns/call
+component language: rust
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm
+batch=    0 in(mean/med/p95)=17472/17000/23400 ns  guest=147/100/200 ns  out=1527/1500/1700 ns  total(med/p95)=18700/25600 ns
+batch=   64 in(mean/med/p95)=112029/106700/139100 ns  guest=289/300/400 ns  out=7695/7100/12000 ns  total(med/p95)=114000/152900 ns
+batch=  128 in(mean/med/p95)=213815/188800/245300 ns  guest=336/300/400 ns  out=12515/12500/13000 ns  total(med/p95)=201500/258300 ns
+batch=  256 in(mean/med/p95)=381549/355700/469700 ns  guest=484/500/600 ns  out=24132/23000/29700 ns  total(med/p95)=379600/517300 ns
+batch=  512 in(mean/med/p95)=746889/700500/976800 ns  guest=728/700/1000 ns  out=48384/44400/76200 ns  total(med/p95)=747700/1032000 ns
+batch= 1024 in(mean/med/p95)=1476403/1436500/1768100 ns  guest=1218/1100/1800 ns  out=99035/92400/150000 ns  total(med/p95)=1530500/1921300 ns
+batch= 2048 in(mean/med/p95)=2994951/2890800/3790700 ns  guest=2255/2000/3700 ns  out=225434/194100/378500 ns  total(med/p95)=3115800/4081300 ns
+batch= 4096 in(mean/med/p95)=6251671/6104600/7271600 ns  guest=5025/4400/8200 ns  out=594474/595400/899900 ns  total(med/p95)=6753800/8038700 ns
+batch= 8192 in(mean/med/p95)=12665782/12582600/13409400 ns  guest=18052/18200/36700 ns  out=1763310/1747300/2255600 ns  total(med/p95)=14400000/15411400 ns
+batch=16384 in(mean/med/p95)=25618302/25230700/27506700 ns  guest=36659/27900/79800 ns  out=3560450/3484500/4410400 ns  total(med/p95)=28906401/31435100 ns
+batch=32768 in(mean/med/p95)=51149078/50547601/55518201 ns  guest=99282/96300/177100 ns  out=7266220/7295100/8044200 ns  total(med/p95)=57828700/63458201 ns
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/filter_rust_isolated_run1.csv
+  cooling down for 20s...
+[5/9] stage=filter run=2/3
+    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.16s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/host/target/release/filter-copy-benchmark-host 64 32768 100 10 '' /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm rust`
+Filter copy benchmark
+input: production LogEntry shape; 979 dynamic string bytes/entry
+levels: alternating info/warn (50% keep)
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 ready instances; discard after every call)
+marker p95 reference: 47.575 ns/call
+component language: rust
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm
+batch=    0 in(mean/med/p95)=17635/17300/21500 ns  guest=138/100/200 ns  out=1637/1600/1800 ns  total(med/p95)=19000/31100 ns
+batch=   64 in(mean/med/p95)=115286/107100/189900 ns  guest=287/300/300 ns  out=7647/7100/12400 ns  total(med/p95)=114300/202700 ns
+batch=  128 in(mean/med/p95)=201547/188800/245900 ns  guest=356/300/400 ns  out=13324/12600/19900 ns  total(med/p95)=201600/269800 ns
+batch=  256 in(mean/med/p95)=396584/363400/555300 ns  guest=484/400/800 ns  out=26047/23200/45100 ns  total(med/p95)=387500/579500 ns
+batch=  512 in(mean/med/p95)=721332/702500/828300 ns  guest=679/700/800 ns  out=45619/44500/53800 ns  total(med/p95)=747800/886400 ns
+batch= 1024 in(mean/med/p95)=1437011/1381600/1688700 ns  guest=1169/1100/1600 ns  out=96393/88900/129300 ns  total(med/p95)=1473900/1840700 ns
+batch= 2048 in(mean/med/p95)=2961483/2890700/3675300 ns  guest=2192/2000/3500 ns  out=224362/187000/375300 ns  total(med/p95)=3087900/4004000 ns
+batch= 4096 in(mean/med/p95)=6250978/6199300/6984900 ns  guest=5794/4400/11000 ns  out=611644/588300/885600 ns  total(med/p95)=6811900/7837100 ns
+batch= 8192 in(mean/med/p95)=13052137/12965000/13865600 ns  guest=14728/12400/28600 ns  out=1589907/1582800/1859000 ns  total(med/p95)=14598700/15644900 ns
+batch=16384 in(mean/med/p95)=26312545/26013400/28270800 ns  guest=27752/25400/47400 ns  out=3247882/3204800/3513900 ns  total(med/p95)=29303300/31723000 ns
+batch=32768 in(mean/med/p95)=52774491/52322300/56153201 ns  guest=114500/113600/174300 ns  out=7274243/7207000/8018500 ns  total(med/p95)=59690600/64212301 ns
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/filter_rust_isolated_run2.csv
+  cooling down for 20s...
+[6/9] stage=filter run=3/3
+    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.15s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/host/target/release/filter-copy-benchmark-host 64 32768 100 10 '' /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm rust`
+Filter copy benchmark
+input: production LogEntry shape; 979 dynamic string bytes/entry
+levels: alternating info/warn (50% keep)
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 ready instances; discard after every call)
+marker p95 reference: 47.575 ns/call
+component language: rust
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/filter_benchmark/component/target/wasm32-wasip2/release/filter_copy_benchmark_component.wasm
+batch=    0 in(mean/med/p95)=17926/17100/24400 ns  guest=157/200/200 ns  out=1598/1500/2100 ns  total(med/p95)=18800/27100 ns
+batch=   64 in(mean/med/p95)=114534/104800/138200 ns  guest=308/300/400 ns  out=7786/7000/15500 ns  total(med/p95)=112600/146000 ns
+batch=  128 in(mean/med/p95)=211928/189600/348500 ns  guest=358/300/500 ns  out=21980/12400/24400 ns  total(med/p95)=203300/438800 ns
+batch=  256 in(mean/med/p95)=388167/358900/568800 ns  guest=459/400/600 ns  out=25233/23100/43100 ns  total(med/p95)=383000/593700 ns
+batch=  512 in(mean/med/p95)=730234/697900/897200 ns  guest=726/700/1300 ns  out=48096/44300/85300 ns  total(med/p95)=743300/955300 ns
+batch= 1024 in(mean/med/p95)=1427834/1387700/1624300 ns  guest=1171/1100/1600 ns  out=96346/88800/142900 ns  total(med/p95)=1480700/1759900 ns
+batch= 2048 in(mean/med/p95)=2962180/2924800/3356900 ns  guest=2232/2000/3600 ns  out=226581/194300/410700 ns  total(med/p95)=3122600/3691200 ns
+batch= 4096 in(mean/med/p95)=6234292/6123400/6936000 ns  guest=5229/4300/10200 ns  out=576962/547100/850600 ns  total(med/p95)=6686700/7741700 ns
+batch= 8192 in(mean/med/p95)=12912054/12921700/13761200 ns  guest=14025/11200/26700 ns  out=1575302/1578800/1990300 ns  total(med/p95)=14470200/15294100 ns
+batch=16384 in(mean/med/p95)=28085007/27132000/34864600 ns  guest=54478/51500/87800 ns  out=3870908/3731300/4982800 ns  total(med/p95)=30900801/40033900 ns
+batch=32768 in(mean/med/p95)=56422953/54981501/67535301 ns  guest=150029/140800/204000 ns  out=7941245/8042300/9047100 ns  total(med/p95)=63091400/76295101 ns
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/filter_rust_isolated_run3.csv
+  cooling down for 20s...
+[7/9] stage=format run=1/3
+    Finished `release` profile [optimized] target(s) in 0.09s
+    Finished `release` profile [optimized] target(s) in 0.72s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/host/target/release/format-copy-benchmark-host 64 32768 100 10 '' /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm`
+Isolated format copy benchmark
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 ready instances)
+marker p95 reference: 47.575 ns/call
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm
+batch=    0 in=18964/17800/27800 ns guest=185/200/300 ns out=1641/1600/2400 ns total(med/p95)=19600/29600 ns
+batch=   64 in=132317/111800/158800 ns guest=231733/205900/372800 ns out=9166/7700/16200 ns total(med/p95)=330100/551500 ns
+batch=  128 in=212998/199500/272900 ns guest=443639/421200/611100 ns out=15412/13600/26200 ns total(med/p95)=642800/864500 ns
+batch=  256 in=429842/416500/535600 ns guest=962809/943400/1210800 ns out=34344/30100/55700 ns total(med/p95)=1390300/1725600 ns
+batch=  512 in=807831/793800/958500 ns guest=1881160/1833900/2320600 ns out=73145/64700/131700 ns total(med/p95)=2685200/3220500 ns
+batch= 1024 in=1660330/1585200/2170200 ns guest=3876686/3735700/4473300 ns out=207400/196200/322900 ns total(med/p95)=5628000/6621100 ns
+batch= 2048 in=3374424/3283900/3904700 ns guest=7650992/7527300/8389600 ns out=547447/532500/740400 ns total(med/p95)=11468300/12316000 ns
+batch= 4096 in=7043417/6768400/8574300 ns guest=15684203/15294000/17156600 ns out=1336819/1273900/1820700 ns total(med/p95)=23470901/27156300 ns
+batch= 8192 in=13931419/13779100/15189800 ns guest=31317772/30922901/33681301 ns out=2781108/2680400/3362300 ns total(med/p95)=47575101/51430801 ns
+batch=16384 in=27664341/27334501/30048200 ns guest=61897758/60931702/70227402 ns out=5752178/5616300/6751001 ns total(med/p95)=94097602/106669002 ns
+batch=32768 in=55104388/54224201/61165001 ns guest=132954035/128145301/160911100 ns out=35309982/32298000/57409302 ns total(med/p95)=215208901/274133302 ns
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/format_rust_isolated_run1.csv
+  cooling down for 20s...
+[8/9] stage=format run=2/3
+    Finished `release` profile [optimized] target(s) in 0.08s
+    Finished `release` profile [optimized] target(s) in 0.20s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/host/target/release/format-copy-benchmark-host 64 32768 100 10 '' /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm`
+Isolated format copy benchmark
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 ready instances)
+marker p95 reference: 47.575 ns/call
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm
+batch=    0 in=18276/17500/25800 ns guest=174/200/200 ns out=1597/1600/1900 ns total(med/p95)=19300/27600 ns
+batch=   64 in=115080/109100/141400 ns guest=214849/204500/265400 ns out=8032/7500/10700 ns total(med/p95)=321100/411800 ns
+batch=  128 in=199647/194700/217700 ns guest=435119/423300/538600 ns out=14166/13400/19000 ns total(med/p95)=631100/784200 ns
+batch=  256 in=381172/372000/422500 ns guest=906719/890100/1001400 ns out=28073/25300/41600 ns total(med/p95)=1289800/1421100 ns
+batch=  512 in=856021/781700/1247200 ns guest=2017015/1867500/2985600 ns out=81941/65200/170600 ns total(med/p95)=2723100/4209499 ns
+batch= 1024 in=1555781/1507100/1912200 ns guest=3798323/3711300/4290499 ns out=177495/160700/332200 ns total(med/p95)=5460199/6277199 ns
+batch= 2048 in=3248127/3138899/4060500 ns guest=7600951/7486800/8379100 ns out=481102/441600/710400 ns total(med/p95)=11188399/12336699 ns
+batch= 4096 in=6726701/6621499/7671899 ns guest=15353953/15209698/16668797 ns out=1277403/1232500/1728200 ns total(med/p95)=23138396/25389698 ns
+batch= 8192 in=13711689/13424098/15409797 ns guest=31223165/30620095/36283394 ns out=2695928/2607899/3146599 ns total(med/p95)=46821792/54335490 ns
+batch=16384 in=28035378/27569100/32322500 ns guest=63464368/61978800/76059700 ns out=5818055/5749900/6597400 ns total(med/p95)=95206099/113695499 ns
+batch=32768 in=55632869/55038000/64585800 ns guest=133439681/128545300/170911500 ns out=34466854/32292100/50007899 ns total(med/p95)=216568000/278266095 ns
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/format_rust_isolated_run2.csv
+  cooling down for 20s...
+[9/9] stage=format run=3/3
+    Finished `release` profile [optimized] target(s) in 0.03s
+    Finished `release` profile [optimized] target(s) in 0.16s
+     Running `/home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/host/target/release/format-copy-benchmark-host 64 32768 100 10 '' /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm`
+Isolated format copy benchmark
+batch sizes: [0, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+rounds: 100 (+ 10 warm-up per size)
+instance mode: fresh-pool (3 ready instances)
+marker p95 reference: 47.575 ns/call
+component path: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/format_benchmark/component/target/wasm32-wasip2/release/format_copy_benchmark_component.wasm
+batch=    0 in=18742/17600/29100 ns guest=146/100/200 ns out=1577/1600/1900 ns total(med/p95)=19400/31000 ns
+batch=   64 in=112192/108500/141500 ns guest=217942/202500/317900 ns out=8160/7500/12800 ns total(med/p95)=319400/459600 ns
+batch=  128 in=201920/193800/256900 ns guest=433803/414300/571700 ns out=14633/13200/19700 ns total(med/p95)=629700/796500 ns
+batch=  256 in=388830/369300/467500 ns guest=905467/876200/1052200 ns out=27738/25000/41100 ns total(med/p95)=1274199/1524100 ns
+batch=  512 in=779231/742000/1054000 ns guest=1869184/1805300/2289899 ns out=65127/53500/127000 ns total(med/p95)=2611100/3356500 ns
+batch= 1024 in=1534260/1504000/1753100 ns guest=3723701/3671999/4085600 ns out=160561/141200/260300 ns total(med/p95)=5365400/5988400 ns
+batch= 2048 in=3322666/3192100/4109500 ns guest=7573113/7483500/8343800 ns out=476763/447500/714800 ns total(med/p95)=11292799/12316000 ns
+batch= 4096 in=6736297/6695700/7562900 ns guest=15267521/15068600/16557700 ns out=1222974/1187000/1718700 ns total(med/p95)=22973600/25062600 ns
+batch= 8192 in=13315481/13167300/14381500 ns guest=30727730/30485599/32266100 ns out=2775215/2602400/3615700 ns total(med/p95)=46436099/48948000 ns
+batch=16384 in=27133747/27028700/28890199 ns guest=61513963/60986499/65338600 ns out=5537714/5508800/6040800 ns total(med/p95)=93428399/98598799 ns
+batch=32768 in=53691999/53509601/56064200 ns guest=128897465/126366399/150675302 ns out=33999735/32155700/47940200 ns total(med/p95)=212107199/252943102 ns
+  saved: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536/format_rust_isolated_run3.csv
+All 9 isolated experiments completed: /home/ckt1022/wcm-base-log-forwarder/test/ours/copy_overhead/wcm_isolated_benchmark/results/wcm_isolated_20260823_011536

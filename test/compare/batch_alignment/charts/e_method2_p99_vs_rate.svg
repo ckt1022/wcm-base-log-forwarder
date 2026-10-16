@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<style>text{font-family:"Noto Sans CJK TC","Noto Sans",sans-serif;fill:#172033}.tick{font-size:16px}.axis{font-size:18px}.note{font-size:14px;fill:#475569}.legend{font-size:16px}.title{font-size:27px;font-weight:700}.pt{font-size:13px;fill:#334155}.fail{font-size:13px;fill:#b91c1c;font-weight:700}</style>
+<text x="700.0" y="42" text-anchor="middle" class="title">Method 2: p99 vs rate at equal batch volume (1 MiB of input per batch)</text>
+<text x="700.0" y="69" text-anchor="middle" class="note">1024 B / 36 fields · 1 CPU · 512 MiB · single TCP conn · 30–150 s window</text>
+<line x1="110.0" y1="88" x2="110.0" y2="705" stroke="#e2e8f0"/>
+<text x="110.0" y="735" text-anchor="middle" class="tick">0K</text>
+<line x1="359.0" y1="88" x2="359.0" y2="705" stroke="#e2e8f0"/>
+<text x="359.0" y="735" text-anchor="middle" class="tick">5K</text>
+<line x1="608.0" y1="88" x2="608.0" y2="705" stroke="#e2e8f0"/>
+<text x="608.0" y="735" text-anchor="middle" class="tick">10K</text>
+<line x1="857.0" y1="88" x2="857.0" y2="705" stroke="#e2e8f0"/>
+<text x="857.0" y="735" text-anchor="middle" class="tick">15K</text>
+<line x1="1106.0" y1="88" x2="1106.0" y2="705" stroke="#e2e8f0"/>
+<text x="1106.0" y="735" text-anchor="middle" class="tick">20K</text>
+<line x1="1355.0" y1="88" x2="1355.0" y2="705" stroke="#e2e8f0"/>
+<text x="1355.0" y="735" text-anchor="middle" class="tick">25K</text>
+<line x1="110" y1="705.0" x2="1355" y2="705.0" stroke="#e2e8f0"/>
+<text x="96" y="711.0" text-anchor="end" class="tick">20</text>
+<line x1="110" y1="582.2" x2="1355" y2="582.2" stroke="#e2e8f0"/>
+<text x="96" y="588.2" text-anchor="end" class="tick">50</text>
+<line x1="110" y1="489.4" x2="1355" y2="489.4" stroke="#e2e8f0"/>
+<text x="96" y="495.4" text-anchor="end" class="tick">100</text>
+<line x1="110" y1="396.5" x2="1355" y2="396.5" stroke="#e2e8f0"/>
+<text x="96" y="402.5" text-anchor="end" class="tick">200</text>
+<line x1="110" y1="273.7" x2="1355" y2="273.7" stroke="#e2e8f0"/>
+<text x="96" y="279.7" text-anchor="end" class="tick">500</text>
+<line x1="110" y1="180.9" x2="1355" y2="180.9" stroke="#e2e8f0"/>
+<text x="96" y="186.9" text-anchor="end" class="tick">1000</text>
+<line x1="110" y1="88.0" x2="1355" y2="88.0" stroke="#e2e8f0"/>
+<text x="96" y="94.0" text-anchor="end" class="tick">2000</text>
+<line x1="110" y1="705" x2="1355" y2="705" stroke="#334155" stroke-width="2"/>
+<line x1="110" y1="88" x2="110" y2="705" stroke="#334155" stroke-width="2"/>
+<text x="732.5" y="772" text-anchor="middle" class="axis">Target rate (EPS)</text>
+<text x="28" y="396.5" text-anchor="middle" transform="rotate(-90 28 396.5)" class="axis">p99 latency (ms, log)</text>
+<text x="1347" y="693" text-anchor="end" class="note">Logarithmic Y axis</text>
+<polyline points="309.2,364.8 359.0,394.7 408.8,419.1 458.6,439.7 508.4,457.6 558.2,473.4 608.0,487.5 657.8,500.3 707.6,512.0 757.4,522.7 807.2,532.6 857.0,541.9 906.8,550.5 956.6,558.6 1006.4,566.3 1056.2,573.5 1106.0,580.4 1155.8,586.9 1205.6,593.2 1255.4,599.1 1305.2,604.8 1355.0,610.3" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="359.0,315.4 608.0,425.3 857.0,449.3 1106.0,456.0" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="315.4" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="608.0" cy="425.3" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="857.0" cy="449.3" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="1106.0" cy="456.0" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<polyline points="359.0,382.9 608.0,463.4 857.0,504.8 1106.0,532.2" fill="none" stroke="#ea580c" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="382.9" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<circle cx="608.0" cy="463.4" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<circle cx="857.0" cy="504.8" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<circle cx="1106.0" cy="532.2" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<polyline points="359.0,378.5 608.0,452.6" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="378.5" r="4.6" fill="#fff" stroke="#16a34a" stroke-width="2.4"/>
+<circle cx="608.0" cy="452.6" r="4.6" fill="#fff" stroke="#16a34a" stroke-width="2.4"/>
+<line x1="850.0" y1="-153.2" x2="864.0" y2="-139.2" stroke="#dc2626" stroke-width="4"/>
+<line x1="850.0" y1="-139.2" x2="864.0" y2="-153.2" stroke="#dc2626" stroke-width="4"/>
+<polyline points="359.0,383.7 608.0,465.2 857.0,507.1 1106.0,534.9" fill="none" stroke="#0891b2" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="383.7" r="4.6" fill="#fff" stroke="#0891b2" stroke-width="2.4"/>
+<circle cx="608.0" cy="465.2" r="4.6" fill="#fff" stroke="#0891b2" stroke-width="2.4"/>
+<circle cx="857.0" cy="507.1" r="4.6" fill="#fff" stroke="#0891b2" stroke-width="2.4"/>
+<circle cx="1106.0" cy="534.9" r="4.6" fill="#fff" stroke="#0891b2" stroke-width="2.4"/>
+<polyline points="359.0,380.4" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="380.4" r="4.6" fill="#fff" stroke="#7c3aed" stroke-width="2.4"/>
+<polyline points="359.0,279.1 608.0,365.2 857.0,413.3 1106.0,446.4" fill="none" stroke="#ea580c" stroke-width="2" stroke-dasharray="4 5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="279.1" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<circle cx="608.0" cy="365.2" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<circle cx="857.0" cy="413.3" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<circle cx="1106.0" cy="446.4" r="4.6" fill="#fff" stroke="#ea580c" stroke-width="2.4"/>
+<polyline points="359.0,267.7 608.0,349.5 857.0,386.6" fill="none" stroke="#16a34a" stroke-width="2" stroke-dasharray="4 5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="267.7" r="4.6" fill="#fff" stroke="#16a34a" stroke-width="2.4"/>
+<circle cx="608.0" cy="349.5" r="4.6" fill="#fff" stroke="#16a34a" stroke-width="2.4"/>
+<circle cx="857.0" cy="386.6" r="4.6" fill="#fff" stroke="#16a34a" stroke-width="2.4"/>
+<polyline points="359.0,359.3 483.5,398.2 608.0,419.8 732.5,441.6 857.0,446.4 981.5,448.9 1106.0,454.4" fill="none" stroke="#2563eb" stroke-width="2" stroke-dasharray="2 5" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="359.0" cy="359.3" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="483.5" cy="398.2" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="608.0" cy="419.8" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="732.5" cy="441.6" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="857.0" cy="446.4" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="981.5" cy="448.9" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<circle cx="1106.0" cy="454.4" r="4.6" fill="#fff" stroke="#2563eb" stroke-width="2.4"/>
+<line x1="132" y1="112" x2="163" y2="112" stroke="#2563eb" stroke-width="4"/>
+<text x="172" y="118" class="legend">WCM</text>
+<line x1="382" y1="112" x2="413" y2="112" stroke="#ea580c" stroke-width="4"/>
+<text x="422" y="118" class="legend">Fluentd</text>
+<line x1="632" y1="112" x2="663" y2="112" stroke="#16a34a" stroke-width="4"/>
+<text x="672" y="118" class="legend">Vector</text>
+<line x1="132" y1="141" x2="163" y2="141" stroke="#7c3aed" stroke-width="4"/>
+<text x="172" y="147" class="legend">Fluent Bit WASM</text>
+<line x1="382" y1="141" x2="413" y2="141" stroke="#0891b2" stroke-width="4"/>
+<text x="422" y="147" class="legend">Fluent Bit Lua</text>
+<line x1="632" y1="141" x2="663" y2="141" stroke="#94a3b8" stroke-width="4" stroke-dasharray="8 6"/>
+<text x="672" y="147" class="legend">0.99·W_eq</text>
+<line x1="132" y1="170" x2="163" y2="170" stroke="#475569" stroke-width="4" stroke-dasharray="4 5"/>
+<text x="172" y="176" class="legend">dashed = formal 1 MiB *output* batch</text>
+<line x1="382" y1="170" x2="413" y2="170" stroke="#2563eb" stroke-width="4" stroke-dasharray="2 5"/>
+<text x="422" y="176" class="legend">dotted blue = formal wcm-b1 (same config)</text>
+<text x="1347" y="671" text-anchor="end" class="note">solid = 1 MiB of input (≈410 output records) per batch, this session, clock-step corrected; red × = FAIL</text>
+</svg>

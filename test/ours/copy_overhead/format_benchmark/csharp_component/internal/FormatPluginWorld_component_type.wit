@@ -1,0 +1,38 @@
+package local:log-process@0.3.0;
+
+interface pipeline-process {
+  enum log-level {
+    debug,
+    info,
+    warn,
+    error,
+    crit,
+    alert,
+    emerg,
+  }
+
+  record log-entry {
+    id: u64,
+    timestamp: string,
+    level: log-level,
+    message: string,
+    tags: list<tuple<string, string>>,
+  }
+
+  variant plugin-error {
+    invalid-input(string),
+    processing-failed(string),
+    config-error(string),
+    unknown-id(u64),
+    internal-error,
+  }
+}
+
+world format-plugin {
+  import pipeline-process;
+  use pipeline-process.{log-entry, plugin-error};
+  import time-sign: func();
+
+  export format: func(struct-data: list<log-entry>) -> result<list<u8>, plugin-error>;
+  export report-usage: func() -> u64;
+}
